@@ -6,9 +6,9 @@ header-includes:
    - \usepackage[fontsize=8pt]{scrextend}
 mainfont: SourceSansPro
 output: 
-  # html_document:
-  #   toc: true
-  #   toc_depth: 3
+  html_document:
+    toc: true
+    toc_depth: 3
   pdf_document:
     toc: true
     toc_depth: 3
@@ -24,6 +24,7 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 library("fGarch")
 library(RColorBrewer)
 library(scales)
+library(dplyr)
 ```
 
 ```{r}
@@ -37,8 +38,8 @@ mc_dao <- TRUE
 Fit log returns to F-S skew standardized Student-t distribution.  
 `m`  is the location parameter.  
 `s` is the scale parameter.  
-`nu` is the estimated degrees of freedom.  
-`xi` is the estimated shape parameter.  
+`nu` is the estimated shape parameter (degrees of freedom).  
+`xi` is the estimated skewness parameter.  
 ```{r}
 
 ## Calculate risk percentiles.
@@ -147,6 +148,40 @@ df_summary_to_df <- function(df_summary) {
   row.names(summary_df_2) <- row_names
   summary_df_2
 }
+
+## Rank funds for each metric in a summary data frame
+## sorting is a list of elements being either "hi" or "lo", one element for each
+## metric. If "hi", sort descending, if "lo", sort ascending.
+rank_summary <- function(summary_df, sorting) {
+  ll <- list()
+  for(i in 1:nrow(summary_df)) {
+    ll[[i]] <- data.frame(unlist(summary_df[i, ]), colnames(summary_df))
+    #colnames(ll[[i]]) <- c(rownames(summary_df)[i], paste0(rownames(summary_df)[i], "_ranking"))
+    colnames(ll[[i]]) <- c(rownames(summary_df)[i], "ranking")
+    ifelse(
+      sorting[i] == "hi",
+      ll[[i]] <- arrange(
+        ll[[i]],
+        desc(
+          get(colnames(ll[[i]])[1])
+        )
+      ),
+      ll[[i]] <- arrange(
+        ll[[i]],
+        get(colnames(ll[[i]])[1])
+      )
+    )
+    ifelse(
+      i == 1,
+      mc_rankings <- ll[[i]],
+      mc_rankings <- cbind(mc_rankings, ll[[i]])
+    )
+  }
+  
+  rownames(mc_rankings) <- 1:nrow(mc_rankings)
+  mc_rankings
+}
+
 
 
 ## Fit data to a skewed t distribution
@@ -471,16 +506,14 @@ df_summary
 ```{r}
 summary(exp(data_df_l))
 ```
+
 ```{r}
 summary_df <- df_summary_to_df(df_summary)
+summary_df
+```
 
-cat("Highest minimum log-return:", colnames(summary_df)[which(summary_df[1, 1:6] == max(summary_df[1, 1:6]))], "\n")
-
-cat("Highest median log-return:", colnames(summary_df)[which(summary_df[3, 1:6] == max(summary_df[3, 1:6]))], "\n")
-
-cat("Highest mean log-return:", colnames(summary_df)[which(summary_df[4, 1:6] == max(summary_df[4, 1:6]))], "\n")
-
-cat("Highest max log-return:", colnames(summary_df)[which(summary_df[6, 1:6] == max(summary_df[6, 1:6]))], "\n")
+```{r}
+knitr::kable(rank_summary(summary_df, sorting = c("hi", "hi", "hi", "hi")), digits = 3)
 ```
 
 
@@ -1076,18 +1109,44 @@ rownames(mc_summary) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_prob_pct", "l
 knitr::kable(mc_summary, digits = 3)
 ```
 
+
+Ranking:
+
+
 ```{r}
-cat("Highest mean    :", colnames(mc_summary)[which(mc_summary[1, ] == max(mc_summary[1, ]))], "\n")
+rank_summary <- function(summary_df, sorting) {
+  ll <- list()
+  for(i in 1:nrow(summary_df)) {
+    ll[[i]] <- data.frame(unlist(summary_df[i, ]), colnames(summary_df))
+    #colnames(ll[[i]]) <- c(rownames(summary_df)[i], paste0(rownames(summary_df)[i], "_ranking"))
+    colnames(ll[[i]]) <- c(rownames(summary_df)[i], "ranking")
+    ifelse(
+      sorting[i] == "hi",
+      ll[[i]] <- arrange(
+        ll[[i]],
+        desc(
+          get(colnames(ll[[i]])[1])
+        )
+      ),
+      ll[[i]] <- arrange(
+        ll[[i]],
+        get(colnames(ll[[i]])[1])
+      )
+    )
+    ifelse(
+      i == 1,
+      mc_rankings <- ll[[i]],
+      mc_rankings <- cbind(mc_rankings, ll[[i]])
+    )
+  }
+  
+  rownames(mc_rankings) <- 1:nrow(mc_rankings)
+  mc_rankings
+}
+```
 
-cat("Lowest sd       :", colnames(mc_summary)[which(mc_summary[2, ] == min(mc_summary[2, ]))], "\n")
-
-cat("Highest min     :", colnames(mc_summary)[which(mc_summary[3, ] == max(mc_summary[3, ]))], "\n")
-
-cat("Highest max     :", colnames(mc_summary)[which(mc_summary[4, ] == max(mc_summary[4, ]))], "\n")
-
-cat("Lowest dao prob :", colnames(mc_summary)[which(mc_summary[5, ] == min(mc_summary[5, ]))], "\n")
-
-cat("Lowest loss prob:", colnames(mc_summary)[which(mc_summary[6, ] == min(mc_summary[6, ]))], "\n")
+```{r}
+knitr::kable(rank_summary(mc_summary, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 3)
 ```
 
 
@@ -1107,9 +1166,7 @@ $$\dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2} = \dfra
 
 $$\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
 
-
-
-$$\dfrac{x_t y_{t-1} + x_{t-1} y_t }{x_{t-1} y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}} $$
+c{ x_t + y_t }{ x_{t-1} + y_{t-1}} $$
 $$(x_{t-1} + y_{t-1}) x_t y_{t-1} + (x_{t-1} + y_{t-1}) x_{t-1} y_t = 2 (x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
 
 
@@ -1179,7 +1236,6 @@ So taking the average of log returns doesn't work either.
 ## Simulation of mix vs mix of simulations
 Test if a simulation of a mix (average) of two returns series has the same distribution as a mix of two simulated returns series.
 
-We are adding annual returns rather than multiplying, so imagine that we are simulating log returns.
 
 ```{r}
 mc_sim <- function(
@@ -1331,7 +1387,7 @@ The order of steps in the individual paths do not matter, because the mix of sim
 Recall,
 $$\text{Var}(aX+bY) = a^2 \text{Var}(X) + b^2 \text{Var}(Y) + 2ab \text{Cov}(a, b)$$
 
-```{r}
+```{r include=TRUE, echo=TRUE}
 var(0.5 * vhr + 0.5 * phr)
 0.5^2 * var(vhr) + 0.5^2 * var(phr) + 2 * 0.5 * 0.5 * cov(vhr, phr)
 ```
