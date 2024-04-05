@@ -486,6 +486,7 @@ data_df_l <- data.frame(
 )
 ```
 
+
 ```{r}
 all_data <- exp(c(vmr, vhr, pmr, phr, mmr, mhr))
 plot(x = c(2011:2023), y = exp(vmr), type = "l",  lty = 1, lwd = 2, xlab = "year", ylab = "Gross returns", col = "#7AC5CD", ylim = c(min(all_data), max(all_data)), main = "Gross returns 2011-2023")
@@ -497,11 +498,14 @@ lines(x = c(2011:2023), y = exp(mhr), col = "#FF00FF",  lty = 2, lwd = 1.5)
 legend("bottom", legend = c("vmr", "vhr", "pmr", "phr", "mmr", "mhr"), col = c("#7AC5CD", "#76EEC6", "#CD6600", "#CDAD00", "#A020F0", "#FF00FF"), lty = c(1, 2, 1, 2, 1, 2), lwd = 2, ncol = 3 )
 ```
 
-Summary of gross returns
+
+## Summary of gross returns
+
 ```{r}
 df_summary <- summary(exp(data_df))
 df_summary
 ```
+
 
 ```{r}
 summary(exp(data_df_l))
@@ -512,11 +516,12 @@ summary_df <- df_summary_to_df(df_summary)
 summary_df
 ```
 
+## Ranking
 ```{r}
 knitr::kable(rank_summary(summary_df, sorting = c("hi", "hi", "hi", "hi")), digits = 3)
 ```
 
-
+## Covariance
 
 ```{r}
 cat("cov(vmr, pmr) = ", cov(vmr, pmr), "\n")
@@ -932,6 +937,7 @@ mc_mhr_b <- mc_simulation(list(fit_vhr, fit_phr), num_paths = mc_num_paths, num_
 
 # Compare pension plans
 
+## Risk of max loss
 Risk of max loss of x percent for a single period (year).  
 x values are row names.  
 
@@ -957,8 +963,14 @@ knitr::kable(risk_percentiles_df, digits = 3)
 ```
 
 
+### Worst ranking for loss percentiles
+
+```{r}
+knitr::kable(rank_summary(risk_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
 
 
+## Chance of min gains
 Chance of min gains of x percent for a single period (year).  
 x values are row names.
 
@@ -984,7 +996,19 @@ rownames(gain_percentiles_df) <- as.character(percent_vals)
 knitr::kable(gain_percentiles_df, digits = 3)
 ```
 
-MC risk percentiles: Risk of loss from first to last period.  
+### Best ranking for gains percentiles
+
+```{r}
+knitr::kable(rank_summary(gain_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+
+
+## MC risk percentiles
+
+Risk of loss from first to last period.  
+
 `_a` is simulation from estimated distribution of returns of mix.  
 `_b` is mix of simulations from estimated distribution of returns from individual 
 funds.
@@ -1015,8 +1039,16 @@ rownames(mc_loss_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_loss_percentiles_df, digits = 3)
 ```
 
+### Worst ranking for MC loss percentiles
 
-MC gains percentiles: Chance of gains from first to last period.  
+```{r}
+knitr::kable(rank_summary(mc_loss_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+## MC gains percentiles
+
+Chance of gains from first to last period.  
 `_a` is simulation from estimated distribution of returns of mix.  
 `_b` is mix of simulations from estimated distribution of returns from individual 
 funds.
@@ -1043,6 +1075,13 @@ rownames(mc_gain_percentiles_df) <- as.character(percent_vals)
 ```{r}
 knitr::kable(mc_gain_percentiles_df, digits = 3)
 ```
+
+### Best ranking for MC gains percentiles
+
+```{r}
+knitr::kable(rank_summary(mc_gain_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
 
 
 ## Summary statistics  
@@ -1072,6 +1111,13 @@ rownames(fit_summary) <- c("m", "s", "nu", "xi", "R-squared")
 knitr::kable(fit_summary, digits = 3)
 ```
 
+#### Fit statistics ranking
+
+```{r}
+knitr::kable(rank_summary(fit_summary[c(1, 2, 5), ], sorting = c("hi", "lo", "hi")), digits = 3)
+```
+
+
 
 ### Monte Carlo simulations summary
 
@@ -1092,7 +1138,7 @@ cat("Number of paths:", mc_num_paths, "\n")
 ```{r}
 mc_summary <- data.frame(
   Velliv_m = c(mc_vmr$mc_m, mc_vmr$mc_s, mc_vmr$mc_min, mc_vmr$mc_max, mc_vmr$dao_probability_percent, mc_vmr$percent_losing_paths),
-  Velliv_m_long = c(mc_vmrl$mc_m, mc_vmrl$mc_s, mc_vmrl$mc_min, mc_vmrl$mc_max, mc_vmrl$dao_probability_percent, mc_vmrl$percent_losing_paths),
+  Velliv_m_l = c(mc_vmrl$mc_m, mc_vmrl$mc_s, mc_vmrl$mc_min, mc_vmrl$mc_max, mc_vmrl$dao_probability_percent, mc_vmrl$percent_losing_paths),
   Velliv_h = c(mc_vhr$mc_m, mc_vhr$mc_s, mc_vhr$mc_min, mc_vhr$mc_max, mc_vhr$dao_probability_percent, mc_vhr$percent_losing_paths),
   PFA_m = c(mc_pmr$mc_m, mc_pmr$mc_s, mc_pmr$mc_min, mc_pmr$mc_max, mc_pmr$dao_probability_percent, mc_pmr$percent_losing_paths),
   PFA_h = c(mc_phr$mc_m, mc_phr$mc_s, mc_phr$mc_min, mc_phr$mc_max, mc_phr$dao_probability_percent, mc_phr$percent_losing_paths),
@@ -1102,48 +1148,16 @@ mc_summary <- data.frame(
   mix_h_b = c(mc_mhr_b$mc_m, mc_mhr_b$mc_s, mc_mhr_b$mc_min, mc_mhr_b$mc_max, mc_mhr_b$dao_probability_percent, mc_mhr_b$percent_losing_paths)
 )
 
-rownames(mc_summary) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_prob_pct", "losing_prob_pct")
+rownames(mc_summary) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_pct", "losing_pct")
 ```
+
 
 ```{r}
 knitr::kable(mc_summary, digits = 3)
 ```
 
 
-Ranking:
-
-
-```{r}
-rank_summary <- function(summary_df, sorting) {
-  ll <- list()
-  for(i in 1:nrow(summary_df)) {
-    ll[[i]] <- data.frame(unlist(summary_df[i, ]), colnames(summary_df))
-    #colnames(ll[[i]]) <- c(rownames(summary_df)[i], paste0(rownames(summary_df)[i], "_ranking"))
-    colnames(ll[[i]]) <- c(rownames(summary_df)[i], "ranking")
-    ifelse(
-      sorting[i] == "hi",
-      ll[[i]] <- arrange(
-        ll[[i]],
-        desc(
-          get(colnames(ll[[i]])[1])
-        )
-      ),
-      ll[[i]] <- arrange(
-        ll[[i]],
-        get(colnames(ll[[i]])[1])
-      )
-    )
-    ifelse(
-      i == 1,
-      mc_rankings <- ll[[i]],
-      mc_rankings <- cbind(mc_rankings, ll[[i]])
-    )
-  }
-  
-  rownames(mc_rankings) <- 1:nrow(mc_rankings)
-  mc_rankings
-}
-```
+#### Ranking
 
 ```{r}
 knitr::kable(rank_summary(mc_summary, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 3)
