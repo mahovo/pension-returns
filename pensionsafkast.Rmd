@@ -6,9 +6,9 @@ header-includes:
    - \usepackage[fontsize=8pt]{scrextend}
 mainfont: SourceSansPro
 output: 
-  # html_document:
-  #   toc: true
-  #   toc_depth: 3
+  html_document:
+    toc: true
+    toc_depth: 3
   pdf_document:
     toc: true
     toc_depth: 3
@@ -1184,7 +1184,6 @@ $$\dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2} = \dfra
 
 $$\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
 
-c{ x_t + y_t }{ x_{t-1} + y_{t-1}} $$
 $$(x_{t-1} + y_{t-1}) x_t y_{t-1} + (x_{t-1} + y_{t-1}) x_{t-1} y_t = 2 (x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
 
 
