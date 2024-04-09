@@ -10,6 +10,7 @@ output:
     toc: true
     toc_depth: 3
   pdf_document:
+    #latex_engine: xelatex
     toc: true
     toc_depth: 3
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
@@ -182,6 +183,25 @@ rank_summary <- function(summary_df, sorting) {
   mc_rankings
 }
 
+max_sum <- function(data_vector, p = 1) {
+  ms <- c()
+  x <- data_vector
+  for(n in seq_along(data_vector)) {
+    ms[n] <- max(x[1:n]^p) / sum(x[1:n]^p)
+  }
+  ms
+}
+
+plot_max_sum <- function(fit, num_periods) {
+  ms_log_returns <- rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi)
+  par(mfrow = c(2, 2))
+  lapply(1:4, function(p) {
+    ms_vector <- max_sum(ms_log_returns, p)
+    plot(ms_vector, type = "l", ylim = c(min(ms_vector), max(ms_vector)), xlab = "n", ylab = paste0("MS(", p, ")"), main = paste0("MS(", p, ")")
+    )
+  })
+  par(mfrow = c(1, 1))
+}
 
 
 ## Fit data to a skewed t distribution
@@ -238,6 +258,10 @@ fit_skewed_t <- function(x, method = "BFGS") {
   cat("\n")
   
   dist_data <- qsstd((1:1000 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+  
+  dens_data <- dsstd((-299:300 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+  
+  sample_mean <- mean(dist_data)
 
   risk_estimate(dist_data, "max", 10)
   risk_estimate(dist_data, "max", 25)
@@ -272,9 +296,17 @@ fit_skewed_t <- function(x, method = "BFGS") {
       plot(sort(dist_data), pch = 16, cex = 0.3, main = "Estimated skew t distribution CDF")
       abline(a = 0, b = 0, col = "red")
     },
+    dens_plot = function() {
+      plot(x = (-299:300 - 0.5)/1000, y = dens_data, cex = 0.3, pch = 16, xlab = "log-return", ylab = "likelihood", main = "Estimated skew t distribution PDF",
+      sub = paste0("m = ", round(mu_sstd_fit, 3), ", sample mean = ", round(sample_mean, 3)))
+      abline(v = mu_sstd_fit, col = "red")
+      abline(v = sample_mean, lty = 2, col = "blue")
+      legend("topleft", legend = c("density", "m", "sample mean"), col = c("black", "red", "blue"), lty = c(1, 1, 2))
+    },
     data = x,
     fit = fit,
     dist_data = dist_data,
+    dens_data = dens_data,
     m = mu_sstd_fit,
     s = sigma_sstd_fit,
     nu = nu_sstd_fit,
@@ -560,6 +592,11 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 We see that for a few observations out of a 1000, the losses are disastrous, while the upside is very dampened.
 
 
+```{r}
+(fit_vmr$dens_plot)()
+```
+
+
 ## Monte Carlo
 
 ```{r}
@@ -574,6 +611,17 @@ mc_vmr <- mc_simulation(fit_vmr, num_paths = mc_num_paths, num_periods = mc_num_
 ```{r results='hide',fig.keep='all'}
 (mc_vmr$mc_plot_last_period)()
 ```
+
+
+## Max vs sum plots
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_vmr, 1e4)
+```
+
+
 
 # Velliv medium risk, 2007 - 2023
 
@@ -610,6 +658,11 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 We see that for a few observations out of a 1000, the losses are disastrous, while the upside is very dampened. But because the disastrous loss in 2008 was followed by a large profit the following year, we see some increased upside for the top percentiles. Beware: A 1.2 return following a 0.8 return doesn't take us back where we were before the loss. Path dependency! So if returns more or less average out, but high returns have a tendency to follow high losses, that's bad!
 
 
+```{r}
+(fit_vmrl$dens_plot)()
+```
+
+
 ## Monte Carlo
 
 ```{r}
@@ -624,6 +677,15 @@ mc_vmrl <- mc_simulation(fit_vmrl, num_paths = mc_num_paths, num_periods = mc_nu
 
 ```{r results='hide',fig.keep='all'}
 (mc_vmrl$mc_plot_last_period)()
+```
+
+
+## Max vs sum plots
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_vmrl, 1e4)
 ```
 
 
@@ -659,6 +721,11 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 We see that for a few observations out of a 1000, the losses are disastrous, while the upside is very dampened.
 
 
+```{r}
+(fit_vhr$dens_plot)()
+```
+
+
 ## Monte Carlo
 
 ```{r}
@@ -673,6 +740,15 @@ mc_vhr <- mc_simulation(fit_vhr, num_paths = mc_num_paths, num_periods = mc_num_
 
 ```{r results='hide',fig.keep='all'}
 (mc_vhr$mc_plot_last_period)()
+```
+
+
+## Max vs sum plots
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_vhr, 1e4)
 ```
 
 
@@ -714,6 +790,11 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 We see that for a few observations out of a 1000, the losses are disastrous. While there is some uptick at the top percentiles, the curve basically flattens out.
 
 
+```{r}
+(fit_pmr$dens_plot)()
+```
+
+
 ## Monte Carlo
 
 ```{r}
@@ -728,6 +809,15 @@ mc_pmr <- mc_simulation(fit_pmr, num_paths = mc_num_paths, num_periods = mc_num_
 
 ```{r results='hide',fig.keep='all'}
 (mc_pmr$mc_plot_last_period)()
+```
+
+
+## Max vs sum plots
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_pmr, 1e4)
 ```
 
 
@@ -763,6 +853,12 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 We see that for a few observations out of a 1000, the losses are disastrous, while the upside is very dampened.
 
 
+```{r}
+(fit_phr$dens_plot)()
+```
+
+
+
 ## Monte Carlo
 
 ```{r}
@@ -777,6 +873,15 @@ mc_phr <- mc_simulation(fit_phr, num_paths = mc_num_paths, num_periods = mc_num_
 
 ```{r results='hide',fig.keep='all'}
 (mc_phr$mc_plot_last_period)()
+```
+
+
+## Max vs sum plots
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_phr, 1e4)
 ```
 
 
@@ -816,6 +921,11 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 ```
 
 We see that for a few observations out of a 1000, the losses are disastrous, while the upside is very dampened.
+
+```{r}
+(fit_mmr$dens_plot)()
+```
+
 
 
 ## Monte Carlo
@@ -859,6 +969,15 @@ mc_mmr_b <- mc_simulation(list(fit_vmr, fit_pmr), num_paths = mc_num_paths, num_
 ```
 
 
+## Max vs sum plots
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_mmr, 1e4)
+```
+
+
 # Mix high risk, 2011 - 2023
 
 ## Fit to skew t distribution
@@ -890,6 +1009,13 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 ```
 
 We see that the high risk mix provides a much better upside and smaller downside.
+
+```{r}
+(fit_mhr$dens_plot)()
+```
+
+
+
 
 ## Monte Carlo
 
@@ -931,6 +1057,13 @@ mc_mhr_b <- mc_simulation(list(fit_vhr, fit_phr), num_paths = mc_num_paths, num_
 ```
 
 
+## Max vs sum plots
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_mhr, 1e4)
+```
 
 
 
@@ -1166,6 +1299,31 @@ knitr::kable(mc_summary, digits = 3)
 ```{r}
 knitr::kable(rank_summary(mc_summary, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 3)
 ```
+
+
+
+# Comments
+
+(Ignoring `mhr_a`...)
+
+`mhr` has some nice properties:  
+- It has a relatively high $nu$ value of 90, which means it is tending more towards exponential tails than polynomial tails. All other funds have $nu$ values close to 3, except `phr` which is even worse at close to 2. (Note that for a Gaussian, $nu$ is infinite.)  
+- It has the lowest losing percentage of all simulations, which is better than 1/6 that of `phr`.  
+- It has a DAO percentage of 0, which is the same as `mmr`, and less than `phr`.  
+- Only `phr` has a higher `mc_m`.  
+- It has a smaller `mc_s` than the individual components, `vhr` and `phr`.  
+- It has the highest `xi` of all fits, suggesting right skewness. Density plots for `vmr`, `phr` and `mmr` have an extremely sharp drop, as if an upward limiter has been applied, which corresponds to extremely low `xi` values. The density plot for `mhr` is by far the most symmetrical of all the fits.  
+- Only `mmr` has as higher `mc_min`. However, that of `mmr` is 18 times higher with 62, so `mmr` is a clear winner here.  
+- Naturally, it has a `mc_max` smaller than the individual components, `vhr` and `phr`, but ca. 1.5 times higher then `mmr`.  
+
+
+
+Taleb, Statistical Consequences Of Fat Tails, p. 97:  
+"the variance of a finite variance random variable with tail exponent < 4 will be infinite".
+
+And p. 363:  
+"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, un- der a constant volatility Student T with tail exponent alpha = 3. Technically the errors should not converge in finite time as their distribution has infinite variance."
+
 
 
 
@@ -1427,6 +1585,26 @@ summary(test_df)
 ```
 
 
+## The meaning of `xi`
+
+The fit for `mhr` has the highest `xi` value of all. This suggests right-skew:
+
+```{r}
+plot((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 1), xlim = c(-20, 20), ylim = c(0, 0.1), type = "l", xlab = "value", ylab = "likelihood", main = "Skew t-distribution density")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 0.5), col="red")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 2), col="blue")
+legend("topright", c("xi=1", "xi=0.5", "xi=2"), col = c("black", "red", "blue"), lty = 1)
+```
 
 
+## Max vs sum plot
+
+
+If the Law Of Large Numbers holds true,
+$$\dfrac{\max (X_1^p, ..., X^p)}{\sum_{i=1}^n X_i^p} \rightarrow 0$$
+for $n \rightarrow \infty$.
+
+If not, $X$ doesn't have a $p$'th moment.
+
+See Taleb: The Statistical Consequences Of Fat Tails, p. 192
 
