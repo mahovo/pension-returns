@@ -10,7 +10,6 @@ output:
     toc: true
     toc_depth: 3
   pdf_document:
-    #latex_engine: xelatex
     toc: true
     toc_depth: 3
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
@@ -21,12 +20,11 @@ date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 ```
 
-```{r include=FALSE}
-library("fGarch")
-library(RColorBrewer)
-library(scales)
-library(dplyr)
+```{r}
+source("~/R\ work/pension-returns/pension-returns_functions.R")
+#source("~/R\ work/pension-returns/importance-sampling.R")
 ```
+
 
 ```{r}
 mc_num_paths <- 10000
@@ -43,314 +41,366 @@ Fit log returns to F-S skew standardized Student-t distribution.
 `xi` is the estimated skewness parameter.  
 ```{r}
 
-## Calculate risk percentiles.
-## data can be a data frame or a list of data frames.
-# risk_percentiles <- function(data, percent, max_or_min) {
-#   init_capital = 100
-#   if(!is.list(data)) {
-#     init_capital = 100
-#   } else {
-#     init_capital <- init_capital/length(data)
-#     vect <- data[[1]]
-#     if(length(data) > 1) {
-#       for(i in 2:length(data)) {
-#         vect <- vect + data[[i]]
-#       }
-#     }
-#     data <- vect
-#   }
+# ## Calculate risk percentiles.
+# ## data can be a data frame or a list of data frames.
+# # risk_percentiles <- function(data, percent, max_or_min) {
+# #   init_capital = 100
+# #   if(!is.list(data)) {
+# #     init_capital = 100
+# #   } else {
+# #     init_capital <- init_capital/length(data)
+# #     vect <- data[[1]]
+# #     if(length(data) > 1) {
+# #       for(i in 2:length(data)) {
+# #         vect <- vect + data[[i]]
+# #       }
+# #     }
+# #     data <- vect
+# #   }
+# #   if(max_or_min == "max"){
+# #       init_capital * (length(which(data < (100 - percent)/100)) + 0.5) / 1000
+# #     } else {
+# #       init_capital * (length(which(data > (100 + percent)/100)) + 0.5) / 1000
+# #     }
+# # }
+# 
+# ## dist_data is given as log returns.
+# risk_percentiles <- function(dist_data, percent, max_or_min) {
+#   num_points <- length(dist_data)
+#   log_returns <- sort(dist_data)
 #   if(max_or_min == "max"){
-#       init_capital * (length(which(data < (100 - percent)/100)) + 0.5) / 1000
-#     } else {
-#       init_capital * (length(which(data > (100 + percent)/100)) + 0.5) / 1000
-#     }
+#     100 * (length(which(dist_data < log((100 - percent)/100)))) / num_points
+#   } else {
+#     100 * (length(which(dist_data > log((100 + percent)/100)))) / num_points
+#   }
 # }
-
-## dist_data is given as log returns.
-risk_percentiles <- function(dist_data, percent, max_or_min) {
-  num_points <- length(dist_data)
-  log_returns <- sort(dist_data)
-  if(max_or_min == "max"){
-    100 * (length(which(dist_data < log((100 - percent)/100)))) / num_points
-  } else {
-    100 * (length(which(dist_data > log((100 + percent)/100)))) / num_points
-  }
-}
-risk_percentiles <- Vectorize(risk_percentiles, "percent")
-  
-## Estimate risk
-risk_estimate <- function(dist_data, max_or_min = "max", percent) {
-  if(max_or_min == "max") {
-    cat("What is the risk of losing max", percent,"%? =<", risk_percentiles(dist_data, percent, max_or_min), "percent\n")
-  } else {
-    cat("What is the chance of gaining min", percent,"%? >=",risk_percentiles(dist_data, percent, max_or_min), "percent\n")
-  }
-}
-
-## down_and_out_df() takes a data frame as input.
-## For each column, the first element which is below the threshold and all following elements
-## are set to 0.
-down_and_out_df <- function(df, threshold) {
-  ll <- lapply(df,
-    function(vect) {
-      n <- length(vect) 
-      for(i in seq_along(vect)) {
-        if(vect[i] < threshold ) {
-          if(i == n) {break}
-          vect[(i):n] <- rep(0, n - i + 1)
-          break
-        }
-      }
-      vect
-    }
-  )
-  as.data.frame(ll)
-}
-
-down_and_out_vect <- function(vect, threshold) {
-  n <- length(vect) 
-  for(i in seq_along(vect)) {
-    if(vect[i] < threshold ) {
-      if(i == n) {break}
-      vect[(i):n] <- rep(0, n - i + 1)
-      break
-    }
-  }
-  vect
-}
-
-count_num_dao <- function(df, threshold = 0) {
-  length(which(df[nrow(df), ] <= threshold))
-}
-
-df_summary_to_df <- function(df_summary) {
-  summary_df_pre <- as.data.frame(df_summary)
-  summary_levels <- levels(summary_df_pre$Var2)
-  summary_df <- data.frame(
-    matrix(
-      length(summary_levels), 
-      nrow=nrow(
-        summary_df_pre[summary_df_pre$Var2 == summary_levels[[1]], ]
-      )
-    )
-  )
-  summary_df_2 <- summary_df
-  for(i in seq_along(summary_levels)) {
-    summary_df[, i] <- summary_df_pre[summary_df_pre$Var2 == summary_levels[i], "Freq"]
-  }
-
-  row_names <- c("Min.   :", "1st Qu.:", "Median :", "Mean   :", "3rd Qu.:", "Max.   :")
-  for(i in 1:nrow(summary_df)) {
-    for(j in 1:ncol(summary_df)) {
-      summary_df_2[i, j] <- as.numeric(gsub(row_names[i], "", summary_df[i, j]))
-    }
-  }
-  names(summary_df_2) <- unlist(lapply(summary_levels, function(x) {gsub(" ", "", x)}))
-  row.names(summary_df_2) <- row_names
-  summary_df_2
-}
-
-## Rank funds for each metric in a summary data frame
-## sorting is a list of elements being either "hi" or "lo", one element for each
-## metric. If "hi", sort descending, if "lo", sort ascending.
-rank_summary <- function(summary_df, sorting) {
-  ll <- list()
-  for(i in 1:nrow(summary_df)) {
-    ll[[i]] <- data.frame(unlist(summary_df[i, ]), colnames(summary_df))
-    #colnames(ll[[i]]) <- c(rownames(summary_df)[i], paste0(rownames(summary_df)[i], "_ranking"))
-    colnames(ll[[i]]) <- c(rownames(summary_df)[i], "ranking")
-    ifelse(
-      sorting[i] == "hi",
-      ll[[i]] <- arrange(
-        ll[[i]],
-        desc(
-          get(colnames(ll[[i]])[1])
-        )
-      ),
-      ll[[i]] <- arrange(
-        ll[[i]],
-        get(colnames(ll[[i]])[1])
-      )
-    )
-    ifelse(
-      i == 1,
-      mc_rankings <- ll[[i]],
-      mc_rankings <- cbind(mc_rankings, ll[[i]])
-    )
-  }
-  
-  rownames(mc_rankings) <- 1:nrow(mc_rankings)
-  mc_rankings
-}
-
-max_sum <- function(data_vector, p = 1) {
-  ms <- c()
-  x <- data_vector
-  for(n in seq_along(data_vector)) {
-    ms[n] <- max(x[1:n]^p) / sum(x[1:n]^p)
-  }
-  ms
-}
-
-plot_max_sum <- function(fit, num_periods) {
-  ms_log_returns <- rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi)
-  par(mfrow = c(2, 2))
-  lapply(1:4, function(p) {
-    ms_vector <- max_sum(ms_log_returns, p)
-    plot(ms_vector, type = "l", ylim = c(min(ms_vector), max(ms_vector)), xlab = "n", ylab = paste0("MS(", p, ")"), main = paste0("MS(", p, ")")
-    )
-  })
-  par(mfrow = c(1, 1))
-}
-
-
-## Fit data to a skewed t distribution
-fit_skewed_t <- function(x, method = "BFGS") {
-  loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))
-  start = c(mean(x), sd(x), 3, 1)
-  #fit_sstd = optim(start, loglik_sstd, hessian = F, method="L-BFGS-B", lower = c(0, 0.1, 1.1, -2))
-  fit_sstd = optim(start, loglik_sstd, method = method)
-
-  n = length(x)
-  
-  AIC_sstd = 2 * fit_sstd$value + 2 * 4
-  BIC_sstd = 2 * fit_sstd$value + log(n) * 4
-  #sd_sstd = sqrt(diag(solve(fit_sstd$hessian)))
-  cat("\n")
-  #cat("sd_sstd:", sd_sstd)
-  cat("AIC:", AIC_sstd, "\n")
-  cat("BIC:", BIC_sstd, "\n")
-  
-  # Middelværdi:
-  mu_sstd_fit <- fit_sstd$par[1]#/1000
-  cat("m:", mu_sstd_fit, "\n")
-  
-  # Spredning:
-  sigma_sstd_fit <- fit_sstd$par[2]#/1000
-  cat("s:", sigma_sstd_fit, "\n")
-  
-  # Frihedsgrader:
-  nu_sstd_fit <- fit_sstd$par[3] # 3.36019
-  cat("nu (df):", nu_sstd_fit, "\n")
-  
-  xi_sstd_fit <- fit_sstd$par[4] # 0.8436514
-  cat("xi:", xi_sstd_fit, "\n")
-  
-  fit <- qsstd((1:n - 0.5)/n, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
-
-  r_squared <- cor(sort(fit), sort(x))
-  # R^2
-  r_squared_round <- round(r_squared, 3)
-  cat("R^2:", r_squared_round, "\n")
-  cat("\n")
-  
-  range_cuts <- c(0.0, 0.5, 0.9, 0.95, 0.99, 1.0)
-  interpretations <- c(
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is not great."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is not completely random."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is good."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is very good."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is extremely good.")
-  )
-  
-  cat(interpretations[findInterval(r_squared_round, range_cuts)])
-  cat("\n")
-  cat("\n")
-  
-  dist_data <- qsstd((1:1000 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
-  
-  dens_data <- dsstd((-299:300 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
-  
-  sample_mean <- mean(dist_data)
-
-  risk_estimate(dist_data, "max", 10)
-  risk_estimate(dist_data, "max", 25)
-  risk_estimate(dist_data, "max", 50)
-  risk_estimate(dist_data, "max", 90)
-  risk_estimate(dist_data, "max", 99)
-  cat("\n")
-  risk_estimate(dist_data, "min", 10)
-  risk_estimate(dist_data, "min", 25)
-  risk_estimate(dist_data, "min", 50)
-  risk_estimate(dist_data, "min", 90)
-  risk_estimate(dist_data, "min", 99)
-
-  theoretical_quantiles <- qsstd(ppoints(n), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)
-  
-  output <- list(
-    # Plot with estimated skewed t-distribution
-    # qq plot for t-distribution
-    qqplot = function() {qqplot(x = x, y = theoretical_quantiles, main = "QQ-plot, skewed t", xlab = "log returns", ylab = "skewed t-quantiles",  xlim = c(min(x) - abs(min(x))/10, max(x) + abs(max(x))/10), ylim = c(min(fit) - abs(min(fit))/10, max(fit) + abs(max(fit))/10))
-    mtext(paste0("my=", round(mu_sstd_fit, 4),", sigma =", round(sigma_sstd_fit, 4),", df=",round(nu_sstd_fit, 3), ", xi =", round(xi_sstd_fit, 3), ", R^2=", r_squared_round), side=3,  cex = 0.8, adj=0)
-    qqline(x, distribution = function(p) qsstd(p, mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit), datax = TRUE, col="black")
-    abline(0, 1, col = "red")
-    legend("bottomright", legend = c("data trendline", "45 degree line"), col = c("black", "red"), lty = c(1, 1))
-    },
-    fit_plot = function() {
-      plot(sort(x), col="blue", ylab = "log returns", main = "Data vs fit",
-           ylim = c(min(c(x, fit)), max(c(x, fit))))
-      points(sort(fit), col="red")
-      legend("bottomright", legend = c("data", "fit"), col = c("blue", "red"), pch = c(1, 1))
-    },
-    dist_plot = function() {
-      plot(sort(dist_data), pch = 16, cex = 0.3, main = "Estimated skew t distribution CDF")
-      abline(a = 0, b = 0, col = "red")
-    },
-    dens_plot = function() {
-      plot(x = (-299:300 - 0.5)/1000, y = dens_data, cex = 0.3, pch = 16, xlab = "log-return", ylab = "likelihood", main = "Estimated skew t distribution PDF",
-      sub = paste0("m = ", round(mu_sstd_fit, 3), ", sample mean = ", round(sample_mean, 3)))
-      abline(v = mu_sstd_fit, col = "red")
-      abline(v = sample_mean, lty = 2, col = "blue")
-      legend("topleft", legend = c("density", "m", "sample mean"), col = c("black", "red", "blue"), lty = c(1, 1, 2))
-    },
-    data = x,
-    fit = fit,
-    dist_data = dist_data,
-    dens_data = dens_data,
-    m = mu_sstd_fit,
-    s = sigma_sstd_fit,
-    nu = nu_sstd_fit,
-    xi = xi_sstd_fit,
-    r_squared = r_squared,
-    theoretical_quantiles = theoretical_quantiles
-  )
-  
-  comment(output) <- "single_fit"
-  output
-}
-
-
-# mc_simulation <- function(fit, num_paths = 1000, num_periods = 20, dao = TRUE) {
+# risk_percentiles <- Vectorize(risk_percentiles, "percent")
+#   
+# ## Estimate risk
+# risk_estimate <- function(dist_data, max_or_min = "max", percent) {
+#   if(max_or_min == "max") {
+#     cat("What is the risk of losing max", percent,"%? =<", risk_percentiles(dist_data, percent, max_or_min), "percent\n")
+#   } else {
+#     cat("What is the chance of gaining min", percent,"%? >=",risk_percentiles(dist_data, percent, max_or_min), "percent\n")
+#   }
+# }
+# 
+# ## down_and_out_df() takes a data frame as input.
+# ## For each column, the first element which is below the threshold and all following elements
+# ## are set to 0.
+# down_and_out_df <- function(df, threshold) {
+#   ll <- lapply(df,
+#     function(vect) {
+#       n <- length(vect) 
+#       for(i in seq_along(vect)) {
+#         if(vect[i] < threshold ) {
+#           if(i == n) {break}
+#           vect[(i):n] <- rep(0, n - i + 1)
+#           break
+#         }
+#       }
+#       vect
+#     }
+#   )
+#   as.data.frame(ll)
+# }
+# 
+# down_and_out_vect <- function(vect, threshold) {
+#   n <- length(vect) 
+#   for(i in seq_along(vect)) {
+#     if(vect[i] < threshold ) {
+#       if(i == n) {break}
+#       vect[(i):n] <- rep(0, n - i + 1)
+#       break
+#     }
+#   }
+#   vect
+# }
+# 
+# count_num_dao <- function(df, threshold = 0) {
+#   length(which(df[nrow(df), ] <= threshold))
+# }
+# 
+# df_summary_to_df <- function(df_summary) {
+#   summary_df_pre <- as.data.frame(df_summary)
+#   summary_levels <- levels(summary_df_pre$Var2)
+#   summary_df <- data.frame(
+#     matrix(
+#       length(summary_levels), 
+#       nrow=nrow(
+#         summary_df_pre[summary_df_pre$Var2 == summary_levels[[1]], ]
+#       )
+#     )
+#   )
+#   summary_df_2 <- summary_df
+#   for(i in seq_along(summary_levels)) {
+#     summary_df[, i] <- summary_df_pre[summary_df_pre$Var2 == summary_levels[i], "Freq"]
+#   }
+# 
+#   row_names <- c("Min.   :", "1st Qu.:", "Median :", "Mean   :", "3rd Qu.:", "Max.   :")
+#   for(i in 1:nrow(summary_df)) {
+#     for(j in 1:ncol(summary_df)) {
+#       summary_df_2[i, j] <- as.numeric(gsub(row_names[i], "", summary_df[i, j]))
+#     }
+#   }
+#   names(summary_df_2) <- unlist(lapply(summary_levels, function(x) {gsub(" ", "", x)}))
+#   row.names(summary_df_2) <- row_names
+#   summary_df_2
+# }
+# 
+# ## Rank funds for each metric in a summary data frame
+# ## sorting is a list of elements being either "hi" or "lo", one element for each
+# ## metric. If "hi", sort descending, if "lo", sort ascending.
+# rank_summary <- function(summary_df, sorting) {
+#   ll <- list()
+#   for(i in 1:nrow(summary_df)) {
+#     ll[[i]] <- data.frame(unlist(summary_df[i, ]), colnames(summary_df))
+#     #colnames(ll[[i]]) <- c(rownames(summary_df)[i], paste0(rownames(summary_df)[i], "_ranking"))
+#     colnames(ll[[i]]) <- c(rownames(summary_df)[i], "ranking")
+#     ifelse(
+#       sorting[i] == "hi",
+#       ll[[i]] <- arrange(
+#         ll[[i]],
+#         desc(
+#           get(colnames(ll[[i]])[1])
+#         )
+#       ),
+#       ll[[i]] <- arrange(
+#         ll[[i]],
+#         get(colnames(ll[[i]])[1])
+#       )
+#     )
+#     ifelse(
+#       i == 1,
+#       mc_rankings <- ll[[i]],
+#       mc_rankings <- cbind(mc_rankings, ll[[i]])
+#     )
+#   }
+#   
+#   rownames(mc_rankings) <- 1:nrow(mc_rankings)
+#   mc_rankings
+# }
+# 
+# max_sum <- function(data_vector, p = 1) {
+#   ms <- c()
+#   x <- data_vector
+#   for(n in seq_along(data_vector)) {
+#     ms[n] <- max(x[1:n]^p) / sum(x[1:n]^p)
+#   }
+#   ms
+# }
+# 
+# plot_max_sum <- function(fit, num_periods) {
+#   ms_log_returns <- rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi)
+#   par(mfrow = c(2, 2))
+#   lapply(1:4, function(p) {
+#     ms_vector <- max_sum(ms_log_returns, p)
+#     plot(ms_vector, type = "l", ylim = c(min(ms_vector), max(ms_vector)), xlab = "n", ylab = paste0("MS(", p, ")"), main = paste0("MS(", p, ")")
+#     )
+#   })
+#   par(mfrow = c(1, 1))
+# }
+# 
+# 
+# ## Fit data to a skewed t distribution
+# fit_skewed_t <- function(x, method = "BFGS") {
+#   loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))
+#   start = c(mean(x), sd(x), 3, 1)
+#   #fit_sstd = optim(start, loglik_sstd, hessian = F, method="L-BFGS-B", lower = c(0, 0.1, 1.1, -2))
+#   fit_sstd = optim(start, loglik_sstd, method = method)
+# 
+#   n = length(x)
+#   
+#   AIC_sstd = 2 * fit_sstd$value + 2 * 4
+#   BIC_sstd = 2 * fit_sstd$value + log(n) * 4
+#   #sd_sstd = sqrt(diag(solve(fit_sstd$hessian)))
+#   cat("\n")
+#   #cat("sd_sstd:", sd_sstd)
+#   cat("AIC:", AIC_sstd, "\n")
+#   cat("BIC:", BIC_sstd, "\n")
+#   
+#   # Middelværdi:
+#   mu_sstd_fit <- fit_sstd$par[1]#/1000
+#   cat("m:", mu_sstd_fit, "\n")
+#   
+#   # Spredning:
+#   sigma_sstd_fit <- fit_sstd$par[2]#/1000
+#   cat("s:", sigma_sstd_fit, "\n")
+#   
+#   # Frihedsgrader:
+#   nu_sstd_fit <- fit_sstd$par[3] # 3.36019
+#   cat("nu (df):", nu_sstd_fit, "\n")
+#   
+#   xi_sstd_fit <- fit_sstd$par[4] # 0.8436514
+#   cat("xi:", xi_sstd_fit, "\n")
+#   
+#   fit <- qsstd((1:n - 0.5)/n, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+# 
+#   r_squared <- cor(sort(fit), sort(x))
+#   # R^2
+#   r_squared_round <- round(r_squared, 3)
+#   cat("R^2:", r_squared_round, "\n")
+#   cat("\n")
+#   
+#   range_cuts <- c(0.0, 0.5, 0.9, 0.95, 0.99, 1.0)
+#   interpretations <- c(
+#     paste0("An R^2 of ", r_squared_round, " suggests that the fit is not great."),
+#     paste0("An R^2 of ", r_squared_round, " suggests that the fit is not completely random."),
+#     paste0("An R^2 of ", r_squared_round, " suggests that the fit is good."),
+#     paste0("An R^2 of ", r_squared_round, " suggests that the fit is very good."),
+#     paste0("An R^2 of ", r_squared_round, " suggests that the fit is extremely good.")
+#   )
+#   
+#   cat(interpretations[findInterval(r_squared_round, range_cuts)])
+#   cat("\n")
+#   cat("\n")
+#   
+#   dist_data <- qsstd((1:1000 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+#   
+#   dens_data <- dsstd((-299:300 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+#   
+#   sample_mean <- mean(dist_data)
+# 
+#   risk_estimate(dist_data, "max", 10)
+#   risk_estimate(dist_data, "max", 25)
+#   risk_estimate(dist_data, "max", 50)
+#   risk_estimate(dist_data, "max", 90)
+#   risk_estimate(dist_data, "max", 99)
+#   cat("\n")
+#   risk_estimate(dist_data, "min", 10)
+#   risk_estimate(dist_data, "min", 25)
+#   risk_estimate(dist_data, "min", 50)
+#   risk_estimate(dist_data, "min", 90)
+#   risk_estimate(dist_data, "min", 99)
+# 
+#   theoretical_quantiles <- qsstd(ppoints(n), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)
+#   
+#   output <- list(
+#     # Plot with estimated skewed t-distribution
+#     # qq plot for t-distribution
+#     qqplot = function() {qqplot(x = x, y = theoretical_quantiles, main = "QQ-plot, skewed t", xlab = "log returns", ylab = "skewed t-quantiles",  xlim = c(min(x) - abs(min(x))/10, max(x) + abs(max(x))/10), ylim = c(min(fit) - abs(min(fit))/10, max(fit) + abs(max(fit))/10))
+#     mtext(paste0("my=", round(mu_sstd_fit, 4),", sigma =", round(sigma_sstd_fit, 4),", df=",round(nu_sstd_fit, 3), ", xi =", round(xi_sstd_fit, 3), ", R^2=", r_squared_round), side=3,  cex = 0.8, adj=0)
+#     qqline(x, distribution = function(p) qsstd(p, mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit), datax = TRUE, col="black")
+#     abline(0, 1, col = "red")
+#     legend("bottomright", legend = c("data trendline", "45 degree line"), col = c("black", "red"), lty = c(1, 1))
+#     },
+#     fit_plot = function() {
+#       plot(sort(x), col="blue", ylab = "log returns", main = "Data vs fit",
+#            ylim = c(min(c(x, fit)), max(c(x, fit))))
+#       points(sort(fit), col="red")
+#       legend("bottomright", legend = c("data", "fit"), col = c("blue", "red"), pch = c(1, 1))
+#     },
+#     dist_plot = function() {
+#       plot(sort(dist_data), pch = 16, cex = 0.3, main = "Estimated skew t distribution CDF")
+#       abline(a = 0, b = 0, col = "red")
+#     },
+#     dens_plot = function() {
+#       plot(x = (-299:300 - 0.5)/1000, y = dens_data, cex = 0.3, pch = 16, xlab = "log-return", ylab = "likelihood", main = "Estimated skew t distribution PDF",
+#       sub = paste0("m = ", round(mu_sstd_fit, 3), ", sample mean = ", round(sample_mean, 3)))
+#       abline(v = mu_sstd_fit, col = "red")
+#       abline(v = sample_mean, lty = 2, col = "blue")
+#       legend("topleft", legend = c("density", "m", "sample mean"), col = c("black", "red", "blue"), lty = c(1, 1, 2))
+#     },
+#     data = x,
+#     fit = fit,
+#     dist_data = dist_data,
+#     dens_data = dens_data,
+#     m = mu_sstd_fit,
+#     s = sigma_sstd_fit,
+#     nu = nu_sstd_fit,
+#     xi = xi_sstd_fit,
+#     r_squared = r_squared,
+#     theoretical_quantiles = theoretical_quantiles
+#   )
+#   
+#   comment(output) <- "single_fit"
+#   output
+# }
+# 
+# 
+# 
+# 
+# 
+# ## Monte Carlo simulation
+# ## Creates a data frame where each column is a simulated series, and the number 
+# ## of rows is the number of periods in each series.
+# ## The fit parameter can be a single output from fit_skewed_t(), or a list of 
+# ## outputs from fit_skewed_t().
+# ## mc_simulation() will create a separate simulation for each fit, dividing an 
+# ## initial value of 100 between them, and then add the simulations together.
+# ## For instance, if there are two fits, the first column of the simulations data 
+# ## frame for the first fit will be added to the first column of the second df, ect.
+# ## If dao=TRUE, will calculate down-and-out paths. For each column, the first 
+# ## element which is below the threshold and all following elements are set to 0.
+# 
+# mc_simulation <- function(
+#     fit, 
+#     num_paths = 1000, 
+#     num_periods = 20,
+#     dao = TRUE,
+#     threshold = 0.01
+#     ) {
 #   init_capital = 100
 # 
 #   qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
 #   col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
 # 
-#   mc_df <- data.frame(rep(0, num_periods))
-#   for(j in 1:num_paths) {
-#     mc_df[ ,j] <- init_capital * exp(cumsum(rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi)))
+#   ## Each single fit has comment "single_fit".
+#   ## A list if fits will not have a comment.
+#   if(is.null(comment(fit))) {
+#     ## A list of fits
+#     init_capital = 100/length(fit)
+#     mc_df <- data.frame(matrix(rep(0, num_paths * num_periods), nrow = num_periods))
+#     for(i in seq_along(fit)) {
+#       for(j in 1:num_paths) {
+#         mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
+#       }
+#     }
+#   } else {
+#     if(comment(fit) == "single_fit") {
+#       mc_df <- data.frame(rep(0, num_periods))
+#       for(j in 1:num_paths) {
+#         mc_df[ ,j] <- c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi))))
+#       }
+#     }
+#   }
+#   
+# 
+#   if(dao == TRUE) {
+#     mc_df <- down_and_out_df(mc_df, threshold)
+#     num_dao <- count_num_dao(mc_df)
+#     dao_probability_percent <- 100 * num_dao/num_paths
+#     
+#     cat("Down-and-out simulation:\n")
+#     cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
+#     cat("\n")
+#   } else {
+#     cat("Simulation (ignoring down-and-out):\n")
+#     dao_probability_percent <- NA
 #   }
 # 
 #   colnames(mc_df) <- 1:num_paths
-#   
+# 
 #   mc_m <- mean(unlist(mc_df[num_periods, ]))
 #   mc_s <- sd(unlist(mc_df[num_periods, ]))
 #   mc_min <- min(unlist(mc_df[num_periods, ]))
 #   mc_max <- max(unlist(mc_df[num_periods, ]))
 #   
-#   cat("Mean total portfolio index value after", num_periods, "years:", mc_m, "kr.\n")
-#   cat("SD of total portfolio index value after", num_periods, "years:", mc_s, "kr.\n")
-#   cat("Min total portfolio index value after", num_periods, "years:", mc_min, "kr.\n")
-#   cat("Max total portfolio index value after", num_periods, "years:", mc_max, "kr.\n")
+#   percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
+# 
+#   cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
+#   cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
+#   cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
+#   cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
 #   cat("\n")
-#   
+#   cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
+# 
 #   list(
 #     mc_plot = function() {
-#       plot(mc_df[, 1], type = "l", ylim = c(min(mc_df), max(mc_df)), xlab = "period", ylab = "Portfolio index value in kr", )
+#       plot(mc_df[, 1], type = "l", ylim = c(min(mc_df), max(mc_df)), xlab = "period", ylab = "Portfolio index value in kr", main = paste0("MC simulation ", ifelse(dao == TRUE, "with down-and-out", "ignoring down-and-out")), sub = paste0("Number of paths: ", num_paths, ", number of periods: ", num_periods))
 #       lapply(mc_df[, -1], function(x) {
 #         lines(x, col = alpha(sample(col_vector, num_paths, replace = TRUE), 0.3))}
 #       )
-#       #polygon(x = c(0, num_periods, num_periods, 0), y = c(min(mc_df), min(mc_df), 0, 0), col = rgb(0.4, 0.4, 0.4, 0.25), border = NA)
 #       abline(100, 0, lwd=1, col="red")
 #     },
 #     mc_plot_last_period = function() {
@@ -359,7 +409,6 @@ fit_skewed_t <- function(x, method = "BFGS") {
 #         xlab = "Sample ID",
 #         ylab = "Portfolio index value in kr"
 #       )
-#       #polygon(x = c(0, num_paths, num_paths, 0), y = c(min(mc_df), min(mc_df), 0, 0), col = rgb(0.4, 0.4, 0.4, 0.25), border = NA)
 #       abline(100, 0, lwd=1, col="red")
 #       mtext(side=3, line=2, at=-0.07, adj=0, cex=1, "Sorted portfolio index values for last period of all runs")
 #       mtext(side=3, line=1, at=-0.07, adj=0, cex=0.7, "(100 is par, 200 is double, 50 is half)")
@@ -368,112 +417,11 @@ fit_skewed_t <- function(x, method = "BFGS") {
 #     mc_s = mc_s,
 #     mc_min = mc_min,
 #     mc_max = mc_max,
-#     mc_df = mc_df
+#     mc_df = mc_df,
+#     dao_probability_percent = dao_probability_percent,
+#     percent_losing_paths = percent_losing_paths
 #   )
 # }
-
-
-## Monte Carlo simulation
-## Creates a data frame where each column is a simulated series, and the number 
-## of rows is the number of periods in each series.
-## The fit parameter can be a single output from fit_skewed_t(), or a list of 
-## outputs from fit_skewed_t().
-## mc_simulation() will create a separate simulation for each fit, dividing an 
-## initial value of 100 between them, and then add the simulations together.
-## For instance, if there are two fits, the first column of the simulations data 
-## frame for the first fit will be added to the first column of the second df, ect.
-## If dao=TRUE, will calculate down-and-out paths. For each column, the first 
-## element which is below the threshold and all following elements are set to 0.
-
-mc_simulation <- function(
-    fit, 
-    num_paths = 1000, 
-    num_periods = 20,
-    dao = TRUE,
-    threshold = 0.01
-    ) {
-  init_capital = 100
-
-  qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
-  col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
-
-  ## Each single fit has comment "single_fit".
-  ## A list if fits will not have a comment.
-  if(is.null(comment(fit))) {
-    ## A list of fits
-    init_capital = 100/length(fit)
-    mc_df <- data.frame(matrix(rep(0, num_paths * num_periods), nrow = num_periods))
-    for(i in seq_along(fit)) {
-      for(j in 1:num_paths) {
-        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
-      }
-    }
-  } else {
-    if(comment(fit) == "single_fit") {
-      mc_df <- data.frame(rep(0, num_periods))
-      for(j in 1:num_paths) {
-        mc_df[ ,j] <- c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi))))
-      }
-    }
-  }
-  
-
-  if(dao == TRUE) {
-    mc_df <- down_and_out_df(mc_df, threshold)
-    num_dao <- count_num_dao(mc_df)
-    dao_probability_percent <- 100 * num_dao/num_paths
-    
-    cat("Down-and-out simulation:\n")
-    cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
-    cat("\n")
-  } else {
-    cat("Simulation (ignoring down-and-out):\n")
-    dao_probability_percent <- NA
-  }
-
-  colnames(mc_df) <- 1:num_paths
-
-  mc_m <- mean(unlist(mc_df[num_periods, ]))
-  mc_s <- sd(unlist(mc_df[num_periods, ]))
-  mc_min <- min(unlist(mc_df[num_periods, ]))
-  mc_max <- max(unlist(mc_df[num_periods, ]))
-  
-  percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
-
-  cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
-  cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
-  cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
-  cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
-  cat("\n")
-  cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
-
-  list(
-    mc_plot = function() {
-      plot(mc_df[, 1], type = "l", ylim = c(min(mc_df), max(mc_df)), xlab = "period", ylab = "Portfolio index value in kr", main = paste0("MC simulation ", ifelse(dao == TRUE, "with down-and-out", "ignoring down-and-out")), sub = paste0("Number of paths: ", num_paths, ", number of periods: ", num_periods))
-      lapply(mc_df[, -1], function(x) {
-        lines(x, col = alpha(sample(col_vector, num_paths, replace = TRUE), 0.3))}
-      )
-      abline(100, 0, lwd=1, col="red")
-    },
-    mc_plot_last_period = function() {
-      plot(
-        sort(unlist(mc_df[num_periods, ])), pch = 16, cex = 0.3,
-        xlab = "Sample ID",
-        ylab = "Portfolio index value in kr"
-      )
-      abline(100, 0, lwd=1, col="red")
-      mtext(side=3, line=2, at=-0.07, adj=0, cex=1, "Sorted portfolio index values for last period of all runs")
-      mtext(side=3, line=1, at=-0.07, adj=0, cex=0.7, "(100 is par, 200 is double, 50 is half)")
-    },
-    mc_m = mc_m,
-    mc_s = mc_s,
-    mc_min = mc_min,
-    mc_max = mc_max,
-    mc_df = mc_df,
-    dao_probability_percent = dao_probability_percent,
-    percent_losing_paths = percent_losing_paths
-  )
-}
 ```
 
 
@@ -611,6 +559,14 @@ mc_vmr <- mc_simulation(fit_vmr, num_paths = mc_num_paths, num_periods = mc_num_
 ```{r results='hide',fig.keep='all'}
 (mc_vmr$mc_plot_last_period)()
 ```
+
+
+### Importance sampling
+
+```{r}
+
+```
+
 
 
 ## Max vs sum plots
@@ -1057,6 +1013,28 @@ mc_mhr_b <- mc_simulation(list(fit_vhr, fit_phr), num_paths = mc_num_paths, num_
 ```
 
 
+#### Many simulations
+
+
+```{r}
+# mc_mhr_b_many <- mc_simulation(list(fit_vhr, fit_phr), num_paths = 1e6, num_periods = mc_num_periods, dao = mc_dao)
+```
+1e6 paths:
+
+```{r include=TRUE, echo=TRUE}
+# Down-and-out simulation:
+# Probability of down-and-out: 0 percent
+# 
+# Mean portfolio index value after 20 years: 478.339 kr.
+# SD of portfolio index value after 20 years: 163.093 kr.
+# Min total portfolio index value after 20 years: 2.233 kr.
+# Max total portfolio index value after 20 years: 1561.965 kr.
+# 
+# Share of paths finishing below 100: 0.1181 percent
+```
+
+
+
 ## Max vs sum plots
 
 Max vs sum plots for the first four moments:
@@ -1173,11 +1151,44 @@ rownames(mc_loss_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_loss_percentiles_df, digits = 3)
 ```
 
+
+1e6 simulation paths of `mhr_b`:
+```{r}
+# percent_vals = c(0, 5, 10, 25, 50, 90, 99)
+# mc_mhr_b_many_mc_loss_percentiles <-
+#   data.frame(
+#     percentiles = percent_vals,
+#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "max")
+#   )
+# 
+# t(mc_mhr_b_many_mc_loss_percentiles)
+```
+
+```{r}
+# knitr::kable(t(mc_mhr_b_many_mc_loss_percentiles), digits = 3)
+```
+```{r}
+percent_vals = c(0, 5, 10, 25, 50, 90, 99)
+mc_mhr_b_many_mc_loss_percentiles <- 
+  data.frame(
+    prob_pct = c(0.118, 0.095, 0.076, 0.036, 8e-03, 0, 0)
+  )
+rownames(mc_mhr_b_many_mc_loss_percentiles) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(t(mc_mhr_b_many_mc_loss_percentiles), digits = 3)
+```
+
+
 ### Worst ranking for MC loss percentiles
 
 ```{r}
 knitr::kable(rank_summary(mc_loss_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
 ```
+
+
+
 
 
 ## MC gains percentiles
@@ -1209,6 +1220,34 @@ rownames(mc_gain_percentiles_df) <- as.character(percent_vals)
 ```{r}
 knitr::kable(mc_gain_percentiles_df, digits = 3)
 ```
+
+
+1e6 simulation paths of `mhr_b`: 
+
+```{r}
+# percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
+# mc_mhr_b_many_mc_loss_percentiles <-
+#   data.frame(
+#     percentiles = percent_vals,
+#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "min")
+#   )
+# t(mc_mhr_b_many_mc_loss_percentiles)
+```
+
+```{r}
+percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
+mc_mhr_b_many_mc_gains_percentiles <- 
+  data.frame(
+    prob = c(99.8819, 99.8536, 99.824, 99.6861, 99.3009, 97.5134, 86.9115, 65.992, 41.486, 21.6928, 8.65e-02)
+  )
+
+rownames(mc_mhr_b_many_mc_gains_percentiles) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(t(mc_mhr_b_many_mc_gains_percentiles), digits = 3)
+```
+
 
 ### Best ranking for MC gains percentiles
 
@@ -1307,22 +1346,22 @@ knitr::kable(rank_summary(mc_summary, sorting = c("hi", "lo", "hi", "hi", "lo", 
 (Ignoring `mhr_a`...)
 
 `mhr` has some nice properties:  
-- It has a relatively high $nu$ value of 90, which means it is tending more towards exponential tails than polynomial tails. All other funds have $nu$ values close to 3, except `phr` which is even worse at close to 2. (Note that for a Gaussian, $nu$ is infinite.)  
+- It has a relatively high `nu` value of 90, which means it is tending more towards exponential tails than polynomial tails. All other funds have `nu` values close to 3, except `phr` which is even worse at close to 2. (Note that for a Gaussian, `nu` is infinite.)  
 - It has the lowest losing percentage of all simulations, which is better than 1/6 that of `phr`.  
 - It has a DAO percentage of 0, which is the same as `mmr`, and less than `phr`.  
 - Only `phr` has a higher `mc_m`.  
 - It has a smaller `mc_s` than the individual components, `vhr` and `phr`.  
-- It has the highest `xi` of all fits, suggesting right skewness. Density plots for `vmr`, `phr` and `mmr` have an extremely sharp drop, as if an upward limiter has been applied, which corresponds to extremely low `xi` values. The density plot for `mhr` is by far the most symmetrical of all the fits.  
+- It has the highest `xi` of all fits, suggesting less left skewness. Density plots for `vmr`, `phr` and `mmr` have an extremely sharp drop, as if an upward limiter has been applied, which corresponds to extremely low `xi` values. The density plot for `mhr` is by far the most symmetrical of all the fits.  
 - Only `mmr` has as higher `mc_min`. However, that of `mmr` is 18 times higher with 62, so `mmr` is a clear winner here.  
 - Naturally, it has a `mc_max` smaller than the individual components, `vhr` and `phr`, but ca. 1.5 times higher then `mmr`.  
-
+- All the first 4 moments converge nicely. For all other fits, the 4th moment doesn't seem to converge.  
 
 
 Taleb, Statistical Consequences Of Fat Tails, p. 97:  
-"the variance of a finite variance random variable with tail exponent < 4 will be infinite".
+"the variance of a finite variance random variable with tail exponent $< 4$ will be infinite".
 
 And p. 363:  
-"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, un- der a constant volatility Student T with tail exponent alpha = 3. Technically the errors should not converge in finite time as their distribution has infinite variance."
+"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, un- der a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
 
 
 
