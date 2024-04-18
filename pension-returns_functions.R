@@ -350,6 +350,20 @@ mc_simulation <- function(
   mc_min <- min(unlist(mc_df[num_periods, ]))
   mc_max <- max(unlist(mc_df[num_periods, ]))
   
+  ## Confidence intervals
+  h_vect <- unlist(mc_df[num_periods, ]) ## Last row
+  mu_hat <- cumsum(h_vect) / 1:num_paths
+  sigma_hat <- numeric(num_paths)
+  dev <- numeric(num_paths)
+  ci_l <- numeric(num_paths) ## c.i. lower
+  ci_u <- numeric(num_paths) ## c.i. upper
+  for(i in 1:num_paths) {
+    sigma_hat[i] <- sd(h_vect[1:i]) ## sd for paths 1 thru i
+    dev[i] <- 1.96 * sigma_hat[i] / sqrt(i)
+    ci_l <- mu_hat - dev[i]
+    ci_u <- mu_hat + dev[i]
+  }
+  
   percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
   
   cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
@@ -377,102 +391,31 @@ mc_simulation <- function(
       mtext(side=3, line=2, at=-0.07, adj=0, cex=1, "Sorted portfolio index values for last period of all runs")
       mtext(side=3, line=1, at=-0.07, adj=0, cex=0.7, "(100 is par, 200 is double, 50 is half)")
     },
+    mc_conv_plot = function() {
+      df_conv <- data.frame(t = 1:num_paths, mu_hat = mu_hat, ci_l = ci_l, ci_u = ci_u)
+      ggplot(df_conv, aes(x = t, y = mu_hat)) + 
+      geom_ribbon(
+        mapping = aes(
+          ymin = ci_l, 
+          ymax = ci_u
+        ), fill = "gray") +
+      ylim(min(ci_l), max(ci_u)) +
+      geom_line() + 
+      labs(title = paste("Monte Carlo convergence w/ 95% c.i."), subtitle = paste(num_periods, "steps,", num_paths, "paths"), x = "number of paths", y = "mu_hat")
+    },
     mc_m = mc_m,
     mc_s = mc_s,
     mc_min = mc_min,
     mc_max = mc_max,
     mc_df = mc_df,
     dao_probability_percent = dao_probability_percent,
-    percent_losing_paths = percent_losing_paths
+    percent_losing_paths = percent_losing_paths,
+    mu_hat = mu_hat,
+    ci_l = ci_l,
+    ci_u = ci_u
   )
 }
 
-is_simulation <- function(
-    fit, 
-    num_paths = 1000, 
-    num_periods = 20,
-    dao = TRUE,
-    threshold = 0.01
-) {
-  init_capital = 100
-  
-  qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
-  col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
-  
-  ## Each single fit has comment "single_fit".
-  ## A list if fits will not have a comment.
-  if(is.null(comment(fit))) {
-    ## A list of fits
-    init_capital = 100/length(fit)
-    mc_df <- data.frame(matrix(rep(0, num_paths * num_periods), nrow = num_periods))
-    for(i in seq_along(fit)) {
-      for(j in 1:num_paths) {
-        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
-      }
-    }
-  } else {
-    if(comment(fit) == "single_fit") {
-      mc_df <- data.frame(rep(0, num_periods))
-      for(j in 1:num_paths) {
-        mc_df[ ,j] <- c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi))))
-      }
-    }
-  }
-  
-  
-  if(dao == TRUE) {
-    mc_df <- down_and_out_df(mc_df, threshold)
-    num_dao <- count_num_dao(mc_df)
-    dao_probability_percent <- 100 * num_dao/num_paths
-    
-    cat("Down-and-out simulation:\n")
-    cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
-    cat("\n")
-  } else {
-    cat("Simulation (ignoring down-and-out):\n")
-    dao_probability_percent <- NA
-  }
-  
-  colnames(mc_df) <- 1:num_paths
-  
-  mc_m <- mean(unlist(mc_df[num_periods, ]))
-  mc_s <- sd(unlist(mc_df[num_periods, ]))
-  mc_min <- min(unlist(mc_df[num_periods, ]))
-  mc_max <- max(unlist(mc_df[num_periods, ]))
-  
-  percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
-  
-  cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
-  cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
-  cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
-  cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
-  cat("\n")
-  cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
-  
-  list(
-    mc_plot = function() {
-      plot(mc_df[, 1], type = "l", ylim = c(min(mc_df), max(mc_df)), xlab = "period", ylab = "Portfolio index value in kr", main = paste0("MC simulation ", ifelse(dao == TRUE, "with down-and-out", "ignoring down-and-out")), sub = paste0("Number of paths: ", num_paths, ", number of periods: ", num_periods))
-      lapply(mc_df[, -1], function(x) {
-        lines(x, col = alpha(sample(col_vector, num_paths, replace = TRUE), 0.3))}
-      )
-      abline(100, 0, lwd=1, col="red")
-    },
-    mc_plot_last_period = function() {
-      plot(
-        sort(unlist(mc_df[num_periods, ])), pch = 16, cex = 0.3,
-        xlab = "Sample ID",
-        ylab = "Portfolio index value in kr"
-      )
-      abline(100, 0, lwd=1, col="red")
-      mtext(side=3, line=2, at=-0.07, adj=0, cex=1, "Sorted portfolio index values for last period of all runs")
-      mtext(side=3, line=1, at=-0.07, adj=0, cex=0.7, "(100 is par, 200 is double, 50 is half)")
-    },
-    mc_m = mc_m,
-    mc_s = mc_s,
-    mc_min = mc_min,
-    mc_max = mc_max,
-    mc_df = mc_df,
-    dao_probability_percent = dao_probability_percent,
-    percent_losing_paths = percent_losing_paths
-  )
-}
+
+
+

@@ -6,9 +6,9 @@ header-includes:
    - \usepackage[fontsize=8pt]{scrextend}
 mainfont: SourceSansPro
 output: 
-  html_document:
-    toc: true
-    toc_depth: 3
+  # html_document:
+  #   toc: true
+  #   toc_depth: 3
   pdf_document:
     toc: true
     toc_depth: 3
@@ -22,7 +22,6 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 
 ```{r}
 source("~/R\ work/pension-returns/pension-returns_functions.R")
-#source("~/R\ work/pension-returns/importance-sampling.R")
 ```
 
 
@@ -561,15 +560,9 @@ mc_vmr <- mc_simulation(fit_vmr, num_paths = mc_num_paths, num_periods = mc_num_
 ```
 
 
-### Importance sampling
-
-```{r}
-
-```
 
 
-
-## Max vs sum plots
+## Convergence
 
 Max vs sum plots for the first four moments:
 
@@ -577,6 +570,9 @@ Max vs sum plots for the first four moments:
 plot_max_sum(fit_vmr, 1e4)
 ```
 
+```{r}
+mc_vmr$mc_conv_plot()
+```
 
 
 # Velliv medium risk, 2007 - 2023
@@ -636,12 +632,16 @@ mc_vmrl <- mc_simulation(fit_vmrl, num_paths = mc_num_paths, num_periods = mc_nu
 ```
 
 
-## Max vs sum plots
+## Convergence
 
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_vmrl, 1e4)
+```
+
+```{r}
+mc_vmrl$mc_conv_plot()
 ```
 
 
@@ -699,13 +699,17 @@ mc_vhr <- mc_simulation(fit_vhr, num_paths = mc_num_paths, num_periods = mc_num_
 ```
 
 
-## Max vs sum plots
+## Convergence
 
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_vhr, 1e4)
 ```
+```{r}
+mc_vhr$mc_conv_plot()
+```
+
 
 
 # PFA medium risk, 2011 - 2023
@@ -768,13 +772,18 @@ mc_pmr <- mc_simulation(fit_pmr, num_paths = mc_num_paths, num_periods = mc_num_
 ```
 
 
-## Max vs sum plots
+## Convergence
 
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_pmr, 1e4)
 ```
+
+```{r}
+mc_pmr$mc_conv_plot()
+```
+
 
 
 # PFA high risk, 2011 - 2023
@@ -832,12 +841,16 @@ mc_phr <- mc_simulation(fit_phr, num_paths = mc_num_paths, num_periods = mc_num_
 ```
 
 
-## Max vs sum plots
+## Convergence
 
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_phr, 1e4)
+```
+
+```{r}
+mc_phr$mc_conv_plot()
 ```
 
 
@@ -925,12 +938,16 @@ mc_mmr_b <- mc_simulation(list(fit_vmr, fit_pmr), num_paths = mc_num_paths, num_
 ```
 
 
-## Max vs sum plots
+## Convergence
 
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_mmr, 1e4)
+```
+
+```{r}
+mc_mmr_b$mc_conv_plot()
 ```
 
 
@@ -1035,7 +1052,7 @@ mc_mhr_b <- mc_simulation(list(fit_vhr, fit_phr), num_paths = mc_num_paths, num_
 
 
 
-## Max vs sum plots
+## Convergence
 
 Max vs sum plots for the first four moments:
 
@@ -1043,7 +1060,9 @@ Max vs sum plots for the first four moments:
 plot_max_sum(fit_mhr, 1e4)
 ```
 
-
+```{r}
+mc_mhr_b$mc_conv_plot()
+```
 
 
 # Compare pension plans
