@@ -166,6 +166,15 @@ plot_max_sum <- function(fit, num_periods) {
 }
 
 
+fit_gauss <- function(x, method = "Nelder-Mead") {
+  loglik_sstd = function(beta) sum(- dnorm(x, mean = beta[1], sd = beta[2], log = TRUE))
+  start = c(mean(x), sd(x))
+  #fit_sstd = optim(start, loglik_sstd, hessian = F, method="L-BFGS-B", lower = c(0, 0.1, 1.1, -2))
+  optim(start, loglik_sstd, method = method)
+}
+
+
+
 ## Fit data to a skewed t distribution
 fit_skewed_t <- function(x, method = "BFGS") {
   loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))
@@ -242,9 +251,9 @@ fit_skewed_t <- function(x, method = "BFGS") {
   output <- list(
     # Plot with estimated skewed t-distribution
     # qq plot for t-distribution
-    qqplot = function() {qqplot(x = x, y = theoretical_quantiles, main = "QQ-plot, skewed t", xlab = "log returns", ylab = "skewed t-quantiles",  xlim = c(min(x) - abs(min(x))/10, max(x) + abs(max(x))/10), ylim = c(min(fit) - abs(min(fit))/10, max(fit) + abs(max(fit))/10))
+    qqplot = function() {qqplot(x = theoretical_quantiles, y = x, main = "QQ-plot, skewed t", xlab = "skewed t-quantiles", ylab = "log returns", xlim = c(min(fit) - abs(min(fit))/10, max(fit) + abs(max(fit))/10),  ylim = c(min(x) - abs(min(x))/10, max(x) + abs(max(x))/10))
       mtext(paste0("my=", round(mu_sstd_fit, 4),", sigma =", round(sigma_sstd_fit, 4),", df=",round(nu_sstd_fit, 3), ", xi =", round(xi_sstd_fit, 3), ", R^2=", r_squared_round), side=3,  cex = 0.8, adj=0)
-      qqline(x, distribution = function(p) qsstd(p, mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit), datax = TRUE, col="black")
+      qqline(x, distribution = function(p) qsstd(p, mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit), datax = FALSE, col="black")
       abline(0, 1, col = "red")
       legend("bottomright", legend = c("data trendline", "45 degree line"), col = c("black", "red"), lty = c(1, 1))
     },
