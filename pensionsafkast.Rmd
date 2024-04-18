@@ -6,9 +6,9 @@ header-includes:
    - \usepackage[fontsize=8pt]{scrextend}
 mainfont: SourceSansPro
 output: 
-  html_document:
-    toc: true
-    toc_depth: 3
+  # html_document:
+  #   toc: true
+  #   toc_depth: 3
   pdf_document:
     toc: true
     toc_depth: 3
@@ -111,7 +111,7 @@ summary_df
 
 ## Ranking
 ```{r}
-knitr::kable(rank_summary(summary_df, sorting = c("hi", "hi", "hi", "hi")), digits = 3)
+knitr::kable(rank_summary(summary_df, sorting = rep("hi", ncol(summary_df))), digits = 3)
 ```
 
 ## Covariance
@@ -131,7 +131,7 @@ fits_norm <- as.data.frame(lapply(
     fit_g <- fit_gauss(x)
     c(fit_g$par[1], fit_g$par[2])
   }
-))
+))[, c(1, 4,2, 5, 3, 6)]
 rownames(fits_norm) <- c("m", "s")
 ```
 
@@ -145,7 +145,7 @@ norm_probs <- as.data.frame(lapply(data_df, function(x) {
     pnorm(min(x), mean(x), sd(x)) * 100, 
     (1 - pnorm(max(x), mean(x), sd(x))) * 100
   )
-}))
+}))[, c(1, 4,2, 5, 3, 6)]
 rownames(norm_probs) <- c("P(X_min)", "P(X_max)")
 
 avg_yrs_btw_events <- 100/norm_probs
@@ -181,6 +181,7 @@ par(mfrow = c(1, 1))
 
 
 Gaussian QQ plots
+
 ```{r}
 plot_norm_qq <- function(x, m, s, i) {
   qqnorm((x - m) / s, main = names(data_df)[i])
