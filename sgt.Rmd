@@ -1,0 +1,62 @@
+---
+title: "A study of the skewed generalized t-distribution"
+output: html_document
+date: "2024-04-17"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ifft)
+library(sgt)
+```
+
+
+```{r}
+num_simulations <- 1000
+params <- c(0.08, 0.12, 3.18, 0.02)
+
+#####################################
+
+pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
+                     max = num_simulations, # Maximum value of the progress bar
+                     style = 3,    # Progress bar style (also available style = 1 and style = 2)
+                     width = 50,   # Progress bar width. Defaults to getOption("width")
+                     char = "=")   # Character used to create the bar
+
+params_for_sums <- data.frame(m = numeric(0), s =  numeric(0), nu = numeric(0), xi = numeric(0))
+suppressWarnings({
+  for(i in 1:num_simulations) {
+    x_sstd_mat <- replicate(10000, rsstd(20, mean = params[1], sd = params[2], nu = params[3], xi = params[4]))
+    x_sstd_sums <- apply(x_sstd_mat, 2, sum)
+    
+    loglik_sstd = function(beta, x) {sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))}
+    start = c(mean(x_sstd_sums), sd(x_sstd_sums), 3, 1)
+    params_for_sums[i, ] = optim(start, loglik_sstd, x = x_sstd_sums)
+    setTxtProgressBar(pb, i)
+  }
+})
+```
+
+
+```{r}
+params_for_sums_means <- as.data.frame(lapply(
+  params_for_sums,
+  mean
+))
+
+params_for_sums_sd <- as.data.frame(lapply(
+  params_for_sums,
+  sd
+))
+
+params_for_sums_summary <- rbind(params_for_sums_means, params_for_sums_sd)
+rownames(params_for_sums_summary) <- c("m", "s")
+```
+
+```{r}
+knitr::kable(params_for_sums_summary, digits = 3)
+```
+
