@@ -29,13 +29,13 @@ library(ggplot2)
 # }
 
 ## dist_data is given as log returns.
-risk_percentiles <- function(dist_data, percent, max_or_min) {
-  num_points <- length(dist_data)
-  log_returns <- sort(dist_data)
+risk_percentiles <- function(log_returns, percent, max_or_min) {
+  num_points <- length(log_returns)
+  log_returns <- sort(log_returns)
   if(max_or_min == "max"){
-    100 * (length(which(dist_data < log((100 - percent)/100)))) / num_points
+    100 * (length(which(log_returns < log((100 - percent)/100)))) / num_points
   } else {
-    100 * (length(which(dist_data > log((100 + percent)/100)))) / num_points
+    100 * (length(which(log_returns > log((100 + percent)/100)))) / num_points
   }
 }
 risk_percentiles <- Vectorize(risk_percentiles, "percent")
@@ -228,9 +228,11 @@ fit_skewed_t <- function(x, method = "BFGS") {
   cat("\n")
   cat("\n")
   
-  dist_data <- qsstd((1:1000 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+  quantile_data <- qsstd(seq(0.005, 0.995, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
   
-  dens_data <- dsstd((-299:300 - 0.5)/1000, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+  dist_data <- psstd(seq(-0.3, 0.3, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
+  
+  dens_data <- dsstd(seq(-0.3, 0.3, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
   
   sample_mean <- mean(dist_data)
   
@@ -263,12 +265,21 @@ fit_skewed_t <- function(x, method = "BFGS") {
       points(sort(fit), col="red")
       legend("bottomright", legend = c("data", "fit"), col = c("blue", "red"), pch = c(1, 1))
     },
+    quantile_plot = function() {
+      plot(x = seq(0.005, 0.995, length.out = 600), sort(quantile_data), pch = 16, cex = 0.3, 
+           main = "Estimated skew t distribution quantiles",
+           xlab = "probability", ylab = "log-returns")
+      abline(a = 0, b = 0, col = "gray", lty = 2)
+    },
     dist_plot = function() {
-      plot(sort(dist_data), pch = 16, cex = 0.3, main = "Estimated skew t distribution CDF")
-      abline(a = 0, b = 0, col = "red")
+      plot(x = seq(-0.3, 0.3, length.out = 600), sort(dist_data), pch = 16, cex = 0.3, 
+           main = "Estimated skew t distribution CDF",
+           xlab = "log-returns", ylab = "probability")
+      abline(v = c(min(x), max(x)), col = c("red", "green"))
+      abline(h = c(psstd(min(x), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit), psstd(max(x), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)), col = c("red", "green"))
     },
     dens_plot = function() {
-      plot(x = (-299:300 - 0.5)/1000, y = dens_data, cex = 0.3, pch = 16, xlab = "log-return", ylab = "likelihood", main = "Estimated skew t distribution PDF",
+      plot(x = seq(-0.3, 0.3, length.out = 600), y = dens_data, cex = 0.3, pch = 16, xlab = "log-return", ylab = "likelihood", main = "Estimated skew t distribution PDF",
            sub = paste0("m = ", round(mu_sstd_fit, 3), ", sample mean = ", round(sample_mean, 3)))
       abline(v = mu_sstd_fit, col = "red")
       abline(v = sample_mean, lty = 2, col = "blue")
@@ -278,6 +289,7 @@ fit_skewed_t <- function(x, method = "BFGS") {
     fit = fit,
     dist_data = dist_data,
     dens_data = dens_data,
+    quantile_data = quantile_data,
     m = mu_sstd_fit,
     s = sigma_sstd_fit,
     nu = nu_sstd_fit,
