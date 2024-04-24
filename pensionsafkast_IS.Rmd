@@ -272,7 +272,7 @@ num_paths <- 1e4
 
 
 ```{r}
-x_n_vect <- replicate(num_paths, sum(rsstd(num_periods, fit_mhr$m, fit_mhr$s, fit_mhr$nu, fit_mhr$xi))) #unlist(mc_mhr_b$mc_df[nrow(mc_mhr_b$mc_df), ])
+x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, fit_mhr$m, fit_mhr$s, fit_mhr$nu, fit_mhr$xi))) #unlist(mc_mhr_b$mc_df[nrow(mc_mhr_b$mc_df), ])
 
 loglik_sstd = function(beta, x) {sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))}
 start = c(mean(x_n_vect), sd(x_n_vect), 3, 1)
@@ -364,7 +364,7 @@ sd_vect_plot <- data.frame(sd_g_n = sd_g_n, sd_obj = sd_obj)
 ggplot(sd_vect_plot, aes(x = sd_g_n, y = sd_obj)) +
   geom_line()
 ```
-$\hat{\sigma} = 0.28$ found by `optim()` looks good.
+$\hat{\sigma} = 0.3$ found by `optim()` looks good.
 
 
 Let's try the same for the `mean` parameter:
@@ -389,13 +389,9 @@ mean_vect_plot <- data.frame(mean_g_n = mean_g_n, sd_obj = sd_obj)
 ggplot(mean_vect_plot, aes(x = mean_g_n, y = sd_obj)) +
   geom_line()
 ```
-```{r}
-set.seed(2207)
-p_vect <- runif(num_paths, 0.0, 1.0)
-```
+$\hat{\mu} = 1.7$ found by `optim()` looks good.
 
-$\hat{\mu} = 1.69$ found by `optim()` looks good.
- 
+
 
 
 ```{r}
@@ -418,7 +414,7 @@ ggplot(mean_vect_plot, aes(x = x, y = Value, color = Variable)) +
 ```
 
 ```{r}
-df_conv <- data.frame(i = 1:num_paths, mu_hat = is_output$mu_hat, ci_l = is_output$CI_lower, ci_u = is_output$CI_upper)
+df_conv <- data.frame(i = 1:num_paths, mu_hat = 100 * exp(is_output$mu_hat), ci_l = 100 * exp(is_output$CI_lower), ci_u = 100 * exp(is_output$CI_upper))
 ggplot(df_conv, aes(x = i, y = mu_hat)) + 
 geom_ribbon(
   mapping = aes(
@@ -429,6 +425,10 @@ ylim(min(is_output$CI_lower), max(is_output$CI_upper)) +
 geom_line() + 
 labs(title = paste("Importance Sampling convergence w/ 95% c.i."), subtitle = paste(num_periods, "steps,", num_paths, "paths"), x = "path ID", y = "mu_hat")
 ```
+This looks good, the implementation seems to work. The estimate matches the MC estimate. But it doesn't seem very useful. In the present case $h(x) := x$, so $f(x)$ is the distribution of $h(x)$. The purpose of the importance sampling is to determine the parameters of the distribution of $h(x)$, but we already know the parameters of $f$, because we used them to simulate the data. But it does visualize how well the estimate converges.
+
+One issue with the implementation (ignoring the fact that it is not useful) is that the confidence intervals need some work.
+
 
 
 
