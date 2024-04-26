@@ -6,9 +6,10 @@ header-includes:
    - \usepackage[fontsize=8pt]{scrextend}
 mainfont: SourceSansPro
 output: 
-  # html_document:
-  #   toc: true
-  #   toc_depth: 3
+  html_document:
+    toc: true
+    toc_depth: 3
+    keep_md: yes
   pdf_document:
     toc: true
     toc_depth: 3
@@ -22,6 +23,22 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 
 ```{r}
 source("~/R\ work/pension-returns/pension-returns_functions.R")
+```
+
+
+```{r include=FALSE}
+## ****************************** WARNING ******************************
+## 
+##             This document takes a long time to render!
+##
+## *********************************************************************
+```
+
+
+
+```{r eval=FALSE, include=FALSE}
+## Render this document to html and pdf
+rmarkdown::render("pensionsafkast.Rmd", output_format ="all")
 ```
 
 
@@ -187,14 +204,67 @@ mc_vmr <- mc_simulation(fit_vmr, num_paths = mc_num_paths, num_periods = mc_num_
 
 ## Convergence
 
+### Max vs sum
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_vmr, 1e4)
 ```
 
+### MC
+
 ```{r}
 mc_vmr$mc_conv_plot()
+```
+
+### IS
+
+
+```{r}
+is_g_fit_vmr <- is_proposal(
+  x_i_fit = fit_vmr,
+  x_n_vect = x_n_vect_from_mc_df(mc_vmr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_vmr$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_vmr$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_vmr$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_vmr <- importance_sampling(
+  x_i_fit = fit_vmr, 
+  x_n_vect = x_n_vect_from_mc_df(mc_vmr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_vmr$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_vmr$is_plot()
 ```
 
 
@@ -261,15 +331,68 @@ mc_vmrl <- mc_simulation(fit_vmrl, num_paths = mc_num_paths, num_periods = mc_nu
 
 ## Convergence
 
+### Max vs sum
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_vmrl, 1e4)
 ```
 
+
+### MC
 ```{r}
 mc_vmrl$mc_conv_plot()
 ```
+
+### IS
+
+```{r}
+is_g_fit_vmrl <- is_proposal(
+  x_i_fit = fit_vmrl,
+  x_n_vect = x_n_vect_from_mc_df(mc_vmrl$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_vmrl$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_vmrl$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_vmrl$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_vmrl <- importance_sampling(
+  x_i_fit = fit_vmrl, 
+  x_n_vect = x_n_vect_from_mc_df(mc_vmrl$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_vmrl$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_vmrl$is_plot()
+```
+
 
 
 # Velliv high risk, 2011 - 2023
@@ -332,15 +455,67 @@ mc_vhr <- mc_simulation(fit_vhr, num_paths = mc_num_paths, num_periods = mc_num_
 
 ## Convergence
 
+### Max vs sum
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_vhr, 1e4)
 ```
+
+### MC
+
 ```{r}
 mc_vhr$mc_conv_plot()
 ```
 
+### IS
+
+```{r}
+is_g_fit_vhr <- is_proposal(
+  x_i_fit = fit_vhr,
+  x_n_vect = x_n_vect_from_mc_df(mc_vhr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_vhr$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_vhr$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_vhr$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_vhr <- importance_sampling(
+  x_i_fit = fit_vhr, 
+  x_n_vect = x_n_vect_from_mc_df(mc_vhr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_vhr$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_vhr$is_plot()
+```
 
 
 # PFA medium risk, 2011 - 2023
@@ -409,14 +584,67 @@ mc_pmr <- mc_simulation(fit_pmr, num_paths = mc_num_paths, num_periods = mc_num_
 
 ## Convergence
 
+### Max vs sum
+
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_pmr, 1e4)
 ```
 
+### MC
+
 ```{r}
 mc_pmr$mc_conv_plot()
+```
+
+### IS
+
+```{r}
+is_g_fit_pmr <- is_proposal(
+  x_i_fit = fit_pmr,
+  x_n_vect = x_n_vect_from_mc_df(mc_pmr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_pmr$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_pmr$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_pmr$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_pmr <- importance_sampling(
+  x_i_fit = fit_pmr, 
+  x_n_vect = x_n_vect_from_mc_df(mc_pmr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_pmr$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_pmr$is_plot()
 ```
 
 
@@ -482,14 +710,68 @@ mc_phr <- mc_simulation(fit_phr, num_paths = mc_num_paths, num_periods = mc_num_
 
 ## Convergence
 
+### Max vs sum
+
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_phr, 1e4)
 ```
 
+### MC
+
 ```{r}
 mc_phr$mc_conv_plot()
+```
+
+
+### IS
+
+```{r}
+is_g_fit_phr <- is_proposal(
+  x_i_fit = fit_phr,
+  x_n_vect = x_n_vect_from_mc_df(mc_phr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_phr$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_phr$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_phr$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_phr <- importance_sampling(
+  x_i_fit = fit_phr, 
+  x_n_vect = x_n_vect_from_mc_df(mc_phr$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_phr$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_phr$is_plot()
 ```
 
 
@@ -583,15 +865,69 @@ mc_mmr_b <- mc_simulation(list(fit_vmr, fit_pmr), num_paths = mc_num_paths, num_
 
 ## Convergence
 
+### Max vs sum
+
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_mmr, 1e4)
 ```
 
+### MC
+
 ```{r}
 mc_mmr_b$mc_conv_plot()
 ```
+
+### IS
+
+```{r}
+is_g_fit_mmr <- is_proposal(
+  x_i_fit = fit_mmr,
+  x_n_vect = x_n_vect_from_mc_df(mc_mmr_b$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_mmr$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_mmr$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_mmr$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_mmr <- importance_sampling(
+  x_i_fit = fit_mmr, 
+  x_n_vect = x_n_vect_from_mc_df(mc_mmr_b$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_mmr$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_mmr$is_plot()
+```
+
 
 
 # Mix high risk, 2011 - 2023
@@ -701,15 +1037,68 @@ mc_mhr_b <- mc_simulation(list(fit_vhr, fit_phr), num_paths = mc_num_paths, num_
 
 ## Convergence
 
+### Max vs sum
 Max vs sum plots for the first four moments:
 
 ```{r}
 plot_max_sum(fit_mhr, 1e4)
 ```
 
+### MC
+
 ```{r}
 mc_mhr_b$mc_conv_plot()
 ```
+
+### IS
+
+```{r}
+is_g_fit_mhr <- is_proposal(
+  x_i_fit = fit_mhr,
+  x_n_vect = x_n_vect_from_mc_df(mc_mhr_b$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(1.5, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(2, 0.5)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_mhr$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_mhr$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_mhr$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_mhr <- importance_sampling(
+  x_i_fit = fit_mhr, 
+  x_n_vect = x_n_vect_from_mc_df(mc_mhr_b$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_mhr$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_mhr$is_plot()
+```
+
 
 
 # Compare pension plans
@@ -1409,4 +1798,9 @@ for $n \rightarrow \infty$.
 If not, $X$ doesn't have a $p$'th moment.
 
 See Taleb: The Statistical Consequences Of Fat Tails, p. 192
+
+```{bash include=FALSE}
+## Convert md to pdf
+pandoc pensionsafkast.md -o pensionsafkast.pdf
+```
 

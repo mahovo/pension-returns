@@ -50,16 +50,20 @@ risk_estimate <- function(dist_data, max_or_min = "max", percent) {
 }
 
 ## down_and_out_df() takes a data frame as input.
-## For each column, the first element which is below the threshold and all following elements
-## are set to 0.
-down_and_out_df <- function(df, threshold) {
+## mode 1:Threshold is absorbing barrier. When threshold is hit, set all subsequent values to
+## threshold value.
+## mode 2: For each column, the first element which is below the threshold and all following 
+## elements are set to 0.
+## We can calculate out-of-the money of an index series by setting threshold to 100 (or whatever)
+## the initial capital is.
+down_and_out_df <- function(df, threshold, mode = 1) {
   ll <- lapply(df,
                function(vect) {
                  n <- length(vect) 
                  for(i in seq_along(vect)) {
                    if(vect[i] < threshold ) {
                      if(i == n) {break}
-                     vect[(i):n] <- rep(0, n - i + 1)
+                     vect[(i):n] <- rep(ifelse(mode == 1, threshold, 0), n - i + 1)
                      break
                    }
                  }
@@ -69,12 +73,12 @@ down_and_out_df <- function(df, threshold) {
   as.data.frame(ll)
 }
 
-down_and_out_vect <- function(vect, threshold) {
+down_and_out_vect <- function(vect, threshold, mode = 1) {
   n <- length(vect) 
   for(i in seq_along(vect)) {
     if(vect[i] < threshold ) {
       if(i == n) {break}
-      vect[(i):n] <- rep(0, n - i + 1)
+      vect[(i):n] <- rep(ifelse(mode == 1, threshold, 0), n - i + 1)
       break
     }
   }
@@ -83,6 +87,10 @@ down_and_out_vect <- function(vect, threshold) {
 
 count_num_dao <- function(df, threshold = 0) {
   length(which(df[nrow(df), ] <= threshold))
+}
+
+x_n_vect_from_mc_df <- function(mc_df) {
+  log(unlist(mc_df[mc_num_periods, ])/100)
 }
 
 df_summary_to_df <- function(df_summary) {
@@ -353,7 +361,7 @@ mc_simulation <- function(
   
   if(dao == TRUE) {
     mc_df <- down_and_out_df(mc_df, threshold)
-    num_dao <- count_num_dao(mc_df)
+    num_dao <- count_num_dao(mc_df, threshold)
     dao_probability_percent <- 100 * num_dao/num_paths
     
     cat("Down-and-out simulation:\n")
@@ -413,8 +421,8 @@ mc_simulation <- function(
       mtext(side=3, line=1, at=-0.07, adj=0, cex=0.7, "(100 is par, 200 is double, 50 is half)")
     },
     mc_conv_plot = function() {
-      df_conv <- data.frame(t = 1:num_paths, mu_hat = mu_hat, ci_l = ci_l, ci_u = ci_u)
-      ggplot(df_conv, aes(x = t, y = mu_hat)) + 
+      df_conv <- data.frame(i = 1:num_paths, mu_hat = mu_hat, ci_l = ci_l, ci_u = ci_u)
+      ggplot(df_conv, aes(x = i, y = mu_hat)) + 
       geom_ribbon(
         mapping = aes(
           ymin = ci_l, 
@@ -436,6 +444,238 @@ mc_simulation <- function(
     ci_u = ci_u
   )
 }
+  
+
+## Fit importance samling proposal density as a normal density g(x).  
+## x_i_fit is the fit of a skewed t distribution to the observed log-returns.  
+## rnd_seed_x and rnd_seed_p must be fixed when calling importance_sampling() from
+## is_proposal().
+## We get x_n_fit from a MC simulation. So we always need to run an MC first.
+is_proposal <- function(
+    x_i_fit, 
+    x_n_vect = NA,
+    num_paths, 
+    num_periods, 
+    obj_func_plot = FALSE,
+    init_par = c(2, 1),
+    method = "L-BFGS-B",
+    lower = c(0.1, 0.01),
+    upper = c(3, 2)
+  ) {
+  
+  set.seed(1411)
+  p_vect <- runif(num_paths, 0.0, 1.0)
+  
+  #set.seed(2304)
+  #x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+  if(is.na(x_n_vect)) {
+    set.seed(2304)
+    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+  }
+  
+  is_obj_func <- function(
+    g_n_params, 
+    x_i_fit, 
+    x_n_vect,
+    num_paths, 
+    num_periods, 
+    p_vect = p_vect
+    #g_n_params, num_paths, f_n_params, p_vect
+    ) {
+    
+    importance_sampling(
+      x_i_fit = x_i_fit, 
+      x_n_vect = x_n_vect,
+      num_paths = num_paths, 
+      num_periods = num_periods, 
+      g_n_params = g_n_params, 
+      mode = 2, 
+      p_vect = p_vect,
+      rnd_seed_x = 2304, 
+      rnd_seed_p = 1411
+      # g_n_params, 
+      # num_paths, 
+      # f_n_params,
+      # p_vect, 
+      # sd_mode = 2
+    )$sigma_hat
+  }
+  
+  par <- optim(
+    par = init_par, 
+    fn = is_obj_func, 
+    method = method,
+    lower = lower,
+    upper = upper,
+    x_i_fit = x_i_fit, 
+    x_n_vect = x_n_vect,
+    num_paths = num_paths, 
+    num_periods = num_periods,
+    p_vect = p_vect
+    )$par
+  
+  if(obj_func_plot == TRUE) {
+    sd_g_n <- 1:200/200
+    sd_obj_s <- unlist(lapply(
+      sd_g_n,
+      function(sigma) {
+        is_obj_func(
+          g_n_params = c(par[1], sigma), 
+          x_i_fit = x_i_fit, 
+          x_n_vect = x_n_vect,
+          num_paths = num_paths, 
+          num_periods = num_periods, 
+          p_vect = p_vect
+        )
+      }
+    ))
+    
+    mean_g_n <- (-400):400/200
+    sd_obj_m <- unlist(lapply(
+      mean_g_n,
+      function(mean) {
+        is_obj_func(
+          g_n_params = c(mean, par[2]), 
+          x_i_fit = x_i_fit, 
+          x_n_vect = x_n_vect,
+          num_paths = num_paths, 
+          num_periods = num_periods, 
+          p_vect = p_vect
+        )
+      }
+    ))
+    
+    mean_vect_plot_df <- data.frame(mean_g_n = mean_g_n, sd_obj_m = sd_obj_m)
+    sd_vect_plot_df <- data.frame(sd_g_n = sd_g_n, sd_obj_s = sd_obj_s)
+    
+    mean_vect_plot <-  function() {
+      ggplot(mean_vect_plot_df, aes(x = mean_g_n, y = sd_obj_m)) +
+        geom_line()
+    }
+    sd_vect_plot <-  function() {
+      ggplot(sd_vect_plot_df, aes(x = sd_g_n, y = sd_obj_s)) +
+        geom_line()
+    }
+  } else {
+    mean_vect_plot_df <- NA
+    mean_vect_plot <- NA
+    sd_vect_plot_df <- NA
+    sd_vect_plot <- NA
+  }
+  
+  list(
+    par = par,
+    mean_vect_plot_df = mean_vect_plot_df,
+    mean_vect_plot = mean_vect_plot,
+    sd_vect_plot_df = sd_vect_plot_df,
+    sd_vect_plot = sd_vect_plot
+  )
+}
+  
+  ## g_n_params is a vector c(mean, sd)
+  ## mode 1: Calculate sd for each step and generate convergence plot.
+  ## mode 2: Calculate sd only for last step (1:num_paths), no convergence plot.
+  ## rnd_seed_x and rnd_seed_p must be fixed when calling importance_sampling() from
+  ## is_proposal().
+  ## For DAO, use last row from MC data frame produced by mc_simulation() with 
+  ## dao = TRUE, converted to log-returns with x_n_vect_from_mc_df().
+  ## Note that when plot_mode = "index", the y-axis will be in index values, but
+  ## sigma_hat will still be based on log-returns (conversion happens after sigma_hat
+  ## is calculated.)
+importance_sampling <- function(
+    x_i_fit, 
+    x_n_vect = NA, 
+    num_paths, 
+    num_periods, 
+    g_n_params, 
+    mode = 1, 
+    p_vect = NA, 
+    plot_mode = "index", ## "index" or "log"
+    rnd_seed_x = 2304, 
+    rnd_seed_p = 1411) {
+  if(is.na(x_n_vect)) {
+    set.seed(rnd_seed_x)
+    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+  }
+    
+  loglik_sstd = function(beta, x) {sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))}
+  start = c(mean(x_n_vect), sd(x_n_vect), 3, 1)
+  fit_x_n <- optim(start, loglik_sstd, x = x_n_vect)
+  f_n_params <- fit_x_n$par
+
+  if(is.na(p_vect)) {
+    set.seed(rnd_seed_p)
+    p_vect <- runif(num_paths, 0.0, 1.0)
+  }
+  
+  h_vect <- qnorm(p_vect, g_n_params[1], g_n_params[2])
+  g_n_vect <- dnorm(h_vect, g_n_params[1], g_n_params[2])
+  f_n_vect <- dsstd(h_vect, f_n_params[1], f_n_params[2], f_n_params[3], f_n_params[4])
+  w_star <- f_n_vect / g_n_vect
+  
+  if(mode == 1) {  
+    mu_hat <- cumsum(h_vect * w_star) / 1:num_paths ## Element wise matrix multiplication
+    sigma_hat <- numeric(num_paths)
+    dev <- numeric(num_paths)
+    ci_l <- numeric(num_paths) ## c.i. lower
+    ci_u <- numeric(num_paths) ## c.i. upper
+    for(i in 1:num_paths){
+      sigma_hat[i] <- sd(h_vect[1:i] * w_star[1:i]) ## sd for paths 1 thru i
+      dev[i] <- 1.96 * sigma_hat[i] / sqrt(i)
+    }
+    ci_l <- mu_hat - dev
+    ci_u <- mu_hat + dev
+    if(plot_mode == "index") {
+      df_conv <- data.frame(
+        i = 1:num_paths, 
+        mu_hat = 100 * exp(mu_hat), 
+        ci_l = 100 * exp(ci_l), 
+        ci_u = 100 * exp(ci_u)
+      )
+    } else {
+      df_conv <- data.frame(i = 1:num_paths, mu_hat = mu_hat, ci_l = ci_l, ci_u = ci_u)
+    }
+    df_conv <- data.frame(
+      i = 1:num_paths, 
+      mu_hat = 100 * exp(mu_hat), 
+      ci_l = 100 * exp(ci_l), 
+      ci_u = 100 * exp(ci_u)
+    )
+    is_plot <- function() {
+      ggplot(df_conv, aes(x = i, y = mu_hat)) + 
+      geom_ribbon(
+        mapping = aes(
+          ymin = ci_l, 
+          ymax = ci_u
+        ), fill = "gray") +
+      ylim(min(ci_u), max(ci_l)) +
+      geom_line() + 
+      labs(title = paste("Importance Sampling convergence w/ 95% c.i."), subtitle = paste(num_periods, "steps,", num_paths, "paths"), x = "path ID", y = "mu_hat")
+    }
+  } else {
+    mu_hat <- sum(h_vect * w_star) / num_paths
+    sigma_hat <- sd(h_vect[1:num_paths] * w_star[1:num_paths]) ## sd for paths 1 thru i
+    dev <- 1.96 * sigma_hat / sqrt(num_paths)
+    ci_l <- mu_hat - dev
+    ci_u <- mu_hat + dev
+    df_conv <- NA
+    is_plot <- NA
+  }
+  
+  list(
+    mu_hat = mu_hat, 
+    h_vect = h_vect, 
+    g_n_vect = g_n_vect, 
+    f_n_vect = f_n_vect, 
+    sigma_hat = sigma_hat, 
+    ci_l = ci_l, 
+    ci_u = ci_u, 
+    w_star = w_star,
+    df_conv = df_conv,
+    is_plot = is_plot
+  )
+}
+
 
 
 
