@@ -8,16 +8,21 @@ date: "2024-04-14"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r include=FALSE}
 library(dplyr)
 library(tidyr)
 library(fGarch)
 ```
 
-```{r}
+```{r include=FALSE}
 source("~/R\ work/pension-returns/pension-returns_functions.R")
 #source("~/R\ work/pension-returns/importance-sampling.R")
 ```
+```{r include=FALSE}
+fit_mhr <- readRDS(file="fit_mhr.RData")
+mc_mhr_b <- readRDS(file="mc_mhr_b.RData")
+```
+
 
 $x_k$ is a stochastic variable from whitch the $k$'th path is generated. $x_{i,k}$ is the $i$'th realization of $x_k$.  
 
@@ -64,44 +69,42 @@ The density of $Y_1 + Y_2$ is the convolution of the densities $f_{Y_1}(\cdot)$ 
 init_capital <- 100
 num_periods <- 20
 num_paths <- 1e2
-
-num_steps <- num_prices - 1
 ```
 
 
 ```{r}
 ## Generate matrix of simulated X data
 ## Columns correspond to sample paths.
-## num_steps is the length n of sample path.
+## num_periods is the length n of sample path.
 ## num_paths is the number of sample paths.
 ## rfunc is the random generating function, eg. runif, rnorm, etc.
 ## h(x) is simply log-returns, i.e. h(x) = x
-x_mat_gen_sstd <- function(fit, num_steps, num_paths) {
+x_mat_gen_sstd <- function(fit, num_periods, num_paths) {
   matrix(
-    rsstd(num_steps * num_paths, fit$m, fit$s, fit$nu, fit$xi), 
-    num_steps,
+    rsstd(num_periods * num_paths, fit$m, fit$s, fit$nu, fit$xi), 
+    num_periods,
     num_paths, 
     byrow = FALSE
   )
 }
 
-# x_gen_func_sstd <- function(fit, num_steps = num_steps , init_capital = 100 ) {
+# x_gen_func_sstd <- function(fit, num_periods = num_periods , init_capital = 100 ) {
 #   init_capital * exp(cumsum(rsstd(num_prices, fit$m, fit$s, fit$nu, fit$xi))) ## Pf index values
 # }
 
-x_mat_gen <- function(num_steps, num_paths, rfunc = rsstd, ...) {
-  matrix(rfunc(n = num_steps * num_paths, ...), num_steps, num_paths, byrow = FALSE)
+x_mat_gen <- function(num_periods, num_paths, rfunc = rsstd, ...) {
+  matrix(rfunc(n = num_periods * num_paths, ...), num_periods, num_paths, byrow = FALSE)
 }
 
-# x_gen_func <- function(num_steps = num_steps, init_capital = 100, rfunc = rsstd, ...) {
+# x_gen_func <- function(num_periods = num_periods, init_capital = 100, rfunc = rsstd, ...) {
 #   init_capital * exp(cumsum(rfunc(...)))
 # }
 
-xg_mat_gen <- function(num_steps, num_paths, qfunc, ...) {
-  num_p_vals <- num_steps * num_paths
+xg_mat_gen <- function(num_periods, num_paths, qfunc, ...) {
+  num_p_vals <- num_periods * num_paths
   p_mat <- matrix(
-    runif(num_steps * num_paths, 0.0, 1.0),
-    num_steps, num_paths, byrow = FALSE
+    runif(num_periods * num_paths, 0.0, 1.0),
+    num_periods, num_paths, byrow = FALSE
   )
 
   matrix(qfunc(p = p_mat, ...), dim(p_mat))
@@ -123,7 +126,7 @@ h_vect_gen <- function(x_mat, h_func = Sn) {
 ```{r}
 x_mat <- x_mat_gen_sstd(
   fit = fit_mhr, 
-  num_steps = num_steps, 
+  num_periods = num_periods, 
   num_paths = num_paths
 )
 ```
@@ -135,13 +138,13 @@ hist(x_mat, breaks = 40)
 ```
 
 ```{r}
-x_fit_normal <- MASS::fitdistr(x_mat, "normal")
-x_fit_normal
+log_ret_fit_normal <- MASS::fitdistr(x_mat, "normal")
+log_ret_fit_normal
 ```
 
 
 ```{r}
-xg_mat <- xg_mat_gen(num_steps, num_paths, qfunc = qnorm, mean = log_ret_fit_normal$estimate[[1]], sd = log_ret_fit_normal$estimate[[2]])
+xg_mat <- xg_mat_gen(num_periods, num_paths, qfunc = qnorm, mean = log_ret_fit_normal$estimate[[1]], sd = log_ret_fit_normal$estimate[[2]])
 ```
 
 
@@ -159,7 +162,7 @@ hxf <- t(t(f_mat) * h_vect)
 hxf_fit_normal <- MASS::fitdistr(hxf, "normal")
 hxf_dens_data_norm <- dnorm(sort(hxf), mean = hxf_fit_normal$estimate[[1]], sd = hxf_fit_normal$estimate[[2]])
 
-hxf_seq <- seq(min(hxf), max(hxf), length.out = num_steps * num_paths)
+hxf_seq <- seq(min(hxf), max(hxf), length.out = num_periods * num_paths)
 
 hist(hxf, breaks = 50, freq = FALSE, xlab = "log-returns", main = "Histogram of h(x)f(x) and density of g")
 lines(x = hxf_seq, y = hxf_dens_data_norm, col="red")
@@ -183,6 +186,7 @@ We know (https://search.r-project.org/CRAN/refmans/bayesmeta/html/convolve.html)
 
 ```{r}
 params <- c(1, 2, 5, 1.5)
+set.seed(1234)
 x_sstd_mat <- replicate(10000, rsstd(20, mean = params[1], sd = params[2], nu = params[3], xi = params[4]))
 x_sstd_sums <- apply(x_sstd_mat, 2, sum)
 
@@ -193,14 +197,13 @@ cat("params of terms:", params, "\n")
 cat("params of sum:", fit_sstd$par, "\n")
 ```
 
-19.89072 8.883992 33.12447 1.204468 
 
 
 The means look about right.  
 The variances:  
-Is 8.88^2 = 20 * 2?
+Is 8.88^2 = 20 * 2^2?
 ```{r}
-8.883992^2
+8.884686^2
 ```
 Close...
 
@@ -249,7 +252,7 @@ $$w =  f(x_g) / g_n(x_g)$$:
 xg_mat <- xg_gen(p_vals, theta, a, b) ## Quantile function for g density
 h_vect <- h_vect_gen(xg_mat, ...)
 g_dens <- apply(xg_mat, 2, function(x) {gn_1(x, theta, a, b)})
-f_dens <- replicate(num_paths, (1/3.9)^num_steps)
+f_dens <- replicate(num_paths, (1/3.9)^num_periods)
 w_star <-  f_dens / g_dens
 ```
 
@@ -447,7 +450,7 @@ So instead of making an MC simulation of diffs, we should make a simulation of l
 If the columns in `x_mat` are vectors of portfolio index value differences:
 
 ```{r}
-diffs <- lapply(mc_mhr_a$mc_df, diff)
+diffs <- lapply(mc_mhr_b$mc_df, diff)
 ```
 
 
