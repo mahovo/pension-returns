@@ -427,9 +427,9 @@ labs(title = paste("Importance Sampling convergence w/ 95% c.i."), subtitle = pa
 ```
 This looks good, the implementation seems to work. The estimate matches the MC estimate. But it doesn't seem very useful. In the present case $h(x) := x$, so $f(x)$ is the distribution of $h(x)$. The purpose of the importance sampling is to determine the parameters of the distribution of $h(x)$, but we already know the parameters of $f$, because we used them to simulate the data. But it does visualize how well the estimate converges.
 
-One issue with the implementation (ignoring the fact that it is not useful) is that the confidence intervals need some work.
+One issue with the implementation (ignoring the fact that it is not useful) is that the confidence intervals need some work. Does the confidence interval say anything about the probability, that the true mean is in the confidence interval?
 
-
+Another thing to note is, that we are using the last row of an MC data frame as x_n. So IS doesn't offer a performance advantage over MC in this case: We need to do the MC simulation (or at least calculate the sum of simulated log-returns) before we can do the IS. Otherwise we would need to know the theoretical distribustion of the x_n's, which is the problem of convolution mentioned above. However, once we have estimated the parameters of g (which can be a very slow process with `optim()`), the IS itself is super fast.
 
 
 

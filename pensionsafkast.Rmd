@@ -1515,6 +1515,9 @@ Taleb, Statistical Consequences Of Fat Tails, p. 97:
 And p. 363:  
 "The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, un- der a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
 
+- Importance Sample seems to converge to a lower level than Monte Carlo does. Is that because IS catches more observations in the lower tail? Or a mistake...?  
+- mc_simulation() and importance_sampling() and is_proposal() subtracts 1 from num_periods. We shouldn't do that.  
+- The QQ lines look a bit off... What's happening there?  
 
 
 
