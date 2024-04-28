@@ -90,7 +90,7 @@ count_num_dao <- function(df, threshold = 0) {
 }
 
 x_n_vect_from_mc_df <- function(mc_df) {
-  log(unlist(mc_df[mc_num_periods, ])/100)
+  log(unlist(mc_df[nrow(mc_df), ])/100)
 }
 
 df_summary_to_df <- function(df_summary) {
@@ -162,8 +162,9 @@ max_sum <- function(data_vector, p = 1) {
   ms
 }
 
-plot_max_sum <- function(fit, num_periods) {
-  ms_log_returns <- rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi)
+plot_max_sum <- function(fit, num_periods, rnd_seed = 2304) {
+  set.seed(rnd_seed)
+  ms_log_returns <- rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi)
   par(mfrow = c(2, 2))
   lapply(1:4, function(p) {
     ms_vector <- max_sum(ms_log_returns, p)
@@ -343,17 +344,17 @@ mc_simulation <- function(
   if(is.null(comment(fit))) {
     ## A list of fits
     init_capital = 100/length(fit)
-    mc_df <- data.frame(matrix(rep(0, num_paths * num_periods), nrow = num_periods))
+    mc_df <- data.frame(matrix(rep(0, num_paths * (num_periods + 1)), nrow = num_periods + 1))
     for(i in seq_along(fit)) {
       for(j in 1:num_paths) {
-        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
+        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
       }
     }
   } else {
     if(comment(fit) == "single_fit") {
-      mc_df <- data.frame(rep(0, num_periods))
+      mc_df <- data.frame(rep(0, num_periods + 1))
       for(j in 1:num_paths) {
-        mc_df[ ,j] <- c(init_capital, init_capital * exp(cumsum(rsstd(num_periods - 1, fit$m, fit$s, fit$nu, fit$xi))))
+        mc_df[ ,j] <- c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi))))
       }
     }
   }
@@ -374,20 +375,22 @@ mc_simulation <- function(
   
   colnames(mc_df) <- 1:num_paths
   
-  mc_m <- mean(unlist(mc_df[num_periods, ]))
-  mc_s <- sd(unlist(mc_df[num_periods, ]))
-  mc_min <- min(unlist(mc_df[num_periods, ]))
-  mc_max <- max(unlist(mc_df[num_periods, ]))
+  x_n <- unlist(mc_df[num_periods + 1, ]) ## Last row
+  
+  mc_m <- mean(x_n)
+  mc_s <- sd(x_n)
+  mc_min <- min(x_n)
+  mc_max <- max(x_n)
   
   ## Confidence intervals
-  h_vect <- unlist(mc_df[num_periods, ]) ## Last row
-  mu_hat <- cumsum(h_vect) / 1:num_paths
+
+  mu_hat <- cumsum(x_n) / 1:num_paths
   sigma_hat <- numeric(num_paths)
   dev <- numeric(num_paths)
   ci_l <- numeric(num_paths) ## c.i. lower
   ci_u <- numeric(num_paths) ## c.i. upper
   for(i in 1:num_paths) {
-    sigma_hat[i] <- sd(h_vect[1:i]) ## sd for paths 1 thru i
+    sigma_hat[i] <- sd(x_n[1:i]) ## sd for paths 1 thru i
     dev[i] <- 1.96 * sigma_hat[i] / sqrt(i)
     ci_l <- mu_hat - dev[i]
     ci_u <- mu_hat + dev[i]
@@ -412,7 +415,7 @@ mc_simulation <- function(
     },
     mc_plot_last_period = function() {
       plot(
-        sort(unlist(mc_df[num_periods, ])), pch = 16, cex = 0.3,
+        sort(x_n), pch = 16, cex = 0.3,
         xlab = "Sample ID",
         ylab = "Portfolio index value in kr"
       )
@@ -470,7 +473,7 @@ is_proposal <- function(
   #x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
   if(is.na(x_n_vect)) {
     set.seed(2304)
-    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
   }
   
   is_obj_func <- function(
@@ -595,7 +598,7 @@ importance_sampling <- function(
     rnd_seed_p = 1411) {
   if(is.na(x_n_vect)) {
     set.seed(rnd_seed_x)
-    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
   }
     
   loglik_sstd = function(beta, x) {sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))}

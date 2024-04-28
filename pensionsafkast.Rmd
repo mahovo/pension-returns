@@ -10,10 +10,12 @@ output:
     toc: true
     toc_depth: 3
     keep_md: yes
-  pdf_document:
-    toc: true
-    toc_depth: 3
+  # pdf_document:
+  #   toc: true
+  #   toc_depth: 3
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
+params:
+  run_sim: TRUE
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 ---
 
@@ -94,6 +96,9 @@ data_df_l <- data.frame(
   vmrl = vmrl
 )
 ```
+
+
+
 
 
 
@@ -186,9 +191,15 @@ We see that for a few observations out of a 1000, the losses are disastrous, whi
 
 ## Monte Carlo
 
-```{r}
+```{r eval=params$run_sim}
 mc_vmr <- mc_simulation(fit_vmr, num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_vmr, file="mc_vmr.RData")
 ```
+
+```{r}
+mc_vmr <- readRDS(file="mc_vmr.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_vmr$mc_plot)()
@@ -207,8 +218,9 @@ mc_vmr <- mc_simulation(fit_vmr, num_paths = mc_num_paths, num_periods = mc_num_
 ### Max vs sum
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_vmr, 1e4)
+```{r eval=parms$run_sim}
+vmr_max_sum_plot <- plot_max_sum(fit_vmr, 1e4)
+saveRDS(vmr_max_sum_plot, "vmr_max_sum_plot.RData")
 ```
 
 ### MC
@@ -1100,6 +1112,286 @@ is_output_mhr$is_plot()
 ```
 
 
+# Mix vmr+phr, 2011 - 2023
+
+Log-returns for mix of Velliv medium risk (vm) and PFA high risk (ph):
+
+```{r}
+vm_ph_r <- (c(100, 100 * cumprod(exp(vmr))) + c(100, 100 * cumprod(exp(phr))))/2
+vm_ph_r <- log(tail(vm_ph_r, -1)/head(vm_ph_r, -1))
+```
+
+
+## Fit to skew t distribution
+
+```{r}
+fit_vm_ph <- fit_skewed_t(vm_ph_r)
+```
+
+
+## QQ Plot
+```{r}
+(fit_vm_ph$qqplot)()
+```
+
+
+
+## Data vs fit
+Let's plot the fit and the observed returns together.  
+
+```{r}
+(fit_vm_ph$fit_plot)()
+```
+
+
+
+
+## Estimated distribution
+Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
+
+```{r}
+(fit_vm_ph$dist_plot)()
+```
+
+```{r}
+(fit_vm_ph$quantile_plot)()
+```
+
+
+
+```{r}
+(fit_vm_ph$dens_plot)()
+```
+
+
+
+## Monte Carlo
+
+
+
+### Mix of simulations from estimated distribution of returns from individual funds.
+
+
+```{r}
+mc_vm_ph <- mc_simulation(list(fit_vmr, fit_phr), num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+```
+
+```{r results='hide',fig.keep='all'}
+(mc_vm_ph$mc_plot)()
+```
+
+
+```{r results='hide',fig.keep='all'}
+(mc_vm_ph$mc_plot_last_period)()
+```
+
+
+## Convergence
+
+### Max vs sum
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_vm_ph, 1e4)
+```
+
+### MC
+
+```{r}
+mc_vm_ph$mc_conv_plot()
+```
+
+### IS
+
+```{r}
+is_g_fit_vm_ph <- is_proposal(
+  x_i_fit = fit_vm_ph,
+  x_n_vect = x_n_vect_from_mc_df(mc_vm_ph$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_vm_ph$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_vm_ph$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_vm_ph$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_vm_ph <- importance_sampling(
+  x_i_fit = fit_vm_ph, 
+  x_n_vect = x_n_vect_from_mc_df(mc_vm_ph$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_vm_ph$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_vm_ph$is_plot()
+```
+
+
+
+# Mix vhr+pmr, 2011 - 2023
+
+Log-returns for mix of Velliv high risk (vh) and PFA medium risk (pm):
+
+```{r}
+vh_pm_r <- (c(100, 100 * cumprod(exp(vhr))) + c(100, 100 * cumprod(exp(pmr))))/2
+vh_pm_r <- log(tail(vh_pm_r, -1)/head(vh_pm_r, -1))
+```
+
+
+## Fit to skew t distribution
+
+```{r}
+fit_vh_pm <- fit_skewed_t(vh_pm_r)
+```
+
+
+## QQ Plot
+```{r}
+(fit_vh_pm$qqplot)()
+```
+
+
+
+
+## Data vs fit
+Let's plot the fit and the observed returns together.  
+
+```{r}
+(fit_vh_pm$fit_plot)()
+```
+
+
+
+## Estimated distribution
+Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
+
+```{r}
+(fit_vh_pm$dist_plot)()
+```
+
+```{r}
+(fit_vh_pm$quantile_plot)()
+```
+
+
+```{r}
+(fit_vh_pm$dens_plot)()
+```
+
+
+
+## Monte Carlo
+
+
+
+### Mix of simulations from estimated distribution of returns from individual funds.
+
+
+```{r}
+mc_vh_pm <- mc_simulation(list(fit_vhr, fit_pmr), num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+```
+
+```{r results='hide',fig.keep='all'}
+(mc_vh_pm$mc_plot)()
+```
+
+
+```{r results='hide',fig.keep='all'}
+(mc_vh_pm$mc_plot_last_period)()
+```
+
+
+## Convergence
+
+### Max vs sum
+
+Max vs sum plots for the first four moments:
+
+```{r}
+plot_max_sum(fit_vh_pm, 1e4)
+```
+
+### MC
+
+```{r}
+mc_vh_pm$mc_conv_plot()
+```
+
+### IS
+
+```{r}
+is_g_fit_vh_pm <- is_proposal(
+  x_i_fit = fit_vh_pm,
+  x_n_vect = x_n_vect_from_mc_df(mc_vh_pm$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  obj_func_plot = TRUE,
+  init_par = c(2, 0.5),
+  method = "L-BFGS-B",
+  lower = c(1, 0.1),
+  upper = c(3, 0.9)
+)
+```
+
+Parameters
+```{r}
+is_g_fit_vh_pm$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fit_vh_pm$mean_vect_plot()
+```
+
+```{r}
+is_g_fit_vh_pm$sd_vect_plot()
+```
+
+
+
+
+
+```{r}
+is_output_vh_pm <- importance_sampling(
+  x_i_fit = fit_vh_pm, 
+  x_n_vect = x_n_vect_from_mc_df(mc_vh_pm$mc_df),
+  num_paths = mc_num_paths, 
+  num_periods = mc_num_periods, 
+  g_n_params = is_g_fit_vh_pm$par, 
+  mode = 1)
+```
+
+```{r}
+is_output_vh_pm$is_plot()
+```
+
+
 
 # Compare pension plans
 
@@ -1112,13 +1404,15 @@ x values are row names.
 percent_vals = c(0, 5, 10, 25, 50, 90, 99)
 risk_percentiles_df <-  data.frame(
       #Percent = percent_vals,
-      Velliv_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "max"),
-      Velliv_m_l = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "max"),
-      Velliv_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "max"),
+      Vel_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "max"),
+      Vel_ml = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "max"),
+      Vel_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "max"),
       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "max"),
       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "max"),
       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "max"),
-      mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "max")
+      mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "max"),
+      vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "max"),
+      vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "max")
 )
 
 rownames(risk_percentiles_df) <- as.character(percent_vals)
@@ -1152,7 +1446,9 @@ gain_percentiles_df <-  data.frame(
       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "min"),
       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "min"),
       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "min"),
-      mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "min")
+      mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "min"),
+      vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "min"),
+      vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "min")
 )
 
 rownames(gain_percentiles_df) <- as.character(percent_vals)
@@ -1176,27 +1472,31 @@ knitr::kable(rank_summary(gain_percentiles_df, sorting = rep("hi", length(percen
 
 Risk of loss from first to last period.  
 
-`_a` is simulation from estimated distribution of returns of mix.  
-`_b` is mix of simulations from estimated distribution of returns from individual 
-funds.
-
 `_m` is medium.  
 `_h`  is high.  
+
+`a` is simulation from estimated distribution of returns of mix.  
+`b` is mix of simulations from estimated distribution of returns from individual 
+funds.
+
+`l` for "long", going back to 2007.
 
 ```{r}
 # Use "max" for losses
 percent_vals = c(0, 5, 10, 25, 50, 90, 99)
 mc_loss_percentiles_df <-  data.frame(
       #Percent = percent_vals,
-      Velliv_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "max"),
-      Velliv_m_l = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "max"),
-      Velliv_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "max"),
+      Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "max"),
+      Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "max"),
+      Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "max"),
       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "max"),
       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "max"),
-      mix_m_a = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "max"),
-      mix_h_a = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "max"),
-      mix_m_b = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "max"),
-      mix_h_b = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "max")
+      mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "max"),
+      mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "max"),
+      mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "max"),
+      mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "max"),
+      vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "max"),
+      vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "max")
 )
 
 rownames(mc_loss_percentiles_df) <- as.character(percent_vals)
@@ -1258,15 +1558,17 @@ funds.
 percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
 mc_gain_percentiles_df <-  data.frame(
       #Percent = percent_vals,
-      Velliv_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "min"),
-      Velliv_m_l = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "min"),
-      Velliv_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "min"),
+      Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "min"),
+      Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "min"),
+      Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "min"),
       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "min"),
       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "min"),
-      mix_m_a = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "min"),
-      mix_h_a = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "min"),
-      mix_m_b = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "min"),
-      mix_h_b = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "min")
+      mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "min"),
+      mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "min"),
+      mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "min"),
+      mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "min"),
+      vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "min"),
+      vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "min")
 )
 
 rownames(mc_gain_percentiles_df) <- as.character(percent_vals)
@@ -1326,16 +1628,18 @@ Summary for fit of log returns to an F-S skew standardized Student-t distributio
 
 ```{r}
 fit_summary <- data.frame(
-  Velliv_medium = c(fit_vmr$m, fit_vmr$s, fit_vmr$nu, fit_vmr$xi, fit_vmr$r_squared),
-  Velliv_medium_long = c(fit_vmrl$m, fit_vmrl$s, fit_vmrl$nu, fit_vmrl$xi, fit_vmrl$r_squared),
-  Velliv_high = c(fit_vhr$m, fit_vhr$s, fit_vhr$nu, fit_vhr$xi, fit_vhr$r_squared),
-  PFA_medium = c(fit_pmr$m, fit_pmr$s, fit_pmr$nu, fit_pmr$xi, fit_pmr$r_squared),
-  PFA_high = c(fit_phr$m, fit_phr$s, fit_phr$nu, fit_phr$xi, fit_phr$r_squared),
-  mix_medium = c(fit_mmr$m, fit_mmr$s, fit_mmr$nu, fit_mmr$xi, fit_mmr$r_squared),
-  mix_high = c(fit_mhr$m, fit_mhr$s, fit_mhr$nu, fit_mhr$xi, fit_mhr$r_squared)
+  Vel_m = c(fit_vmr$m, fit_vmr$s, fit_vmr$nu, fit_vmr$xi, fit_vmr$r_squared),
+  Vel_ml = c(fit_vmrl$m, fit_vmrl$s, fit_vmrl$nu, fit_vmrl$xi, fit_vmrl$r_squared),
+  Vel_h = c(fit_vhr$m, fit_vhr$s, fit_vhr$nu, fit_vhr$xi, fit_vhr$r_squared),
+  PFA_m = c(fit_pmr$m, fit_pmr$s, fit_pmr$nu, fit_pmr$xi, fit_pmr$r_squared),
+  PFA_h = c(fit_phr$m, fit_phr$s, fit_phr$nu, fit_phr$xi, fit_phr$r_squared),
+  mix_m = c(fit_mmr$m, fit_mmr$s, fit_mmr$nu, fit_mmr$xi, fit_mmr$r_squared),
+  mix_h = c(fit_mhr$m, fit_mhr$s, fit_mhr$nu, fit_mhr$xi, fit_mhr$r_squared),
+  vm_ph = c(fit_vm_ph$m, fit_vm_ph$s, fit_vm_ph$nu, fit_vm_ph$xi, fit_vm_ph$r_squared),
+  vh_pm = c(fit_vh_pm$m, fit_vh_pm$s, fit_vh_pm$nu, fit_vh_pm$xi, fit_vh_pm$r_squared)
 )
 
-rownames(fit_summary) <- c("m", "s", "nu", "xi", "R-squared")
+rownames(fit_summary) <- c("m", "s", "nu", "xi", "R^2")
 ```
 
 ```{r}
@@ -1357,8 +1661,8 @@ Statistics are given for the final state of all paths.
 Probability of down-and_out is calculated as the share of paths that reach 0 at
 some point. All subsequent values for a path are set to 0, if the path reaches
 at any point.  
-0 is defined as any value below a threshold.  
-`losing_prob_pct` is the probability of losing money. This is calculated as the 
+0 is defined as any value below a threshold.    
+`dai_pct` (for down-and-in) is the probability of losing money. This is calculated as the 
 share of paths finishing below index 100.  
 
 ```{r}
@@ -1368,30 +1672,32 @@ cat("Number of paths:", mc_num_paths, "\n")
 
 ```{r}
 mc_summary <- data.frame(
-  Velliv_m = c(mc_vmr$mc_m, mc_vmr$mc_s, mc_vmr$mc_min, mc_vmr$mc_max, mc_vmr$dao_probability_percent, mc_vmr$percent_losing_paths),
-  Velliv_m_l = c(mc_vmrl$mc_m, mc_vmrl$mc_s, mc_vmrl$mc_min, mc_vmrl$mc_max, mc_vmrl$dao_probability_percent, mc_vmrl$percent_losing_paths),
-  Velliv_h = c(mc_vhr$mc_m, mc_vhr$mc_s, mc_vhr$mc_min, mc_vhr$mc_max, mc_vhr$dao_probability_percent, mc_vhr$percent_losing_paths),
+  Vel_m = c(mc_vmr$mc_m, mc_vmr$mc_s, mc_vmr$mc_min, mc_vmr$mc_max, mc_vmr$dao_probability_percent, mc_vmr$percent_losing_paths),
+  Vel_ml = c(mc_vmrl$mc_m, mc_vmrl$mc_s, mc_vmrl$mc_min, mc_vmrl$mc_max, mc_vmrl$dao_probability_percent, mc_vmrl$percent_losing_paths),
+  Vel_h = c(mc_vhr$mc_m, mc_vhr$mc_s, mc_vhr$mc_min, mc_vhr$mc_max, mc_vhr$dao_probability_percent, mc_vhr$percent_losing_paths),
   PFA_m = c(mc_pmr$mc_m, mc_pmr$mc_s, mc_pmr$mc_min, mc_pmr$mc_max, mc_pmr$dao_probability_percent, mc_pmr$percent_losing_paths),
   PFA_h = c(mc_phr$mc_m, mc_phr$mc_s, mc_phr$mc_min, mc_phr$mc_max, mc_phr$dao_probability_percent, mc_phr$percent_losing_paths),
-  mix_m_a = c(mc_mmr_a$mc_m, mc_mmr_a$mc_s, mc_mmr_a$mc_min, mc_mmr_a$mc_max, mc_mmr_a$dao_probability_percent, mc_mmr_a$percent_losing_paths),
-  mix_m_b = c(mc_mmr_b$mc_m, mc_mmr_b$mc_s, mc_mmr_b$mc_min, mc_mmr_b$mc_max, mc_mmr_b$dao_probability_percent, mc_mmr_b$percent_losing_paths),
-  mix_h_a = c(mc_mhr_a$mc_m, mc_mhr_a$mc_s, mc_mhr_a$mc_min, mc_mhr_a$mc_max, mc_mhr_a$dao_probability_percent, mc_mhr_a$percent_losing_paths),
-  mix_h_b = c(mc_mhr_b$mc_m, mc_mhr_b$mc_s, mc_mhr_b$mc_min, mc_mhr_b$mc_max, mc_mhr_b$dao_probability_percent, mc_mhr_b$percent_losing_paths)
+  mix_ma = c(mc_mmr_a$mc_m, mc_mmr_a$mc_s, mc_mmr_a$mc_min, mc_mmr_a$mc_max, mc_mmr_a$dao_probability_percent, mc_mmr_a$percent_losing_paths),
+  mix_mb = c(mc_mmr_b$mc_m, mc_mmr_b$mc_s, mc_mmr_b$mc_min, mc_mmr_b$mc_max, mc_mmr_b$dao_probability_percent, mc_mmr_b$percent_losing_paths),
+  mix_ha = c(mc_mhr_a$mc_m, mc_mhr_a$mc_s, mc_mhr_a$mc_min, mc_mhr_a$mc_max, mc_mhr_a$dao_probability_percent, mc_mhr_a$percent_losing_paths),
+  mix_hb = c(mc_mhr_b$mc_m, mc_mhr_b$mc_s, mc_mhr_b$mc_min, mc_mhr_b$mc_max, mc_mhr_b$dao_probability_percent, mc_mhr_b$percent_losing_paths),
+  vm_ph = c(mc_vm_ph$mc_m, mc_vm_ph$mc_s, mc_vm_ph$mc_min, mc_vm_ph$mc_max, mc_vm_ph$dao_probability_percent, mc_vm_ph$percent_losing_paths),
+  vh_pm = c(mc_vh_pm$mc_m, mc_vh_pm$mc_s, mc_vh_pm$mc_min, mc_vh_pm$mc_max, mc_vh_pm$dao_probability_percent, mc_vh_pm$percent_losing_paths)
 )
 
-rownames(mc_summary) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_pct", "losing_pct")
+rownames(mc_summary) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_pct", "dai_pct")
 ```
 
 
 ```{r}
-knitr::kable(mc_summary, digits = 3)
+knitr::kable(mc_summary, digits = 2)
 ```
 
 
 #### Ranking
 
 ```{r}
-knitr::kable(rank_summary(mc_summary, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 3)
+knitr::kable(rank_summary(mc_summary, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 2)
 ```
 
 # Compare Gaussian and skewed t-distribution fits
@@ -1421,7 +1727,7 @@ plot_norm_cdf <- function(x, m, s, minx, maxx, i) {
   abline(h = c(pnorm(min(x), m, s), pnorm(max(x), m,s)), col = c("red", "green"))
 }
 
-par(mfrow = c(3, 2))
+par(mfrow = c(4, 2))
 for(i in 1:ncol(data_df)) {
   m <- fits_norm[, i][1]
   s <- fits_norm[, i][2]
@@ -1440,7 +1746,7 @@ plot_norm_qq <- function(x, m, s, i) {
   legend("bottomright", legend = c("fit", "y=x"), col = c("black", "red"), lty = 1)
 }
 
-par(mfrow = c(3, 2))
+par(mfrow = c(4, 2))
 for(i in 1:ncol(data_df)) {
   m <- fits_norm[, i][1]
   s <- fits_norm[, i][2]
@@ -1515,9 +1821,8 @@ Taleb, Statistical Consequences Of Fat Tails, p. 97:
 And p. 363:  
 "The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, un- der a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
 
-- Importance Sample seems to converge to a lower level than Monte Carlo does. Is that because IS catches more observations in the lower tail? Or a mistake...?  
-- mc_simulation() and importance_sampling() and is_proposal() subtracts 1 from num_periods. We shouldn't do that.  
-- The QQ lines look a bit off... What's happening there?  
+- Importance Sampling seems to converge to a lower level than Monte Carlo does. Is that because IS catches more observations in the lower tail? Supporting this thesis is that MC for `mhr` with `1e4` paths gives a mean of 520, while `1e6` paths gives a mean of 478 (see under "Many simulations").  
+- Note: QQ lines by design pass through 1st and 3rd quantiles. They are not trendlines in the sense of linear regression.  
 
 
 
@@ -1802,8 +2107,15 @@ If not, $X$ doesn't have a $p$'th moment.
 
 See Taleb: The Statistical Consequences Of Fat Tails, p. 192
 
-```{bash include=FALSE}
-## Convert md to pdf
-pandoc pensionsafkast.md -o pensionsafkast.pdf
+
+```{r include=FALSE}
+## For knitting "pensionsafkast_IS.Rmd":
+saveRDS(fit_mhr, file="fit_mhr.RData")
+saveRDS(mc_mhr_b, file="mc_mhr_b.RData")
 ```
 
+```{bash eval=FALSE, include=FALSE}
+## Convert md to pdf
+## Run manually:
+pandoc pensionsafkast.md -o pensionsafkast.pdf
+```
