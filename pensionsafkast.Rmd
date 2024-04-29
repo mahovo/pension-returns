@@ -15,7 +15,8 @@ output:
   #   toc_depth: 3
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
 params:
-  run_sim: TRUE
+  run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
+                ## simulations output from disk instead of running the simulations.
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 ---
 
@@ -34,6 +35,14 @@ source("~/R\ work/pension-returns/pension-returns_functions.R")
 ##             This document takes a long time to render!
 ##
 ## *********************************************************************
+##
+## To read previous simulation outputs from disk rather than run simulations,
+## set YAML parameter run_sim: TRUE
+##
+## NOTE:
+## When using the "Run All" command, YAML parameters will be ignored. An error
+## message "Error in eval(ele) : object 'params' not found" will be printed,
+## but the chunks will be evaluated.
 ```
 
 
@@ -83,13 +92,21 @@ phr <- log(c(1.159, 0.878, 1.200, 1.068, 1.190, 0.943, 1.135, 1.082, 1.123, 1.12
 # Mix high risk return
 mhr <- log(c(1.073, 0.977, 1.207, 1.116, 1.128, 0.992, 1.126, 1.013, 1.164, 1.113, 1.201, 1.012, 1.014))
 
+vm_ph_r <- (c(100, 100 * cumprod(exp(vmr))) + c(100, 100 * cumprod(exp(phr))))/2
+vm_ph_r <- log(tail(vm_ph_r, -1)/head(vm_ph_r, -1))
+
+vh_pm_r <- (c(100, 100 * cumprod(exp(vhr))) + c(100, 100 * cumprod(exp(pmr))))/2
+vh_pm_r <- log(tail(vh_pm_r, -1)/head(vh_pm_r, -1))
+
 data_df <- data.frame(
   vmr = vmr,
   vhr = vhr,
   pmr = pmr,
   phr = phr,
   mmr = mmr,
-  mhr = mhr
+  mhr = mhr,
+  vm_ph_r = vm_ph_r,
+  vh_pm_r = vh_pm_r
 )
 
 data_df_l <- data.frame(
@@ -136,15 +153,19 @@ summary_df
 knitr::kable(rank_summary(summary_df, sorting = rep("hi", ncol(summary_df))), digits = 3)
 ```
 
-## Covariance
+## Covariance and correlations
 
+
+Covariances
 ```{r}
-cat("cov(vmr, pmr) = ", cov(vmr, pmr), "\n")
-cat("cov(vhr, phr) = ", cov(vhr, phr), "\n")
+round(cov(data.frame(vmr, vhr, pmr, phr)), 4)
 ```
 
-
-
+Correlations
+```{r}
+round(cor(data.frame(vmr, vhr, pmr, phr)), 4)
+```
+`vhr` and `phr` are clearly the least correlated.
 
 
 
@@ -218,10 +239,18 @@ mc_vmr <- readRDS(file="mc_vmr.RData")
 ### Max vs sum
 Max vs sum plots for the first four moments:
 
-```{r eval=parms$run_sim}
+```{r eval=params$run_sim}
 vmr_max_sum_plot <- plot_max_sum(fit_vmr, 1e4)
 saveRDS(vmr_max_sum_plot, "vmr_max_sum_plot.RData")
 ```
+
+```{r}
+vmr_max_sum_plot <- readRDS(file="vmr_max_sum_plot.RData")
+vmr_max_sum_plot
+```
+
+
+
 
 ### MC
 
@@ -232,7 +261,7 @@ mc_vmr$mc_conv_plot()
 ### IS
 
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_vmr <- is_proposal(
   x_i_fit = fit_vmr,
   x_n_vect = x_n_vect_from_mc_df(mc_vmr$mc_df),
@@ -244,7 +273,13 @@ is_g_fit_vmr <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_vmr, "is_g_fit_vmr.RData")
 ```
+
+```{r}
+is_g_fit_vmr <- readRDS(file="is_g_fit_vmr.RData")
+```
+
 
 Parameters
 ```{r}
@@ -265,7 +300,7 @@ is_g_fit_vmr$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_vmr <- importance_sampling(
   x_i_fit = fit_vmr, 
   x_n_vect = x_n_vect_from_mc_df(mc_vmr$mc_df),
@@ -273,7 +308,14 @@ is_output_vmr <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_vmr$par, 
   mode = 1)
+saveRDS(is_output_vmr, "is_output_vmr.RData")
 ```
+
+
+```{r}
+is_output_vmr <- readRDS(file="is_output_vmr.RData")
+```
+
 
 ```{r}
 is_output_vmr$is_plot()
@@ -326,9 +368,16 @@ We see that for a few observations out of a 1000, the losses are disastrous, whi
 
 ## Monte Carlo
 
-```{r}
+```{r eval=params$run_sim}
 mc_vmrl <- mc_simulation(fit_vmrl, num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_vmrl, file="mc_vmrl.RData")
 ```
+
+
+```{r}
+mc_vmrl <- readRDS(file="mc_vmrl.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_vmrl$mc_plot)()
@@ -346,8 +395,15 @@ mc_vmrl <- mc_simulation(fit_vmrl, num_paths = mc_num_paths, num_periods = mc_nu
 ### Max vs sum
 Max vs sum plots for the first four moments:
 
+```{r eval=params$run_sim}
+vmrl_max_sum_plot <- plot_max_sum(fit_vmrl, 1e4)
+saveRDS(vmrl_max_sum_plot, "vmrl_max_sum_plot.RData")
+```
+
+
 ```{r}
-plot_max_sum(fit_vmrl, 1e4)
+vmrl_max_sum_plot <- readRDS(file="vmrl_max_sum_plot.RData")
+vmrl_max_sum_plot
 ```
 
 
@@ -358,7 +414,7 @@ mc_vmrl$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_vmrl <- is_proposal(
   x_i_fit = fit_vmrl,
   x_n_vect = x_n_vect_from_mc_df(mc_vmrl$mc_df),
@@ -370,7 +426,13 @@ is_g_fit_vmrl <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_vmrl, "is_g_fit_vmrl.RData")
 ```
+
+```{r}
+is_g_fit_vmrl <- readRDS(file="is_g_fit_vmrl.RData")
+```
+
 
 Parameters
 ```{r}
@@ -391,7 +453,7 @@ is_g_fit_vmrl$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_vmrl <- importance_sampling(
   x_i_fit = fit_vmrl, 
   x_n_vect = x_n_vect_from_mc_df(mc_vmrl$mc_df),
@@ -399,7 +461,14 @@ is_output_vmrl <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_vmrl$par, 
   mode = 1)
+saveRDS(is_output_vmrl, "is_output_vmrl.RData")
 ```
+
+```{r}
+is_output_vmrl <- readRDS(file="is_output_vmrl.RData")
+```
+
+
 
 ```{r}
 is_output_vmrl$is_plot()
@@ -450,9 +519,16 @@ We see that for a few observations out of a 1000, the losses are disastrous, whi
 
 ## Monte Carlo
 
-```{r}
+```{r eval=params$run_sim}
 mc_vhr <- mc_simulation(fit_vhr, num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_vhr, file="mc_vhr.RData")
 ```
+
+
+```{r}
+mc_vhr <- readRDS(file="mc_vhr.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_vhr$mc_plot)()
@@ -470,9 +546,17 @@ mc_vhr <- mc_simulation(fit_vhr, num_paths = mc_num_paths, num_periods = mc_num_
 ### Max vs sum
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_vhr, 1e4)
+```{r eval=params$run_sim}
+vhr_max_sum_plot <- plot_max_sum(fit_vhr, 1e4)
+saveRDS(vhr_max_sum_plot, "vhr_max_sum_plot.RData")
 ```
+
+
+```{r}
+vhr_max_sum_plot <- readRDS(file="vhr_max_sum_plot.RData")
+vhr_max_sum_plot
+```
+
 
 ### MC
 
@@ -482,7 +566,7 @@ mc_vhr$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_vhr <- is_proposal(
   x_i_fit = fit_vhr,
   x_n_vect = x_n_vect_from_mc_df(mc_vhr$mc_df),
@@ -494,7 +578,13 @@ is_g_fit_vhr <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_vhr, "is_g_fit_vhr.RData")
 ```
+
+```{r}
+is_g_fit_vhr <- readRDS(file="is_g_fit_vhr.RData")
+```
+
 
 Parameters
 ```{r}
@@ -515,7 +605,7 @@ is_g_fit_vhr$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_vhr <- importance_sampling(
   x_i_fit = fit_vhr, 
   x_n_vect = x_n_vect_from_mc_df(mc_vhr$mc_df),
@@ -523,7 +613,14 @@ is_output_vhr <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_vhr$par, 
   mode = 1)
+saveRDS(is_output_vhr, "is_output_vhr.RData")
 ```
+
+
+```{r}
+is_output_vhr <- readRDS(file="is_output_vhr.RData")
+```
+
 
 ```{r}
 is_output_vhr$is_plot()
@@ -579,9 +676,16 @@ We see that for a few observations out of a 1000, the losses are disastrous. Whi
 
 ## Monte Carlo
 
-```{r}
+```{r eval=params$run_sim}
 mc_pmr <- mc_simulation(fit_pmr, num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_pmr, file="mc_pmr.RData")
 ```
+
+
+```{r}
+mc_pmr <- readRDS(file="mc_pmr.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_pmr$mc_plot)()
@@ -600,9 +704,17 @@ mc_pmr <- mc_simulation(fit_pmr, num_paths = mc_num_paths, num_periods = mc_num_
 
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_pmr, 1e4)
+```{r eval=params$run_sim}
+pmr_max_sum_plot <- plot_max_sum(fit_pmr, 1e4)
+saveRDS(pmr_max_sum_plot, "pmr_max_sum_plot.RData")
 ```
+
+
+```{r}
+pmr_max_sum_plot <- readRDS(file="pmr_max_sum_plot.RData")
+pmr_max_sum_plot
+```
+
 
 ### MC
 
@@ -612,7 +724,7 @@ mc_pmr$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_pmr <- is_proposal(
   x_i_fit = fit_pmr,
   x_n_vect = x_n_vect_from_mc_df(mc_pmr$mc_df),
@@ -624,7 +736,13 @@ is_g_fit_pmr <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_pmr, "is_g_fit_pmr.RData")
 ```
+
+```{r}
+is_g_fit_pmr <- readRDS(file="is_g_fit_pmr.RData")
+```
+
 
 Parameters
 ```{r}
@@ -645,7 +763,7 @@ is_g_fit_pmr$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_pmr <- importance_sampling(
   x_i_fit = fit_pmr, 
   x_n_vect = x_n_vect_from_mc_df(mc_pmr$mc_df),
@@ -653,7 +771,14 @@ is_output_pmr <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_pmr$par, 
   mode = 1)
+saveRDS(is_output_pmr, "is_output_pmr.RData")
 ```
+
+```{r}
+is_output_pmr <- readRDS(file="is_output_pmr.RData")
+```
+
+
 
 ```{r}
 is_output_pmr$is_plot()
@@ -705,9 +830,16 @@ We see that for a few observations out of a 1000, the losses are disastrous, whi
 
 ## Monte Carlo
 
-```{r}
+```{r eval=params$run_sim}
 mc_phr <- mc_simulation(fit_phr, num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_phr, file="mc_phr.RData")
 ```
+
+
+```{r}
+mc_phr <- readRDS(file="mc_phr.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_phr$mc_plot)()
@@ -726,9 +858,17 @@ mc_phr <- mc_simulation(fit_phr, num_paths = mc_num_paths, num_periods = mc_num_
 
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_phr, 1e4)
+```{r eval=params$run_sim}
+phr_max_sum_plot <- plot_max_sum(fit_phr, 1e4)
+saveRDS(phr_max_sum_plot, "phr_max_sum_plot.RData")
 ```
+
+
+```{r}
+phr_max_sum_plot <- readRDS(file="phr_max_sum_plot.RData")
+phr_max_sum_plot
+```
+
 
 ### MC
 
@@ -739,7 +879,7 @@ mc_phr$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_phr <- is_proposal(
   x_i_fit = fit_phr,
   x_n_vect = x_n_vect_from_mc_df(mc_phr$mc_df),
@@ -751,7 +891,13 @@ is_g_fit_phr <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_phr, "is_g_fit_phr.RData")
 ```
+
+```{r}
+is_g_fit_phr <- readRDS(file="is_g_fit_phr.RData")
+```
+
 
 Parameters
 ```{r}
@@ -772,7 +918,7 @@ is_g_fit_phr$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_phr <- importance_sampling(
   x_i_fit = fit_phr, 
   x_n_vect = x_n_vect_from_mc_df(mc_phr$mc_df),
@@ -780,7 +926,13 @@ is_output_phr <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_phr$par, 
   mode = 1)
+saveRDS(is_output_phr, "is_output_phr.RData")
 ```
+
+```{r}
+is_output_phr <- readRDS(file="is_output_phr.RData")
+```
+
 
 ```{r}
 is_output_phr$is_plot()
@@ -837,9 +989,16 @@ We see that for a few observations out of a 1000, the losses are disastrous, whi
 ## Monte Carlo
 
 ### Version a: Simulation from estimated distribution of returns of mix.  
-```{r}
+```{r eval=params$run_sim}
 mc_mmr_a <- mc_simulation(fit_mmr, num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_mmr_a, file="mc_mmr_a.RData")
 ```
+
+
+```{r}
+mc_mmr_a <- readRDS(file="mc_mmr_a.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_mmr_a$mc_plot)()
@@ -861,9 +1020,16 @@ mc_mmr_a <- mc_simulation(fit_mmr, num_paths = mc_num_paths, num_periods = mc_nu
 ### Version b: Mix of simulations from estimated distribution of returns from individual funds.
 
 
-```{r}
+```{r eval=params$run_sim}
 mc_mmr_b <- mc_simulation(list(fit_vmr, fit_pmr), num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_mmr_b, file="mc_mmr_b.RData")
 ```
+
+
+```{r}
+mc_mmr_b <- readRDS(file="mc_mmr_b.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_mmr_b$mc_plot)()
@@ -881,9 +1047,17 @@ mc_mmr_b <- mc_simulation(list(fit_vmr, fit_pmr), num_paths = mc_num_paths, num_
 
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_mmr, 1e4)
+```{r eval=params$run_sim}
+mmr_max_sum_plot <- plot_max_sum(fit_mmr, 1e4)
+saveRDS(mmr_max_sum_plot, "mmr_max_sum_plot.RData")
 ```
+
+
+```{r}
+mmr_max_sum_plot <- readRDS(file="mmr_max_sum_plot.RData")
+mmr_max_sum_plot
+```
+
 
 ### MC
 
@@ -893,7 +1067,7 @@ mc_mmr_b$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_mmr <- is_proposal(
   x_i_fit = fit_mmr,
   x_n_vect = x_n_vect_from_mc_df(mc_mmr_b$mc_df),
@@ -905,7 +1079,14 @@ is_g_fit_mmr <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_mmr, "is_g_fit_mmr.RData")
 ```
+
+```{r}
+is_g_fit_mmr <- readRDS(file="is_g_fit_mmr.RData")
+```
+
+
 
 Parameters
 ```{r}
@@ -926,7 +1107,7 @@ is_g_fit_mmr$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_mmr <- importance_sampling(
   x_i_fit = fit_mmr, 
   x_n_vect = x_n_vect_from_mc_df(mc_mmr_b$mc_df),
@@ -934,7 +1115,14 @@ is_output_mmr <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_mmr$par, 
   mode = 1)
+saveRDS(is_output_mmr, "is_output_mmr.RData")
 ```
+
+```{r}
+is_output_mmr <- readRDS(file="is_output_mmr.RData")
+```
+
+
 
 ```{r}
 is_output_mmr$is_plot()
@@ -988,9 +1176,16 @@ We see that the high risk mix provides a much better upside and smaller downside
 ## Monte Carlo
 
 ### Version a: Simulation from estimated distribution of returns of mix.  
-```{r}
+```{r eval=params$run_sim}
 mc_mhr_a <- mc_simulation(fit_mhr, num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_mhr_a, file="mc_mhr_a.RData")
 ```
+
+
+```{r}
+mc_mhr_a  <- readRDS(file="mc_mhr_a.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_mhr_a$mc_plot)()
@@ -1011,9 +1206,16 @@ mc_mhr_a <- mc_simulation(fit_mhr, num_paths = mc_num_paths, num_periods = mc_nu
 
 ### Version b: Mix of simulations from estimated distribution of returns from individual funds.
 
-```{r}
+```{r eval=params$run_sim}
 mc_mhr_b <- mc_simulation(list(fit_vhr, fit_phr), num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_mhr_b, file="mc_mhr_b.RData")
 ```
+
+
+```{r}
+mc_mhr_b <- readRDS(file="mc_mhr_b.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_mhr_b$mc_plot)()
@@ -1052,9 +1254,17 @@ mc_mhr_b <- mc_simulation(list(fit_vhr, fit_phr), num_paths = mc_num_paths, num_
 ### Max vs sum
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_mhr, 1e4)
+```{r eval=params$run_sim}
+mhr_max_sum_plot <- plot_max_sum(fit_mhr, 1e4)
+saveRDS(mhr_max_sum_plot, "mhr_max_sum_plot.RData")
 ```
+
+
+```{r}
+mhr_max_sum_plot <- readRDS(file="mhr_max_sum_plot.RData")
+mhr_max_sum_plot
+```
+
 
 ### MC
 
@@ -1064,7 +1274,7 @@ mc_mhr_b$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_mhr <- is_proposal(
   x_i_fit = fit_mhr,
   x_n_vect = x_n_vect_from_mc_df(mc_mhr_b$mc_df),
@@ -1076,7 +1286,13 @@ is_g_fit_mhr <- is_proposal(
   lower = c(1, 0.1),
   upper = c(2, 0.5)
 )
+saveRDS(is_g_fit_mhr, "is_g_fit_mhr.RData")
 ```
+
+```{r}
+is_g_fit_mhr <- readRDS(file="is_g_fit_mhr.RData")
+```
+
 
 Parameters
 ```{r}
@@ -1097,7 +1313,7 @@ is_g_fit_mhr$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_mhr <- importance_sampling(
   x_i_fit = fit_mhr, 
   x_n_vect = x_n_vect_from_mc_df(mc_mhr_b$mc_df),
@@ -1105,7 +1321,13 @@ is_output_mhr <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_mhr$par, 
   mode = 1)
+saveRDS(is_output_mhr, "is_output_mhr.RData")
 ```
+
+```{r}
+is_output_mhr <- readRDS(file="is_output_mhr.RData")
+```
+
 
 ```{r}
 is_output_mhr$is_plot()
@@ -1115,11 +1337,6 @@ is_output_mhr$is_plot()
 # Mix vmr+phr, 2011 - 2023
 
 Log-returns for mix of Velliv medium risk (vm) and PFA high risk (ph):
-
-```{r}
-vm_ph_r <- (c(100, 100 * cumprod(exp(vmr))) + c(100, 100 * cumprod(exp(phr))))/2
-vm_ph_r <- log(tail(vm_ph_r, -1)/head(vm_ph_r, -1))
-```
 
 
 ## Fit to skew t distribution
@@ -1172,9 +1389,16 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 ### Mix of simulations from estimated distribution of returns from individual funds.
 
 
-```{r}
+```{r eval=params$run_sim}
 mc_vm_ph <- mc_simulation(list(fit_vmr, fit_phr), num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_vm_ph, file="mc_vm_ph.RData")
 ```
+
+
+```{r}
+mc_vm_ph <- readRDS(file="mc_vm_ph.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_vm_ph$mc_plot)()
@@ -1192,9 +1416,17 @@ mc_vm_ph <- mc_simulation(list(fit_vmr, fit_phr), num_paths = mc_num_paths, num_
 
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_vm_ph, 1e4)
+```{r eval=params$run_sim}
+vm_ph_max_sum_plot <- plot_max_sum(fit_vm_ph, 1e4)
+saveRDS(vm_ph_max_sum_plot, "vm_ph_max_sum_plot.RData")
 ```
+
+
+```{r}
+vm_ph_max_sum_plot <- readRDS(file="vm_ph_max_sum_plot.RData")
+vm_ph_max_sum_plot
+```
+
 
 ### MC
 
@@ -1204,7 +1436,7 @@ mc_vm_ph$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_vm_ph <- is_proposal(
   x_i_fit = fit_vm_ph,
   x_n_vect = x_n_vect_from_mc_df(mc_vm_ph$mc_df),
@@ -1216,7 +1448,13 @@ is_g_fit_vm_ph <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_vm_ph, "is_g_fit_vm_ph.RData")
 ```
+
+```{r}
+is_g_fit_vm_ph <- readRDS(file="is_g_fit_vm_ph.RData")
+```
+
 
 Parameters
 ```{r}
@@ -1237,7 +1475,7 @@ is_g_fit_vm_ph$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_vm_ph <- importance_sampling(
   x_i_fit = fit_vm_ph, 
   x_n_vect = x_n_vect_from_mc_df(mc_vm_ph$mc_df),
@@ -1245,7 +1483,13 @@ is_output_vm_ph <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_vm_ph$par, 
   mode = 1)
+saveRDS(is_output_vm_ph, "is_output_vm_ph.RData")
 ```
+
+```{r}
+is_output_vm_ph <- readRDS(file="is_output_vm_ph.RData")
+```
+
 
 ```{r}
 is_output_vm_ph$is_plot()
@@ -1256,11 +1500,6 @@ is_output_vm_ph$is_plot()
 # Mix vhr+pmr, 2011 - 2023
 
 Log-returns for mix of Velliv high risk (vh) and PFA medium risk (pm):
-
-```{r}
-vh_pm_r <- (c(100, 100 * cumprod(exp(vhr))) + c(100, 100 * cumprod(exp(pmr))))/2
-vh_pm_r <- log(tail(vh_pm_r, -1)/head(vh_pm_r, -1))
-```
 
 
 ## Fit to skew t distribution
@@ -1312,9 +1551,16 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 ### Mix of simulations from estimated distribution of returns from individual funds.
 
 
-```{r}
+```{r eval=params$run_sim}
 mc_vh_pm <- mc_simulation(list(fit_vhr, fit_pmr), num_paths = mc_num_paths, num_periods = mc_num_periods, dao = mc_dao)
+saveRDS(mc_vh_pm, file="mc_vh_pm.RData")
 ```
+
+
+```{r}
+mc_vh_pm <- readRDS(file="mc_vh_pm.RData")
+```
+
 
 ```{r results='hide',fig.keep='all'}
 (mc_vh_pm$mc_plot)()
@@ -1332,9 +1578,17 @@ mc_vh_pm <- mc_simulation(list(fit_vhr, fit_pmr), num_paths = mc_num_paths, num_
 
 Max vs sum plots for the first four moments:
 
-```{r}
-plot_max_sum(fit_vh_pm, 1e4)
+```{r eval=params$run_sim}
+vh_pm_max_sum_plot <- plot_max_sum(fit_vh_pm, 1e4)
+saveRDS(vh_pm_max_sum_plot, "vh_pm_max_sum_plot.RData")
 ```
+
+
+```{r}
+vh_pm_max_sum_plot <- readRDS(file="vh_pm_max_sum_plot.RData")
+vh_pm_max_sum_plot
+```
+
 
 ### MC
 
@@ -1344,7 +1598,7 @@ mc_vh_pm$mc_conv_plot()
 
 ### IS
 
-```{r}
+```{r eval=params$run_sim}
 is_g_fit_vh_pm <- is_proposal(
   x_i_fit = fit_vh_pm,
   x_n_vect = x_n_vect_from_mc_df(mc_vh_pm$mc_df),
@@ -1356,7 +1610,13 @@ is_g_fit_vh_pm <- is_proposal(
   lower = c(1, 0.1),
   upper = c(3, 0.9)
 )
+saveRDS(is_g_fit_vh_pm, "is_g_fit_vh_pm.RData")
 ```
+
+```{r}
+is_g_fit_vh_pm <- readRDS(file="is_g_fit_vh_pm.RData")
+```
+
 
 Parameters
 ```{r}
@@ -1377,7 +1637,7 @@ is_g_fit_vh_pm$sd_vect_plot()
 
 
 
-```{r}
+```{r eval=params$run_sim}
 is_output_vh_pm <- importance_sampling(
   x_i_fit = fit_vh_pm, 
   x_n_vect = x_n_vect_from_mc_df(mc_vh_pm$mc_df),
@@ -1385,7 +1645,13 @@ is_output_vh_pm <- importance_sampling(
   num_periods = mc_num_periods, 
   g_n_params = is_g_fit_vh_pm$par, 
   mode = 1)
+saveRDS(is_output_vh_pm, "is_output_vh_pm.RData")
 ```
+
+```{r}
+is_output_vh_pm <- readRDS(file="is_output_vh_pm.RData")
+```
+
 
 ```{r}
 is_output_vh_pm$is_plot()
@@ -2111,7 +2377,6 @@ See Taleb: The Statistical Consequences Of Fat Tails, p. 192
 ```{r include=FALSE}
 ## For knitting "pensionsafkast_IS.Rmd":
 saveRDS(fit_mhr, file="fit_mhr.RData")
-saveRDS(mc_mhr_b, file="mc_mhr_b.RData")
 ```
 
 ```{bash eval=FALSE, include=FALSE}

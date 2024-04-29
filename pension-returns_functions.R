@@ -4,6 +4,8 @@ library(RColorBrewer)
 library(scales)
 library(dplyr)
 library(ggplot2)
+library(shiny)
+library(patchwork)
 
 ## Calculate risk percentiles.
 ## data can be a data frame or a list of data frames.
@@ -172,6 +174,22 @@ plot_max_sum <- function(fit, num_periods, rnd_seed = 2304) {
     )
   })
   par(mfrow = c(1, 1))
+}
+
+plot_max_sum <- function(fit, num_periods, rnd_seed = 2304) {
+  set.seed(rnd_seed)
+  ms_log_returns <- rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi)
+  plots <- list()
+  for(p in 1:4) {
+    df <- data.frame(n = 1:num_periods, ms_p = max_sum(ms_log_returns, p))
+    plots[[p]] <- ggplot(df, aes(x = n, y = ms_p)) +
+        geom_line() +
+        ylim(c(min(df$ms_p), max(df$ms_p))) + 
+        xlab("n") +
+        ylab(paste0("MS(", p, ")")) +
+        labs(title = paste0("MS(", p, ")"))
+  }
+  wrap_plots(plots)
 }
 
 
