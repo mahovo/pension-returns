@@ -218,27 +218,28 @@ Unfortunately we only have to run the code a few times to see that $nu$ and $xi$
 
 Can we compute the self-convolution of a skewed generalized t density function?  
 A few pointers:  
-+ the sum of two normally distributed random variables again turns out as normally distributed (with mean and variance resulting as the sums of the original ones).
-      + https://search.r-project.org/CRAN/refmans/bayesmeta/html/convolve.html  
-+ The distribution for independent returns over a period of time of n-days is an n-fold self-convolution of the distribution for a single day. A Student’s t-distribution (or q-Gaussian) is not self-replicating (stable) under self-convolution except in the case of an infinite number of degrees of freedom (which is a normal distribution) or for the number of degrees of freedom equal to unity (which is a Cauchy or Lorentzian distribution). Under self-convolution a Student’s t-distribution maintains the tails of the original distribution whereas the central part of the distribution changes
-      + Cassidy: Describing n-day returns with Student’s t-distributions
-            + https://www.sciencedirect.com/science/article/abs/pii/S0378437111002329?via%3Dihub 
+
+- the sum of two normally distributed random variables again turns out as normally distributed (with mean and variance resulting as the sums of the original ones).
+      - https://search.r-project.org/CRAN/refmans/bayesmeta/html/convolve.html  
+- The distribution for independent returns over a period of time of n-days is an n-fold self-convolution of the distribution for a single day. A Student’s t-distribution (or q-Gaussian) is not self-replicating (stable) under self-convolution except in the case of an infinite number of degrees of freedom (which is a normal distribution) or for the number of degrees of freedom equal to unity (which is a Cauchy or Lorentzian distribution). Under self-convolution a Student’s t-distribution maintains the tails of the original distribution whereas the central part of the distribution changes
+      - Cassidy: Describing n-day returns with Student’s t-distributions
+            - https://www.sciencedirect.com/science/article/abs/pii/S0378437111002329?via%3Dihub 
   
-+ Expressions for $f_{\nu_1,\nu_2}$ cannot be obtained in closed form when $\nu_1$ or $\nu_2$ is an even integer.
-      + Nadarajah/Dey: Convolutions of the T distribution
-            + https://www.sciencedirect.com/science/article/pii/S0898122105000854
-+ The pdf for n-fold self-convolution can be found by brute force calculation of the convolution integrals or as the (brute force) inverse Fourier transform of the nth power of the characteristic function of the original function.  
-      + Cassidy: Describing n-day returns with Student’s t-distributions
-            + https://www.sciencedirect.com/science/article/abs/pii/S0378437111002329?via%3Dihub  
-      + See also: S. Nadarajah, D.K. Dey, Convolutions of the T distribution, Computers and Mathematics with Applications  
-+ If a random variable admits a probability density function, then the characteristic function is the Fourier transform (with sign reversal) of the probability density function.  
-      + https://en.wikipedia.org/wiki/Characteristic_function_(probability_theory)  
-      + See https://www.researchgate.net/publication/235386908_Characteristic_function_of_the_SGT_distribution  
-            + ...but the very first sentence says "probability distribution function (PDF)"... I assume they mean probability density function...  
-+ a key problem with moment-generating functions is that moments and the moment-generating function may not exist, as the integrals need not converge absolutely. By contrast, the characteristic function or Fourier transform always exists (because it is the integral of a bounded function on a space of finite measure), and for some purposes may be used instead.  
-      + https://en.wikipedia.org/wiki/Moment-generating_function  
-+ See package sgt:   
-      + https://search.r-project.org/CRAN/refmans/sgt/html/sgt.html  
+- Expressions for $f_{\nu_1,\nu_2}$ cannot be obtained in closed form when $\nu_1$ or $\nu_2$ is an even integer.
+      - Nadarajah/Dey: Convolutions of the T distribution
+            - https://www.sciencedirect.com/science/article/pii/S0898122105000854
+- The pdf for n-fold self-convolution can be found by brute force calculation of the convolution integrals or as the (brute force) inverse Fourier transform of the nth power of the characteristic function of the original function.  
+      - Cassidy: Describing n-day returns with Student’s t-distributions
+            - https://www.sciencedirect.com/science/article/abs/pii/S0378437111002329?via%3Dihub  
+      - See also: S. Nadarajah, D.K. Dey, Convolutions of the T distribution, Computers and Mathematics with Applications  
+- If a random variable admits a probability density function, then the characteristic function is the Fourier transform (with sign reversal) of the probability density function.  
+      - https://en.wikipedia.org/wiki/Characteristic_function_(probability_theory)  
+      - See https://www.researchgate.net/publication/235386908_Characteristic_function_of_the_SGT_distribution  
+            - ...but the very first sentence says "probability distribution function (PDF)"... I assume they mean probability density function...  
+- a key problem with moment-generating functions is that moments and the moment-generating function may not exist, as the integrals need not converge absolutely. By contrast, the characteristic function or Fourier transform always exists (because it is the integral of a bounded function on a space of finite measure), and for some purposes may be used instead.  
+      - https://en.wikipedia.org/wiki/Moment-generating_function  
+- See package sgt:   
+      - https://search.r-project.org/CRAN/refmans/sgt/html/sgt.html  
 
 
 
@@ -442,7 +443,7 @@ This looks good, the implementation seems to work. The estimate matches the MC e
 
 One issue with the implementation (ignoring the fact that it is not useful) is that the confidence intervals need some work. Does the confidence interval say anything about the probability, that the true mean is in the confidence interval?
 
-Another thing to note is, that we are using the last row of an MC data frame as x_n. So IS doesn't offer a performance advantage over MC in this case: We need to do the MC simulation (or at least calculate the sum of simulated log-returns) before we can do the IS. Otherwise we would need to know the theoretical distribustion of the x_n's, which is the problem of convolution mentioned above. However, once we have estimated the parameters of g (which can be a very slow process with `optim()`), the IS itself is super fast.
+Another thing to note is, that we need to estimate the density of x_n. So IS doesn't offer a performance advantage over MC in this case. Otherwise we would need to know the theoretical distribustion of the x_n's, which is the problem of convolution mentioned above. However, once we have estimated the parameters of g (which can be a very slow process with `optim()`), the IS itself is super fast.
 
 
 
@@ -504,6 +505,6 @@ $$\int \dfrac{h(x) f(x)}{h(x) f(x)}dx = \int 1 dx = x$$
 
 ```{bash eval=FALSE, include=FALSE}
 ## Convert md to pdf
-## Run manually:
+## Run manually after knitting:
 pandoc pensionsafkast_IS.md -o pensionsafkast_IS.pdf
 ```

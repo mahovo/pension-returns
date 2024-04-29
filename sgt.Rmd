@@ -1,6 +1,10 @@
 ---
 title: "A study of the skewed generalized t-distribution"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    keep_md: yes
 date: "2024-04-17"
 ---
 
@@ -8,9 +12,10 @@ date: "2024-04-17"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
-library(ifft)
-library(sgt)
+```{r include=FALSE}
+library(ggplot2)
+#library(ifft)
+#library(sgt)
 ```
 
 
@@ -44,7 +49,7 @@ suppressWarnings({
 saveRDS(params_for_sums, file="params_for_sums.RData")
 ```
 ```{r}
-loadRDS(params_for_sums, file="params_for_sums.RData")
+params_for_sums <- readRDS(file="params_for_sums.RData")
 ```
 
 
@@ -70,17 +75,20 @@ m 	1.605 	7060.920 	  320.586 	0.02
 s 	0.005 	85.209 	    67.491 	  0.14
 
 ```{r}
-loadRDS(params_for_sums_summary, file="params_for_sums_summary.RData")
+params_for_sums_summary <-  readRDS(file="params_for_sums_summary.RData")
 knitr::kable(params_for_sums_summary, digits = 3)
 ```
 
 
-
-```{r include=FALSE, eval=FALSE}
+```{r}
 num_simulations <- 100
 num_paths <- 10000
 num_periods <- 20
 params <- c(0.08, 0.12, 3.18, 0.02)
+```
+
+
+```{r include=FALSE, eval=FALSE}
 
 #####################################
 
@@ -208,7 +216,7 @@ saveRDS(params_for_cum_sums_summary, file="params_for_cum_sums_summary.RData")
 ```
 
 ```{r}
-loadRDS(params_for_cum_sums_summary, file="params_for_cum_sums_summary.RData")
+params_for_cum_sums_summary <- readRDS(file="params_for_cum_sums_summary.RData")
 ```
 
 ```{r}
@@ -321,4 +329,14 @@ knitr::kable(compare_xi_n, digits = 3)
 plot(1:20, compare_xi_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean xi", ylim = c(0, max(c(compare_xi_n[1, ], compare_xi_n[2, ]))))
 lines(compare_xi_n[2, ], col = "green")
 legend("topleft", c("formula", "xi_n"), col = c("red", "green"), lty = 1)
+```
+
+
+
+
+
+```{bash eval=FALSE, include=FALSE}
+## Convert md to pdf
+## Run manually after knitting:
+pandoc sgt.md -o sgt.pdf
 ```
