@@ -1,0 +1,298 @@
+# Appendix
+## Many simulations of mc_mhr_b
+
+```{r}
+# mc_mhr_b_many <- mc_simulation(list(fit_vhr, fit_phr), num_paths = 1e6, num_periods = mc_num_periods, dao = mc_dao)
+```
+1e6 paths:
+
+```{r include=TRUE, echo=TRUE}
+# Down-and-out simulation:
+# Probability of down-and-out: 0 percent
+# 
+# Mean portfolio index value after 20 years: 478.339 kr.
+# SD of portfolio index value after 20 years: 163.093 kr.
+# Min total portfolio index value after 20 years: 2.233 kr.
+# Max total portfolio index value after 20 years: 1561.965 kr.
+# 
+# Share of paths finishing below 100: 0.1181 percent
+```
+
+## Average of returns vs returns of average
+
+### Math
+
+$$\text{Avg. of returns} := \dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2}$$
+$$\text{Returns of avg.} := \left(\dfrac{ x_t + y_t }{2}\right) \Big/ \left(\dfrac{ x_{t-1} + y_{t-1} }{2}\right) \equiv \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+For which $x_1$ and $y_1$ are $\text{Avg. of returns} = \text{Returns of avg.}$?
+
+$$\dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2} = \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$(x_{t-1} + y_{t-1}) x_t y_{t-1} + (x_{t-1} + y_{t-1}) x_{t-1} y_t = 2 (x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+
+
+$$(x_{t-1}x_1y_{t-1} + y_{t-1}x_ty_{t-1}) + (x_{t-1}x_{t-1}y_t + x_{t-1}y_{t-1}y_t) = 2(x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+This is not generally true, but true if for instance $x_{t-1} = y_{t-1}$.
+
+
+
+
+### Example
+
+```{r}
+x0 <- 100
+y0 <- 200
+Rx <- 0.5
+Ry <- 1.5
+```
+
+Definition: `R = 1+r`
+
+```{r}
+cat(paste0("Let x_0 be ", x0, ".\n"))
+cat(paste0("Let y_0 be ", y0, ".\n"))
+cat("So the initial value of the pf is", x0 + y0, ".\n")
+cat("\n")
+cat(paste0("Let R_x be ", Rx, ".\n"))
+cat(paste0("Let R_y be ", Ry, ".\n"))
+```
+
+Then, 
+```{r}
+cat(paste0("x_1 is R_x * x_0 = ", Rx * x0, ".\n"))
+cat(paste0("y_1 is R_y * y_0 = ", Ry * y0, ".\n"))
+```
+
+Average of returns:  
+```{r}
+cat("0.5 * (R_x + R_y) =", 0.5 * (Rx + Ry), "\n")
+```
+
+So here the value of the pf at t=1 should be unchanged from t=0:  
+```{r}
+cat("(x_0 + y_0) * 0.5 * (R_x + R_y) =", (x0 + y0) * 0.5 * (Rx + Ry), "\n")
+```
+
+But this is clearly not the case:  
+```{r}
+cat("0.5 * (x_1 + y_1) = 0.5 * (R_x * x_0 + R_y * y_0) =", 0.5 * (Rx * x0 + Ry * y0), "\n")
+```
+
+Therefore we should take returns of average, not average of returns!  
+
+Let's take the average of log returns instead:  
+```{r}
+cat("0.5 * (log(R_x) + log(R_y)) =", 0.5 * (log(Rx) + log(Ry)), "\n")
+```
+
+We now get:  
+```{r}
+cat("(x_0 + y_0) * exp(0.5 * (log(Rx) + log(Ry))) =", (x0 + y0) * exp(0.5 * (log(Rx) + log(Ry))), "\n")
+```
+
+So taking the average of log returns doesn't work either.
+
+
+
+## Simulation of mix vs mix of simulations
+Test if a simulation of a mix (average) of two returns series has the same distribution as a mix of two simulated returns series.
+
+
+```{r}
+mc_sim <- function(
+    num_runs = 1, 
+    num_paths = 1000, 
+    num_periods = 20,
+    m_a = 0,
+    s_a = 0.4,
+    m_b = 10,
+    s_b = 3
+    ) {
+  
+  data_x <- rnorm(num_periods, m_a, s_a)
+  data_y <- rnorm(num_periods, m_b, s_b)
+  
+  m_data_x <- mean(data_x)
+  s_data_x <- sd(data_x)
+  m_data_y <- mean(data_y)
+  s_data_y <- sd(data_y)
+  
+  cat("m(data_x):", m_data_x, "\n")
+  cat("s(data_x):", s_data_x, "\n")
+  cat("m(data_y):", m_data_y, "\n")
+  cat("s(data_y):", s_data_y, "\n")
+  cat("\n")
+  
+  m_data_xy <- mean(0.5 * data_x + 0.5 * data_y)
+  s_data_xy <- sd(0.5 * data_x + 0.5 * data_y)
+  
+  cat("m(data_x + data_y):", m_data_xy, "\n")
+  cat("s(data_x + data_y):", s_data_xy, "\n")
+  cat("\n")
+  
+  run_sim <- function(num_runs) {
+    df <- data.frame(
+      m_a = rep(0, num_runs), m_b = rep(0, num_runs), 
+      s_a = rep(0, num_runs), s_b = rep(0, num_runs)
+    )
+    for(j in 1:num_runs) {
+      sim_x <- rep(0, num_paths)
+      sim_y <- rep(0, num_paths)
+      sim_xy <- rep(0, num_paths)
+      for(i in 1:num_paths) {
+        sim_x[i] <- sum(rnorm(num_periods, m_data_x, s_data_x))
+        sim_y[i] <- sum(rnorm(num_periods, m_data_y, s_data_y))
+        sim_xy[i] <- sum(rnorm(num_periods, m_data_xy, s_data_xy))
+      }
+
+      df$m_a[j] <-  mean(0.5 * sim_x + 0.5 * sim_y)
+      df$m_b[j] <-  mean(sim_xy)
+      df$s_a[j] <-  sd(0.5 * sim_x + 0.5 * sim_y)
+      df$s_b[j] <-  sd(sim_xy)
+    }
+    df
+  }
+  
+  run_sim(num_runs)
+}
+```
+
+```{r}
+mc_sim_df <- mc_sim(
+  num_runs = 10, 
+  num_paths = 1000, 
+  num_periods = 20,
+  m_a = 0,
+  s_a = 0.4,
+  m_b = 10,
+  s_b = 3
+)
+```
+
+m and s of final state of all paths.  
+`_a` is mix of simulated returns.  
+`_b` is simulated mixed returns.  
+
+```{r}
+knitr::kable(mc_sim_df, digits = 3)
+```
+
+```{r}
+summary(mc_sim_df)
+```
+
+`_a` and `_b` are very close to equal.  
+We attribute the differences to differences in estimating the distributions in 
+version a and b.  
+
+
+The final state is independent of the order of the preceding steps:  
+
+```{r}
+vect1 <- c(rnorm(100))
+vect2 <- c(sample(vect1, 100))
+vect3 <- c(sample(vect1, 100))
+path1 <- c(0, cumsum(vect1))
+path2 <- c(0, cumsum(vect2))
+path3 <- c(0, cumsum(vect3))
+plot(path1, type = "l", col = "blue", 
+     ylim = c(
+       min(c(path1, path2, path3)), 
+       max(c(path1, path2, path3))
+     )
+)
+lines(path2, col = "red")
+lines(path3, col = "green")
+```
+
+
+So does the order of the steps in the two processes matter, when mixing simulated returns?  
+
+```{r}
+vect1a <- c(rnorm(100, 0.05, 0.06))
+vect1b <- c(sample(vect1a, 100))
+vect2a <- c(rnorm(100, 0.05, 0.06))
+vect2b <- c(sample(vect2a, 100))
+
+path1a <- 100 * c(1, cumprod(1 + vect1a))
+path1b <- 100 * c(1, cumprod(1 + vect1b))
+path2a <- 100 * c(1, cumprod(1 + vect2a))
+path2b <- 100 * c(1, cumprod(1 + vect2b))
+
+mix_path_a <- 0.5 * path1a + 0.5 * path2a
+mix_path_b <- 0.5 * path1b + 0.5 * path2b
+
+plot(path1a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(path1a, path1b, path2a, path2b)), 
+       max(c(path1a, path1b, path2a, path2b))
+     )
+)
+lines(path1b, lty = 2, col = "blue")
+lines(path2a, lty = 1, col = "red")
+lines(path2b, lty = 2, col = "red")
+```
+
+```{r}
+plot(mix_path_a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(mix_path_a, mix_path_b)), 
+       max(c(mix_path_a, mix_path_b))
+     )
+)
+lines(mix_path_b, lty = 2, col = "blue")
+```
+
+The order of steps in the individual paths do not matter, because the mix of simulated paths is a sum of a sum, so the order of terms doesn't affect the sum. If there is variation it is because the sets preceding steps are not the same. For instance, the steps between step 1 and 60 in the plot above are not the same for the two lines.
+
+Recall,
+$$\text{Var}(aX+bY) = a^2 \text{Var}(X) + b^2 \text{Var}(Y) + 2ab \text{Cov}(a, b)$$
+
+```{r include=TRUE, echo=TRUE}
+var(0.5 * vhr + 0.5 * phr)
+0.5^2 * var(vhr) + 0.5^2 * var(phr) + 2 * 0.5 * 0.5 * cov(vhr, phr)
+```
+
+
+Our distribution estimate is based on 13 observations. Is that enough for a robust estimate?
+What if we suddenly hit a year like 2008? How would that affect our estimate?  
+Let's try to include the Velliv data from 2007-2010.  
+We do this by sampling 13 observations from `vmrl`.  
+
+```{r}
+n <- 50
+test_df <- data.frame(m = rep(0, n), s = rep(0, n))
+for(i in 1:n) {
+  vmrl_smp <- sample(vmrl, 13)
+  test_df$m[i] <- mean(0.5 * vmrl_smp + 0.5 * phr)
+  test_df$s[i] <- sd(0.5 * vmrl_smp + 0.5 * phr)
+}
+summary(test_df)
+```
+
+
+## The meaning of `xi`
+
+The fit for `mhr` has the highest `xi` value of all. This suggests right-skew:
+
+```{r}
+plot((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 1), xlim = c(-20, 20), ylim = c(0, 0.1), type = "l", xlab = "value", ylab = "likelihood", main = "Skew t-distribution density")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 0.5), col="red")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 2), col="blue")
+legend("topright", c("xi=1", "xi=0.5", "xi=2"), col = c("black", "red", "blue"), lty = 1)
+```
+
+
+## Max vs sum plot
+
+
+If the Law Of Large Numbers holds true,
+$$\dfrac{\max (X_1^p, ..., X^p)}{\sum_{i=1}^n X_i^p} \rightarrow 0$$
+for $n \rightarrow \infty$.
+
+If not, $X$ doesn't have a $p$'th moment.
+
+See Taleb: The Statistical Consequences Of Fat Tails, p. 192

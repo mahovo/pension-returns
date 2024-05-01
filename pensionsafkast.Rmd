@@ -15,7 +15,7 @@ output:
   #   toc_depth: 3
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
 params:
-  run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
+  run_sim: TRUE ## TRUE: Run simulations and write output. FALSE: Read saved
                 ## simulations output from disk instead of running the simulations.
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 ---

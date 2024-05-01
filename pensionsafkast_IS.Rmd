@@ -26,8 +26,8 @@ source("~/R\ work/pension-returns/pension-returns_functions.R")
 #source("~/R\ work/pension-returns/importance-sampling.R")
 ```
 ```{r include=FALSE}
-fit_mhr <- readRDS(file="fit_mhr.RData")
-mc_mhr_b <- readRDS(file="mc_mhr_b.RData")
+fit_mhr <- readRDS(file="fits[[6]].RData")
+mc_mhr_b <- readRDS(file="mc_output[[6]].RData")
 ```
 
 

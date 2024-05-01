@@ -213,47 +213,45 @@ fit_skewed_t <- function(x, method = "BFGS") {
   
   AIC_sstd = 2 * fit_sstd$value + 2 * 4
   BIC_sstd = 2 * fit_sstd$value + log(n) * 4
-  #sd_sstd = sqrt(diag(solve(fit_sstd$hessian)))
-  cat("\n")
-  #cat("sd_sstd:", sd_sstd)
-  cat("AIC:", AIC_sstd, "\n")
-  cat("BIC:", BIC_sstd, "\n")
+  # cat("\n")
+  # cat("AIC:", AIC_sstd, "\n")
+  # cat("BIC:", BIC_sstd, "\n")
   
   # Middelværdi:
   mu_sstd_fit <- fit_sstd$par[1]#/1000
-  cat("m:", mu_sstd_fit, "\n")
+  # cat("m:", mu_sstd_fit, "\n")
   
   # Spredning:
   sigma_sstd_fit <- fit_sstd$par[2]#/1000
-  cat("s:", sigma_sstd_fit, "\n")
+  # cat("s:", sigma_sstd_fit, "\n")
   
   # Frihedsgrader:
   nu_sstd_fit <- fit_sstd$par[3] # 3.36019
-  cat("nu (df):", nu_sstd_fit, "\n")
+  # cat("nu (df):", nu_sstd_fit, "\n")
   
   xi_sstd_fit <- fit_sstd$par[4] # 0.8436514
-  cat("xi:", xi_sstd_fit, "\n")
+  # cat("xi:", xi_sstd_fit, "\n")
   
   fit <- qsstd((1:n - 0.5)/n, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
   
   r_squared <- cor(sort(fit), sort(x))
   # R^2
   r_squared_round <- round(r_squared, 3)
-  cat("R^2:", r_squared_round, "\n")
-  cat("\n")
+  # cat("R^2:", r_squared_round, "\n")
+  # cat("\n")
   
   range_cuts <- c(0.0, 0.5, 0.9, 0.95, 0.99, 1.0)
-  interpretations <- c(
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is not great."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is not completely random."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is good."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is very good."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is extremely good.")
-  )
-  
-  cat(interpretations[findInterval(r_squared_round, range_cuts)])
-  cat("\n")
-  cat("\n")
+  # interpretations <- c(
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is not great."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is not completely random."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is good."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is very good."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is extremely good.")
+  # )
+  # 
+  # cat(interpretations[findInterval(r_squared_round, range_cuts)])
+  # cat("\n")
+  # cat("\n")
   
   quantile_data <- qsstd(seq(0.005, 0.995, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
   
@@ -263,17 +261,17 @@ fit_skewed_t <- function(x, method = "BFGS") {
   
   sample_mean <- mean(dist_data)
   
-  risk_estimate(dist_data, "max", 10)
-  risk_estimate(dist_data, "max", 25)
-  risk_estimate(dist_data, "max", 50)
-  risk_estimate(dist_data, "max", 90)
-  risk_estimate(dist_data, "max", 99)
-  cat("\n")
-  risk_estimate(dist_data, "min", 10)
-  risk_estimate(dist_data, "min", 25)
-  risk_estimate(dist_data, "min", 50)
-  risk_estimate(dist_data, "min", 90)
-  risk_estimate(dist_data, "min", 99)
+  # risk_estimate(dist_data, "max", 10)
+  # risk_estimate(dist_data, "max", 25)
+  # risk_estimate(dist_data, "max", 50)
+  # risk_estimate(dist_data, "max", 90)
+  # risk_estimate(dist_data, "max", 99)
+  # cat("\n")
+  # risk_estimate(dist_data, "min", 10)
+  # risk_estimate(dist_data, "min", 25)
+  # risk_estimate(dist_data, "min", 50)
+  # risk_estimate(dist_data, "min", 90)
+  # risk_estimate(dist_data, "min", 99)
   
   theoretical_quantiles <- qsstd(ppoints(n), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)
   
@@ -383,11 +381,11 @@ mc_simulation <- function(
     num_dao <- count_num_dao(mc_df, threshold)
     dao_probability_percent <- 100 * num_dao/num_paths
     
-    cat("Down-and-out simulation:\n")
-    cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
-    cat("\n")
+    # cat("Down-and-out simulation:\n")
+    # cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
+    # cat("\n")
   } else {
-    cat("Simulation (ignoring down-and-out):\n")
+    # cat("Simulation (ignoring down-and-out):\n")
     dao_probability_percent <- NA
   }
   
@@ -416,12 +414,12 @@ mc_simulation <- function(
   
   percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
   
-  cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
-  cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
-  cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
-  cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
-  cat("\n")
-  cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
+  # cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
+  # cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
+  # cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
+  # cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
+  # cat("\n")
+  # cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
   
   list(
     mc_plot = function() {

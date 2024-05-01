@@ -1,0 +1,24 @@
+# Comments
+
+(Ignoring `mhr_a`...)
+
+`mhr` has some nice properties:  
+- It has a relatively high `nu` value of 90, which means it is tending more towards exponential tails than polynomial tails. All other funds have `nu` values close to 3, except `phr` which is even worse at close to 2. (Note that for a Gaussian, `nu` is infinite.)  
+- It has the lowest losing percentage of all simulations, which is better than 1/6 that of `phr`.  
+- It has a DAO percentage of 0, which is the same as `mmr`, and less than `phr`.  
+- Only `phr` has a higher `mc_m`.  
+- It has a smaller `mc_s` than the individual components, `vhr` and `phr`.  
+- It has the highest `xi` of all fits, suggesting less left skewness. Density plots for `vmr`, `phr` and `mmr` have an extremely sharp drop, as if an upward limiter has been applied, which corresponds to extremely low `xi` values. The density plot for `mhr` is by far the most symmetrical of all the fits. As seen in the section "Compare Gaussian and skewed t-distribution fits", the other skewed t-distribution fits don't capture the max observed returns at all.    
+- Only `mmr` has as higher `mc_min`. However, that of `mmr` is 18 times higher with 62, so `mmr` is a clear winner here.  
+- Naturally, it has a `mc_max` smaller than the individual components, `vhr` and `phr`, but ca. 1.5 times higher then `mmr`.  
+- All the first 4 moments converge nicely. For all other fits, the 4th moment doesn't seem to converge.  
+
+
+Taleb, Statistical Consequences Of Fat Tails, p. 97:  
+"the variance of a finite variance random variable with tail exponent $< 4$ will be infinite".
+
+And p. 363:  
+"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, un- der a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
+
+- Importance Sampling seems to converge to a lower level than Monte Carlo does. Is that because IS catches more observations in the lower tail? Supporting this thesis is that MC for `mhr` with `1e4` paths gives a mean of 520, while `1e6` paths gives a mean of 478 (see under "Many simulations").  
+- Note: QQ lines by design pass through 1st and 3rd quantiles. They are not trendlines in the sense of linear regression.  

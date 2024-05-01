@@ -1,0 +1,347 @@
+---
+title: "Pension returns analysis"
+header-includes:
+   - \usepackage[default]{sourcesanspro}
+   - \usepackage[T1]{fontenc}
+   - \usepackage[fontsize=8pt]{scrextend}
+mainfont: SourceSansPro
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    keep_md: yes
+  pdf_document:
+    toc: true
+    toc_depth: 3
+#fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
+params:
+  run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
+                ## simulations output from disk instead of running the simulations.
+  run_exploratory: TRUE ## Include exploratory report?
+  run_individual: TRUE ## Include individual reports? Depends on run_individual.
+  run_comparison: TRUE ## Include comparison report? Depends on run_individual.
+  run_comments: TRUE
+  run_appendix: TRUE
+date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
+---
+
+```{r include=FALSE}
+## ****************************** WARNING ******************************
+## 
+##             This document takes a long time to render!
+##
+## *********************************************************************
+##
+## To read previous simulation outputs from disk rather than run simulations,
+## set YAML parameter run_sim: TRUE
+##
+## NOTE:
+## When using the "Run All" command, YAML parameters will be ignored. An error
+## message "Error in eval(ele) : object 'params' not found" will be printed,
+## but the chunks will be evaluated.
+```
+
+
+```{r include=FALSE, eval=FALSE}
+################################################################################
+##
+##                                      SETUP
+##
+################################################################################
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+
+run_individual <- (params$run_individual + params$run_comparison > 0)
+run_exploratory <- (params$run_exploratory + run_individual > 0)
+
+## Note: In the second line (run_exploratory <- ...), run_individual is correct that - not params$run_individual, because if we choose params$run_exploratory=TRUE and params$run_comparison=TRUE, but params$run_individual=FALSE, we still have to do the individual calculations.
+```
+
+```{r}
+library(here)
+```
+
+```{r}
+source(here("pension-returns_functions.R"))
+```
+
+```{r eval=FALSE, include=FALSE}
+## Render this document to html and pdf
+rmarkdown::render(here("pension-returns.Rmd"), output_format ="all")
+```
+
+```{bash eval=FALSE, include=FALSE}
+## Convert md to pdf
+## Run manually:
+pandoc pension-returns.md -o pension-returns.pdf
+```
+
+
+
+```{r}
+################################################################################
+##
+##                                      INPUTS
+##
+################################################################################
+```
+
+```{r}
+mc_num_paths <- 10000
+mc_num_periods <- 20
+mc_dao <- TRUE
+mc_threshold <- 0.01
+```
+
+Fit log returns to F-S skew standardized Student-t distribution.  
+`m`  is the location parameter.  
+`s` is the scale parameter.  
+`nu` is the estimated shape parameter (degrees of freedom).  
+`xi` is the estimated skewness parameter.  
+
+# Log returns data 2011-2023.  
+For 2011, medium risk data is used in the high risk data set, as no high risk fund data is available prior to 2012.  
+`vmrl` is a long version of Velliv medium risk data, from 2007 to 2023. For 2007 to 2011 (both included) no high risk data is available.
+```{r}
+## Headlines for individual sections
+headlines <- c(
+  "Velliv medium risk (vmr), 2011 - 2023",
+  "Velliv medium risk (vmrl), 2007 - 2023",
+  "Velliv high risk (vhr), 2011 - 2023",
+  "PFA medium risk (pmr), 2011 - 2023",
+  "PFA high risk (phr), 2011 - 2023",
+  "Mix medium risk (mmr), 2011 - 2023",
+  "Mix high risk (mhr), 2011 - 2023",
+  "Mix vmr+phr (vm_ph), 2011 - 2023",
+  "Mix vhr+pmr (mh_pm), 2011 - 2023"
+)
+
+# Velliv medium risk returns
+vmr <- log(c(0.986, 1.098, 1.157, 1.136, 1.058, 1.044, 1.100, 0.963, 1.168, 1.097, 1.141, 0.868, 1.094))
+
+# Velliv medium risk return, long period: 2007-2023
+vmrl <- log(c(1.058, 0.801, 1.193, 1.129, 1.035, 0.996, 1.133, 1.092, 1.085, 1.013, 1.095, 1.011, 1.129, 1.101, 1.128, 0.988, 1.048))
+
+# PFA medium risk returns
+pmr <- log(c(1.084, 0.904, 1.107, 1.042, 1.119, 0.976, 1.089, 1.073, 1.084, 1.107, 1.111, 1.141, 1.004))
+
+# Mix medium risk return
+mmr <- log(c(1.035, 0.996, 1.133, 1.092, 1.085, 1.013, 1.095, 1.011, 1.129, 1.101, 1.128, 0.988, 1.048))
+
+# Velliv high risk returns
+vhr <- log(c(0.986, 1.093, 1.214, 1.160, 1.075, 1.039, 1.118, 0.952, 1.205, 1.099, 1.194, 0.849, 1.122))
+
+# PFA high risk return
+phr <- log(c(1.159, 0.878, 1.200, 1.068, 1.190, 0.943, 1.135, 1.082, 1.123, 1.128, 1.208, 1.182, 0.934))
+  
+# Mix high risk return
+mhr <- log(c(1.073, 0.977, 1.207, 1.116, 1.128, 0.992, 1.126, 1.013, 1.164, 1.113, 1.201, 1.012, 1.014))
+
+vm_ph_r <- (c(100, 100 * cumprod(exp(vmr))) + c(100, 100 * cumprod(exp(phr))))/2
+vm_ph_r <- log(tail(vm_ph_r, -1)/head(vm_ph_r, -1))
+
+vh_pm_r <- (c(100, 100 * cumprod(exp(vhr))) + c(100, 100 * cumprod(exp(pmr))))/2
+vh_pm_r <- log(tail(vh_pm_r, -1)/head(vh_pm_r, -1))
+
+data_df <- data.frame(
+  vmr = vmr,
+  vhr = vhr,
+  pmr = pmr,
+  phr = phr,
+  mmr = mmr,
+  mhr = mhr,
+  vm_ph_r = vm_ph_r,
+  vh_pm_r = vh_pm_r
+)
+
+data_df_l <- data.frame(
+  vmrl = vmrl
+)
+
+fund_names <- colnames(data_df)
+```
+
+```{r}
+all_data <- exp(c(vmr, vhr, pmr, phr, mmr, mhr))
+plot(x = c(2011:2023), y = exp(vmr), type = "l",  lty = 1, lwd = 2, xlab = "year", ylab = "Gross returns", col = "#76EEC6", ylim = c(min(all_data), max(all_data)), main = "Gross returns 2011-2023")
+lines(x = c(2011:2023), y = exp(vhr), col = "#76EEC6",  lty = 2, lwd = 1.5)
+lines(x = c(2011:2023), y = exp(pmr), col = "#CD6600",  lty = 1, lwd = 2)
+lines(x = c(2011:2023), y = exp(phr), col = "#CD6600",  lty = 2, lwd = 1.5)
+lines(x = c(2011:2023), y = exp(mmr), col = "#A020F0",  lty = 1, lwd = 2)
+lines(x = c(2011:2023), y = exp(mhr), col = "#A020F0",  lty = 2, lwd = 1.5)
+legend("bottom", legend = c("vmr", "vhr", "pmr", "phr", "mmr", "mhr"), col = c("#7AC5CD", "#76EEC6", "#CD6600", "#CD6600", "#A020F0", "#A020F0"), lty = c(1, 2, 1, 2, 1, 2), lwd = 2, ncol = 3 )
+```
+
+
+```{r}
+################################################################################
+##
+##                                   CALCULATIONS
+##
+################################################################################
+```
+
+```{r}
+##                                       FITS
+```
+
+```{r eval=run_individual}
+fits <- lapply(
+  seq_along(data_df),
+  function(i) {
+    fit_skewed_t(unlist(data_df[i]))
+  }
+)
+```
+
+```{r eval=run_individual}
+saveRDS(fits, file = here("data", "fits.RData"))
+```
+
+```{r}
+##                                     MONTE CARLO
+```
+
+```{r eval=(params$run_sim && run_individual)}
+mc_output <- list()
+for(i in seq_along(fits)) {
+  mc_output[[i]] <- mc_simulation(
+    fits[[i]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold
+  )
+}
+
+saveRDS(mc_output, file = here("data", "mc_output.RData"))
+```
+
+```{r eval=(run_individual && !params$run_sim)}
+mc_output <- readRDS(file = here("data", paste0("mc_output.RData")))
+```
+
+```{r}
+##                                     MAX SUM PLOTS
+```
+
+```{r eval=(params$run_sim && run_individual)}
+max_sum_plots <- list()
+for(i in seq_along(fits)) {
+  max_sum_plots[[i]] <- plot_max_sum(fits[[i]], 1e4)
+}
+
+saveRDS(max_sum_plots, here("data", "max_sum_plots.RData"))
+```
+
+```{r eval=(run_individual && !params$run_sim)}
+max_sum_plots <- readRDS(file = here("data", "max_sum_plots.RData"))
+```
+
+```{r}
+##                                  IMPORTANCE SAMPLING
+```
+
+```{r eval=(params$run_sim && run_individual)}
+is_g_fits <-  list()
+is_output <- list()
+for(i in seq_along(fits)) {
+  is_g_fits[[i]] <- is_proposal(
+    x_i_fit = fits[[i]],
+    x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    obj_func_plot = TRUE,
+    init_par = c(2, 0.5),
+    method = "L-BFGS-B",
+    lower = c(1, 0.1),
+    upper = c(3, 0.9)
+  )
+  
+  is_output[[i]] <- importance_sampling(
+    x_i_fit = fits[[i]], 
+    x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    g_n_params = is_g_fits[[i]]$par, 
+    mode = 1
+  )
+}
+
+saveRDS(is_g_fits, here("data", "is_g_fits.RData"))
+saveRDS(is_output, here("data", "is_output.RData"))
+```
+
+```{r eval=(run_individual && !params$run_sim)}
+is_g_fits <- readRDS(file = here("data", "is_g_fits.RData"))
+is_output <- readRDS(file = here("data", "is_output.RData"))
+```
+
+
+```{r}
+###########################################################################
+##
+##                            GENERATE REPORTS
+##
+###########################################################################
+```
+
+```{r eval=params$run_exploratory, results='asis'}
+exploratory_report <- knitr::knit_child(
+    here("pension-returns_template-exploratory.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(exploratory_report), sep = '\n')
+```
+
+```{r eval=params$run_comparison, results='asis'}
+comparison_report <- knitr::knit_child(
+    here("pension-returns_template-comparison.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(comparison_report), sep = '\n')
+```
+
+```{r eval=params$run_individual, results='asis'}
+individual_reports <- lapply(
+  seq_along(data_df),
+  function(i) {
+    knitr::knit_child(
+      here("pension-returns_template-individual.Rmd"),
+      envir = environment(), 
+      quiet = TRUE
+    )
+  }
+)
+
+cat(unlist(individual_reports), sep = '\n')
+```
+
+```{r eval=params$run_comments, results='asis'}
+comments_report <- knitr::knit_child(
+    here("pension-returns_template-comments.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(comments_report), sep = '\n')
+```
+
+```{r eval=params$run_appendix, results='asis'}
+appendix_report <- knitr::knit_child(
+    here("pension-returns_template-appendix.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(appendix_report), sep = '\n')
+```
+
+
+

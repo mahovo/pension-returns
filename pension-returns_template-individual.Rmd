@@ -1,0 +1,86 @@
+# `r headlines[i]`
+
+## QQ Plot
+```{r}
+(fits[[i]]$qqplot)()
+```
+
+
+## Data vs fit
+
+Let's plot the fit and the observed returns together.  
+
+```{r}
+(fits[[i]]$fit_plot)()
+```
+
+
+## Estimated distribution
+
+Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
+
+```{r}
+(fits[[i]]$dist_plot)()
+```
+
+```{r}
+(fits[[i]]$quantile_plot)()
+```
+
+```{r}
+(fits[[i]]$dens_plot)()
+```
+
+
+## Monte Carlo
+
+```{r results='hide',fig.keep='all'}
+(mc_output[[i]]$mc_plot)()
+```
+
+```{r results='hide',fig.keep='all'}
+(mc_output[[i]]$mc_plot_last_period)()
+```
+
+
+## Convergence
+
+### Max vs sum
+
+Max vs sum plots for the first four moments:
+
+```{r}
+max_sum_plots[[i]]
+```
+
+
+### MC
+
+```{r}
+mc_output[[i]]$mc_conv_plot()
+```
+
+
+### IS
+
+Parameters
+
+```{r}
+is_g_fits[[i]]$par
+```
+
+Objective function plots
+
+```{r}
+is_g_fits[[i]]$mean_vect_plot()
+```
+
+```{r}
+is_g_fits[[i]]$sd_vect_plot()
+```
+
+```{r}
+is_output[[i]]$is_plot()
+```
+
+
