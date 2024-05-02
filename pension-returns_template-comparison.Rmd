@@ -1,29 +1,28 @@
 # Compare pension plans
 
-## Risk of max loss
+## Risk of loss
 
-Risk of max loss of `x` percent for a single period (year).  
+Risk of loss at least as big as `x` percent for a single period (year).  
 `x` values are row names.  
 
 ```{r}
-# Use "max" for losses
 percent_vals = c(0, 5, 10, 25, 50, 90, 99)
 # risk_percentiles_df <-  data.frame(
 #       #Percent = percent_vals,
-#       Vel_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "max"),
-#       Vel_ml = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "max"),
-#       Vel_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "max"),
-#       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "max"),
-#       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "max"),
-#       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "max"),
-#       mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "max"),
-#       vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "max"),
-#       vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "max")
+#       Vel_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "loss"),
+#       Vel_ml = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "loss"),
+#       Vel_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "loss"),
+#       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "loss"),
+#       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "loss"),
+#       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "loss"),
+#       mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "loss"),
+#       vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "loss"),
+#       vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "loss")
 # )
 risk_percentiles_df <- as.data.frame(lapply(
   fits,
   function(fit) {
-    risk_percentiles(fit$quantile_data, percent_vals, "max")
+    risk_percentiles(fit$quantile_data, percent_vals, "loss")
   }
 ))
 colnames(risk_percentiles_df) <- fund_names
@@ -43,28 +42,27 @@ knitr::kable(rank_summary(risk_percentiles_df, sorting = rep("hi", length(percen
 
 ## Chance of min gains
 
-Chance of min gains of `x` percent for a single period (year).  
+Chance of gains of at least `x` percent for a single period (year).  
 `x` values are row names.
 
 ```{r}
-# Use "min" for gains
 percent_vals = c(0, 5, 10, 25, 50, 100)
 # gain_percentiles_df <-  data.frame(
 #       #Percent = percent_vals,
-#       Velliv_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "min"),
-#       Velliv_m_l = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "min"),
-#       Velliv_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "min"),
-#       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "min"),
-#       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "min"),
-#       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "min"),
-#       mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "min"),
-#       vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "min"),
-#       vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "min")
+#       Velliv_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "gain"),
+#       Velliv_m_l = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "gain"),
+#       Velliv_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "gain"),
+#       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "gain"),
+#       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "gain"),
+#       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "gain"),
+#       mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "gain"),
+#       vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "gain"),
+#       vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "gain")
 # )
 gain_percentiles_df <- as.data.frame(lapply(
   fits,
   function(fit) {
-    risk_percentiles(fit$quantile_data, percent_vals, "min")
+    risk_percentiles(fit$quantile_data, percent_vals, "gain")
   }
 ))
 colnames(gain_percentiles_df) <- fund_names
@@ -84,38 +82,28 @@ knitr::kable(rank_summary(gain_percentiles_df, sorting = rep("hi", length(percen
 
 ## MC risk percentiles
 
-Risk of loss from first to last period.  
-
-`_m` is medium.  
-`_h`  is high.  
-
-`a` is simulation from estimated distribution of returns of mix.  
-`b` is mix of simulations from estimated distribution of returns from individual 
-funds.
-
-`l` for "long", going back to 2007.
+Risk of loss at least as big as row name in percent from first to last period.  
 
 ```{r}
-# Use "max" for losses
 percent_vals = c(0, 5, 10, 25, 50, 90, 99)
 # mc_loss_percentiles_df <-  data.frame(
 #       #Percent = percent_vals,
-#       Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "max"),
-#       Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "max"),
-#       Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "max"),
-#       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "max"),
-#       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "max"),
-#       mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "max"),
-#       mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "max"),
-#       mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "max"),
-#       mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "max"),
-#       vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "max"),
-#       vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "max")
+#       Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "loss"),
+#       Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "loss"),
+#       Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "loss"),
+#       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "loss"),
+#       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "loss"),
+#       mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "loss"),
+#       mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "loss"),
+#       mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "loss"),
+#       mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "loss"),
+#       vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "loss"),
+#       vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "loss")
 # )
 mc_loss_percentiles_df <- as.data.frame(lapply(
   mc_output,
   function(x) {
-    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "max")
+    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "loss")
   }
 ))
 colnames(mc_loss_percentiles_df) <- fund_names
@@ -126,13 +114,13 @@ rownames(mc_loss_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_loss_percentiles_df, digits = 3)
 ```
 
-1e6 simulation paths of `mhr_b`:
+1e6 simulation paths of `mhr`:
 ```{r}
 # percent_vals = c(0, 5, 10, 25, 50, 90, 99)
 # mc_mhr_b_many_mc_loss_percentiles <-
 #   data.frame(
 #     percentiles = percent_vals,
-#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "max")
+#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "loss")
 #   )
 # 
 # t(mc_mhr_b_many_mc_loss_percentiles)
@@ -164,32 +152,26 @@ knitr::kable(rank_summary(mc_loss_percentiles_df, sorting = rep("hi", length(per
 
 ## MC gains percentiles
 
-Chance of gains from first to last period.  
-`_a` is simulation from estimated distribution of returns of mix.  
-`_b` is mix of simulations from estimated distribution of returns from individual 
-funds.
-
 ```{r}
-# Use "min" for gains
 percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
 # mc_gain_percentiles_df <-  data.frame(
 #       #Percent = percent_vals,
-#       Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "min"),
-#       Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "min"),
-#       Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "min"),
-#       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "min"),
-#       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "min"),
-#       mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "min"),
-#       mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "min"),
-#       mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "min"),
-#       mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "min"),
-#       vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "min"),
-#       vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "min")
+#       Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "gain"),
+#       Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "gain"),
+#       Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "gain"),
+#       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "gain"),
+#       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "gain"),
+#       mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "gain"),
+#       mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "gain"),
+#       mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "gain"),
+#       mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "gain"),
+#       vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "gain"),
+#       vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "gain")
 # )
 mc_gain_percentiles_df <- as.data.frame(lapply(
   mc_output,
   function(x) {
-    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "min")
+    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "gain")
   }
 ))
 colnames(mc_gain_percentiles_df) <- fund_names
@@ -200,14 +182,14 @@ rownames(mc_gain_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_gain_percentiles_df, digits = 3)
 ```
 
-1e6 simulation paths of `mhr_b`: 
+1e6 simulation paths of `mhr`: 
 
 ```{r}
 # percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
 # mc_mhr_b_many_mc_loss_percentiles <-
 #   data.frame(
 #     percentiles = percent_vals,
-#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "min")
+#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "gain")
 #   )
 # t(mc_mhr_b_many_mc_loss_percentiles)
 ```

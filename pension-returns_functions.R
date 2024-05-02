@@ -31,10 +31,10 @@ library(patchwork)
 # }
 
 ## dist_data is given as log returns.
-risk_percentiles <- function(log_returns, percent, max_or_min) {
+risk_percentiles <- function(log_returns, percent, loss_or_gain) {
   num_points <- length(log_returns)
   log_returns <- sort(log_returns)
-  if(max_or_min == "max"){
+  if(loss_or_gain == "loss"){
     100 * (length(which(log_returns < log((100 - percent)/100)))) / num_points
   } else {
     100 * (length(which(log_returns > log((100 + percent)/100)))) / num_points

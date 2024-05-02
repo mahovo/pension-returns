@@ -101,7 +101,7 @@ Fit log returns to F-S skew standardized Student-t distribution.
 `nu` is the estimated shape parameter (degrees of freedom).  
 `xi` is the estimated skewness parameter.  
 
-# Log returns data 2011-2023.  
+# Returns data 2011-2023.  
 For 2011, medium risk data is used in the high risk data set, as no high risk fund data is available prior to 2012.  
 `vmrl` is a long version of Velliv medium risk data, from 2007 to 2023. For 2007 to 2011 (both included) no high risk data is available.
 ```{r}
@@ -118,32 +118,33 @@ headlines <- c(
   "Mix vhr+pmr (mh_pm), 2011 - 2023"
 )
 
-# Velliv medium risk returns
+## Log returns data 2011-2023.
+## Velliv medium risk returns
 vmr <- log(c(0.986, 1.098, 1.157, 1.136, 1.058, 1.044, 1.100, 0.963, 1.168, 1.097, 1.141, 0.868, 1.094))
 
-# Velliv medium risk return, long period: 2007-2023
+## Velliv medium risk return, long period: 2007-2023
 vmrl <- log(c(1.058, 0.801, 1.193, 1.129, 1.035, 0.996, 1.133, 1.092, 1.085, 1.013, 1.095, 1.011, 1.129, 1.101, 1.128, 0.988, 1.048))
 
-# PFA medium risk returns
+## PFA medium risk returns
 pmr <- log(c(1.084, 0.904, 1.107, 1.042, 1.119, 0.976, 1.089, 1.073, 1.084, 1.107, 1.111, 1.141, 1.004))
 
-# Mix medium risk return
+## Mix medium risk return
 mmr <- log(c(1.035, 0.996, 1.133, 1.092, 1.085, 1.013, 1.095, 1.011, 1.129, 1.101, 1.128, 0.988, 1.048))
 
-# Velliv high risk returns
+## Velliv high risk returns
 vhr <- log(c(0.986, 1.093, 1.214, 1.160, 1.075, 1.039, 1.118, 0.952, 1.205, 1.099, 1.194, 0.849, 1.122))
 
-# PFA high risk return
+## PFA high risk return
 phr <- log(c(1.159, 0.878, 1.200, 1.068, 1.190, 0.943, 1.135, 1.082, 1.123, 1.128, 1.208, 1.182, 0.934))
   
-# Mix high risk return
+## Mix high risk return
 mhr <- log(c(1.073, 0.977, 1.207, 1.116, 1.128, 0.992, 1.126, 1.013, 1.164, 1.113, 1.201, 1.012, 1.014))
 
-vm_ph_r <- (c(100, 100 * cumprod(exp(vmr))) + c(100, 100 * cumprod(exp(phr))))/2
-vm_ph_r <- log(tail(vm_ph_r, -1)/head(vm_ph_r, -1))
+vmr_phr <- (c(100, 100 * cumprod(exp(vmr))) + c(100, 100 * cumprod(exp(phr))))/2
+vmr_phr <- log(tail(vmr_phr, -1)/head(vmr_phr, -1))
 
-vh_pm_r <- (c(100, 100 * cumprod(exp(vhr))) + c(100, 100 * cumprod(exp(pmr))))/2
-vh_pm_r <- log(tail(vh_pm_r, -1)/head(vh_pm_r, -1))
+vhr_pmr <- (c(100, 100 * cumprod(exp(vhr))) + c(100, 100 * cumprod(exp(pmr))))/2
+vhr_pmr <- log(tail(vhr_pmr, -1)/head(vhr_pmr, -1))
 
 data_df <- data.frame(
   vmr = vmr,
@@ -152,8 +153,8 @@ data_df <- data.frame(
   phr = phr,
   mmr = mmr,
   mhr = mhr,
-  vm_ph_r = vm_ph_r,
-  vh_pm_r = vh_pm_r
+  vmr_phr = vmr_phr,
+  vhr_pmr = vhr_pmr
 )
 
 data_df_l <- data.frame(
@@ -169,9 +170,9 @@ plot(x = c(2011:2023), y = exp(vmr), type = "l",  lty = 1, lwd = 2, xlab = "year
 lines(x = c(2011:2023), y = exp(vhr), col = "#76EEC6",  lty = 2, lwd = 1.5)
 lines(x = c(2011:2023), y = exp(pmr), col = "#CD6600",  lty = 1, lwd = 2)
 lines(x = c(2011:2023), y = exp(phr), col = "#CD6600",  lty = 2, lwd = 1.5)
-lines(x = c(2011:2023), y = exp(mmr), col = "#A020F0",  lty = 1, lwd = 2)
-lines(x = c(2011:2023), y = exp(mhr), col = "#A020F0",  lty = 2, lwd = 1.5)
-legend("bottom", legend = c("vmr", "vhr", "pmr", "phr", "mmr", "mhr"), col = c("#7AC5CD", "#76EEC6", "#CD6600", "#CD6600", "#A020F0", "#A020F0"), lty = c(1, 2, 1, 2, 1, 2), lwd = 2, ncol = 3 )
+lines(x = c(2011:2023), y = exp(mmr), col = "#FF00FF",  lty = 1, lwd = 2)
+lines(x = c(2011:2023), y = exp(mhr), col = "#FF00FF",  lty = 2, lwd = 1.5)
+legend("bottom", legend = c("vmr", "vhr", "pmr", "phr", "mmr", "mhr"), col = c("#7AC5CD", "#76EEC6", "#CD6600", "#CD6600", "#FF00FF", "#FF00FF"), lty = c(1, 2, 1, 2, 1, 2), lwd = 2, ncol = 3 )
 ```
 
 
