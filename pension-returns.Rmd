@@ -15,7 +15,7 @@ output:
     toc_depth: 3
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
 params:
-  run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
+  run_sim: TRUE ## TRUE: Run simulations and write output. FALSE: Read saved
                 ## simulations output from disk instead of running the simulations.
   run_exploratory: TRUE ## Include exploratory report?
   run_individual: TRUE ## Include individual reports? Depends on run_individual.
@@ -89,7 +89,7 @@ pandoc pension-returns.md -o pension-returns.pdf
 ```
 
 ```{r}
-mc_num_paths <- 10000
+mc_num_paths <- 1000
 mc_num_periods <- 20
 mc_dao <- TRUE
 mc_threshold <- 0.01
@@ -206,10 +206,21 @@ saveRDS(fits, file = here("data", "fits.RData"))
 ```
 
 ```{r eval=(params$run_sim && run_individual)}
+fit_id <- list(
+  1,
+  2,
+  3,
+  4,
+  c(1, 3),
+  c(2, 4),
+  c(1, 4),
+  c(2, 3)
+)
+
 mc_output <- list()
 for(i in seq_along(fits)) {
   mc_output[[i]] <- mc_simulation(
-    fits[[i]], 
+    fits[fit_id[[i]]], 
     num_paths = mc_num_paths, 
     num_periods = mc_num_periods, 
     dao = mc_dao, 
@@ -231,7 +242,7 @@ mc_output <- readRDS(file = here("data", paste0("mc_output.RData")))
 ```{r eval=(params$run_sim && run_individual)}
 max_sum_plots <- list()
 for(i in seq_along(fits)) {
-  max_sum_plots[[i]] <- plot_max_sum(fits[[i]], 1e4)
+  max_sum_plots[[i]] <- plot_max_sum(fits[fit_id[[i]]], mc_num_paths)
 }
 
 saveRDS(max_sum_plots, here("data", "max_sum_plots.RData"))
@@ -250,7 +261,7 @@ is_g_fits <-  list()
 is_output <- list()
 for(i in seq_along(fits)) {
   is_g_fits[[i]] <- is_proposal(
-    x_i_fit = fits[[i]],
+    x_i_fit = fits[fit_id[[i]]],
     x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
     num_paths = mc_num_paths, 
     num_periods = mc_num_periods, 
@@ -262,7 +273,7 @@ for(i in seq_along(fits)) {
   )
   
   is_output[[i]] <- importance_sampling(
-    x_i_fit = fits[[i]], 
+    x_i_fit = fits[fit_id[[i]]], 
     x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
     num_paths = mc_num_paths, 
     num_periods = mc_num_periods, 
