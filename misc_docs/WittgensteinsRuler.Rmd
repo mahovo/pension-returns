@@ -1,0 +1,52 @@
+---
+title: "Wittgenstein's Ruler"
+output: html_document
+date: "2024-05-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+# Define the survival functions
+NormalSurvival <- function(x) 1 - pnorm(x, mean = 0, sd = 1)
+TSurvival <- function(x) 1 - pt(x, df = 2)
+
+# Survival function for value 10
+normal_survival_at_10 <- NormalSurvival(10)
+t_survival_at_10 <- TSurvival(10)
+
+# Defining Bayes' theorem in R function format
+bayes_theorem <- function(P_Gaussian) {
+    
+    # Calculating the conditional probabilities using Bayes' theorem
+    numerator = normal_survival_at_10 * P_Gaussian
+    denominator = (normal_survival_at_10 * P_Gaussian) +
+                  (t_survival_at_10 * (1 - P_Gaussian))
+    
+    # Returning the probability P[Event | Gaussian]
+    P_Event_given_Gaussian = numerator / denominator
+    
+    # Formulate the output as per the given equation structure
+    list(P_Gaussian = P_Gaussian,
+         eq2 = P_Event_given_Gaussian)
+}
+
+# Defining the different probabilities for P[Gaussian]
+p_gaussian_values <- c(0.5, 0.999, 0.9999, 0.99999, 0.999999, 1)
+
+# Create and print the table
+table_results <- sapply(p_gaussian_values, bayes_theorem, simplify = FALSE)
+
+# Convert to dataframe for pretty printing
+table_df <- do.call(rbind.data.frame, table_results)
+
+# Print the table
+print(table_df)
+```
+
+
+

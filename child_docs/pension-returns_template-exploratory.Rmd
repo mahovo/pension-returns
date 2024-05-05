@@ -1,0 +1,61 @@
+## Summary of gross returns
+
+```{r}
+df_summary <- df_summary_to_df(summary(exp(data_df)))
+```
+
+
+```{r}
+df_l_summary <- df_summary_to_df(summary(exp(data_df_l)))
+```
+
+```{r}
+df_summary_all <- cbind(
+    df_summary[, 1:2],
+    df_l_summary,
+    df_summary[, 3:ncol(df_summary)]
+  )
+
+knitr::kable(
+  df_summary_all, 
+  digits = 3
+)
+```
+
+
+## Ranking
+```{r}
+knitr::kable(rank_summary(df_summary_all, sorting = rep("hi", ncol(df_summary_all))), digits = 3)
+```
+
+
+## Correlations and covariance
+
+Correlations
+```{r}
+knitr::kable(
+  as.data.frame(
+    round(cor(data_df[1:4]), 4)
+  ), 
+  digits = 3
+)
+```
+
+Covariances
+```{r}
+knitr::kable(
+  as.data.frame(
+    round(cov(data_df[1:4]), 4)
+  ), 
+  digits = 3
+)
+```
+
+
+
+
+
+
+
+
+
