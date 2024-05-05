@@ -31,10 +31,10 @@ library(patchwork)
 # }
 
 ## dist_data is given as log returns.
-risk_percentiles <- function(log_returns, percent, max_or_min) {
+risk_percentiles <- function(log_returns, percent, loss_or_gain) {
   num_points <- length(log_returns)
   log_returns <- sort(log_returns)
-  if(max_or_min == "max"){
+  if(loss_or_gain == "loss"){
     100 * (length(which(log_returns < log((100 - percent)/100)))) / num_points
   } else {
     100 * (length(which(log_returns > log((100 + percent)/100)))) / num_points
@@ -164,24 +164,31 @@ max_sum <- function(data_vector, p = 1) {
   ms
 }
 
-plot_max_sum <- function(fit, num_periods, rnd_seed = 2304) {
-  set.seed(rnd_seed)
-  ms_log_returns <- rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi)
-  par(mfrow = c(2, 2))
-  lapply(1:4, function(p) {
-    ms_vector <- max_sum(ms_log_returns, p)
-    plot(ms_vector, type = "l", ylim = c(min(ms_vector), max(ms_vector)), xlab = "n", ylab = paste0("MS(", p, ")"), main = paste0("MS(", p, ")")
-    )
-  })
-  par(mfrow = c(1, 1))
-}
+# plot_max_sum <- function(fit, num_periods, rnd_seed = 2304) {
+#   set.seed(rnd_seed)
+#   ms_log_returns <- rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi)
+#   par(mfrow = c(2, 2))
+#   lapply(1:4, function(p) {
+#     ms_vector <- max_sum(ms_log_returns, p)
+#     plot(ms_vector, type = "l", ylim = c(min(ms_vector), max(ms_vector)), xlab = "n", ylab = paste0("MS(", p, ")"), main = paste0("MS(", p, ")")
+#     )
+#   })
+#   par(mfrow = c(1, 1))
+# }
 
-plot_max_sum <- function(fit, num_periods, rnd_seed = 2304) {
+plot_max_sum <- function(fit, num_paths, rnd_seed = 2304) {
   set.seed(rnd_seed)
-  ms_log_returns <- rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi)
+  
+  #ms_log_returns <- rsstd(num_paths, fit$m, fit$s, fit$nu, fit$xi)
+  num_fits <- length(fit)
+  ms_log_returns <- numeric(num_paths)
+  for(i in seq_along(fit)) {
+    ms_log_returns <- ms_log_returns + rsstd(num_paths, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi)/num_fits
+  }
+  
   plots <- list()
   for(p in 1:4) {
-    df <- data.frame(n = 1:num_periods, ms_p = max_sum(ms_log_returns, p))
+    df <- data.frame(n = 1:num_paths, ms_p = max_sum(ms_log_returns, p))
     plots[[p]] <- ggplot(df, aes(x = n, y = ms_p)) +
         geom_line() +
         ylim(c(min(df$ms_p), max(df$ms_p))) + 
@@ -213,47 +220,45 @@ fit_skewed_t <- function(x, method = "BFGS") {
   
   AIC_sstd = 2 * fit_sstd$value + 2 * 4
   BIC_sstd = 2 * fit_sstd$value + log(n) * 4
-  #sd_sstd = sqrt(diag(solve(fit_sstd$hessian)))
-  cat("\n")
-  #cat("sd_sstd:", sd_sstd)
-  cat("AIC:", AIC_sstd, "\n")
-  cat("BIC:", BIC_sstd, "\n")
+  # cat("\n")
+  # cat("AIC:", AIC_sstd, "\n")
+  # cat("BIC:", BIC_sstd, "\n")
   
   # Middelværdi:
   mu_sstd_fit <- fit_sstd$par[1]#/1000
-  cat("m:", mu_sstd_fit, "\n")
+  # cat("m:", mu_sstd_fit, "\n")
   
   # Spredning:
   sigma_sstd_fit <- fit_sstd$par[2]#/1000
-  cat("s:", sigma_sstd_fit, "\n")
+  # cat("s:", sigma_sstd_fit, "\n")
   
   # Frihedsgrader:
   nu_sstd_fit <- fit_sstd$par[3] # 3.36019
-  cat("nu (df):", nu_sstd_fit, "\n")
+  # cat("nu (df):", nu_sstd_fit, "\n")
   
   xi_sstd_fit <- fit_sstd$par[4] # 0.8436514
-  cat("xi:", xi_sstd_fit, "\n")
+  # cat("xi:", xi_sstd_fit, "\n")
   
   fit <- qsstd((1:n - 0.5)/n, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
   
   r_squared <- cor(sort(fit), sort(x))
   # R^2
   r_squared_round <- round(r_squared, 3)
-  cat("R^2:", r_squared_round, "\n")
-  cat("\n")
+  # cat("R^2:", r_squared_round, "\n")
+  # cat("\n")
   
   range_cuts <- c(0.0, 0.5, 0.9, 0.95, 0.99, 1.0)
-  interpretations <- c(
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is not great."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is not completely random."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is good."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is very good."),
-    paste0("An R^2 of ", r_squared_round, " suggests that the fit is extremely good.")
-  )
-  
-  cat(interpretations[findInterval(r_squared_round, range_cuts)])
-  cat("\n")
-  cat("\n")
+  # interpretations <- c(
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is not great."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is not completely random."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is good."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is very good."),
+  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is extremely good.")
+  # )
+  # 
+  # cat(interpretations[findInterval(r_squared_round, range_cuts)])
+  # cat("\n")
+  # cat("\n")
   
   quantile_data <- qsstd(seq(0.005, 0.995, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
   
@@ -263,17 +268,17 @@ fit_skewed_t <- function(x, method = "BFGS") {
   
   sample_mean <- mean(dist_data)
   
-  risk_estimate(dist_data, "max", 10)
-  risk_estimate(dist_data, "max", 25)
-  risk_estimate(dist_data, "max", 50)
-  risk_estimate(dist_data, "max", 90)
-  risk_estimate(dist_data, "max", 99)
-  cat("\n")
-  risk_estimate(dist_data, "min", 10)
-  risk_estimate(dist_data, "min", 25)
-  risk_estimate(dist_data, "min", 50)
-  risk_estimate(dist_data, "min", 90)
-  risk_estimate(dist_data, "min", 99)
+  # risk_estimate(dist_data, "max", 10)
+  # risk_estimate(dist_data, "max", 25)
+  # risk_estimate(dist_data, "max", 50)
+  # risk_estimate(dist_data, "max", 90)
+  # risk_estimate(dist_data, "max", 99)
+  # cat("\n")
+  # risk_estimate(dist_data, "min", 10)
+  # risk_estimate(dist_data, "min", 25)
+  # risk_estimate(dist_data, "min", 50)
+  # risk_estimate(dist_data, "min", 90)
+  # risk_estimate(dist_data, "min", 99)
   
   theoretical_quantiles <- qsstd(ppoints(n), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)
   
@@ -325,7 +330,6 @@ fit_skewed_t <- function(x, method = "BFGS") {
     theoretical_quantiles = theoretical_quantiles
   )
   
-  comment(output) <- "single_fit"
   output
 }
 
@@ -357,43 +361,31 @@ mc_simulation <- function(
   qual_col_pals = brewer.pal.info[brewer.pal.info$category == 'qual',]
   col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_col_pals)))
   
-  ## Each single fit has comment "single_fit".
-  ## A list if fits will not have a comment.
-  if(is.null(comment(fit))) {
-    ## A list of fits
-    init_capital = 100/length(fit)
-    mc_df <- data.frame(matrix(rep(0, num_paths * (num_periods + 1)), nrow = num_periods + 1))
-    for(i in seq_along(fit)) {
-      for(j in 1:num_paths) {
-        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
-      }
-    }
-  } else {
-    if(comment(fit) == "single_fit") {
-      mc_df <- data.frame(rep(0, num_periods + 1))
-      for(j in 1:num_paths) {
-        mc_df[ ,j] <- c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit$m, fit$s, fit$nu, fit$xi))))
-      }
+  ## A list of fits
+  init_capital = 100/length(fit)
+  mc_df <- data.frame(matrix(rep(0, num_paths * (num_periods + 1)), nrow = num_periods + 1))
+  for(i in seq_along(fit)) {
+    for(j in 1:num_paths) {
+      mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
     }
   }
-  
   
   if(dao == TRUE) {
     mc_df <- down_and_out_df(mc_df, threshold)
     num_dao <- count_num_dao(mc_df, threshold)
     dao_probability_percent <- 100 * num_dao/num_paths
     
-    cat("Down-and-out simulation:\n")
-    cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
-    cat("\n")
+    # cat("Down-and-out simulation:\n")
+    # cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
+    # cat("\n")
   } else {
-    cat("Simulation (ignoring down-and-out):\n")
+    # cat("Simulation (ignoring down-and-out):\n")
     dao_probability_percent <- NA
   }
   
   colnames(mc_df) <- 1:num_paths
   
-  x_n <- unlist(mc_df[num_periods + 1, ]) ## Last row
+  x_n <- unlist(mc_df[nrow(mc_df), ]) ## Last row
   
   mc_m <- mean(x_n)
   mc_s <- sd(x_n)
@@ -416,12 +408,12 @@ mc_simulation <- function(
   
   percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
   
-  cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
-  cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
-  cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
-  cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
-  cat("\n")
-  cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
+  # cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
+  # cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
+  # cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
+  # cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
+  # cat("\n")
+  # cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
   
   list(
     mc_plot = function() {
@@ -489,9 +481,14 @@ is_proposal <- function(
   
   #set.seed(2304)
   #x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+ 
   if(is.na(x_n_vect)) {
+    num_fits <- length(x_i_fit)
+    x_n_vect <- numeric(num_paths)
     set.seed(2304)
-    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+    for(i in seq_along(x_i_fit)) {
+      x_n_vect <- x_n_vect + replicate(num_paths, sum(rsstd(num_periods, x_i_fit[[i]]$m, x_i_fit[[i]]$s, x_i_fit[[i]]$nu, x_i_fit[[i]]$xi))/num_fits)
+    }
   }
   
   is_obj_func <- function(
@@ -613,10 +610,20 @@ importance_sampling <- function(
     p_vect = NA, 
     plot_mode = "index", ## "index" or "log"
     rnd_seed_x = 2304, 
-    rnd_seed_p = 1411) {
+    rnd_seed_p = 1411
+  ) {
+  
+  # if(is.na(x_n_vect)) {
+  #   set.seed(rnd_seed_x)
+  #   x_n_vect <- replicate(num_paths, sum(rsstd(num_periods, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+  # }
   if(is.na(x_n_vect)) {
+    num_fits <- length(x_i_fit)
+    x_n_vect <- numeric(num_paths)
     set.seed(rnd_seed_x)
-    x_n_vect <- replicate(num_paths, sum(rsstd(num_periods, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
+    for(i in seq_along(x_i_fit)) {
+      x_n_vect <- x_n_vect + replicate(num_paths, sum(rsstd(num_periods, x_i_fit[[i]]$m, x_i_fit[[i]]$s, x_i_fit[[i]]$nu, x_i_fit[[i]]$xi))/num_fits)
+    }
   }
     
   loglik_sstd = function(beta, x) {sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))}
@@ -646,6 +653,12 @@ importance_sampling <- function(
     }
     ci_l <- mu_hat - dev
     ci_u <- mu_hat + dev
+    # df_conv <- data.frame(
+    #   i = 1:num_paths, 
+    #   mu_hat = 100 * exp(mu_hat), 
+    #   ci_l = 100 * exp(ci_l), 
+    #   ci_u = 100 * exp(ci_u)
+    # )
     if(plot_mode == "index") {
       df_conv <- data.frame(
         i = 1:num_paths, 
@@ -656,12 +669,6 @@ importance_sampling <- function(
     } else {
       df_conv <- data.frame(i = 1:num_paths, mu_hat = mu_hat, ci_l = ci_l, ci_u = ci_u)
     }
-    df_conv <- data.frame(
-      i = 1:num_paths, 
-      mu_hat = 100 * exp(mu_hat), 
-      ci_l = 100 * exp(ci_l), 
-      ci_u = 100 * exp(ci_u)
-    )
     is_plot <- function() {
       ggplot(df_conv, aes(x = i, y = mu_hat)) + 
       geom_ribbon(

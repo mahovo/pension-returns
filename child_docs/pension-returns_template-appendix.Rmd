@@ -1,0 +1,395 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+# Appendix
+
+## Many simulations of mc_mhr: `num_paths = 1e6`
+
+```{r eval=FALSE}
+mc_mhr_1e6 <- mc_simulation(list(fits[[2]], fits[[4]]), num_paths = 1e6, num_periods = mc_num_periods, dao = mc_dao)
+
+## This file is 504 MB
+saveRDS(mc_mhr_1e6, here("data", "mc_mhr_1e6.RData"))
+```
+
+```{r eval=FALSE}
+mc_mhr_1e6_stats <- mc_mhr_1e6[c(4, 5, 6, 7, 9, 10)] ## Remove mc_df and mc_plot
+
+saveRDS(mc_mhr_1e6_stats, here("data", "mc_mhr_1e6_stats.RData"))
+```
+
+1e6 paths:
+
+```{r eval=FALSE}
+mc_mhr_1e6 <- readRDS(here("data", "mc_mhr_1e6.RData"))
+
+png(file = here("data", "mc_conv_plot_1e6.png"), width = 600, height=400, units = "px")
+mc_mhr_1e6$mc_conv_plot()
+dev.off()
+```
+
+```{r echo=FALSE, out.width = '100%'}
+knitr::include_graphics(here("data", "mc_conv_plot_1e6.png"))
+```
+
+Compare $10^6$ and $10^4$ paths for mhr:
+
+```{r}
+mc_mhr_1e6_stats <- readRDS(here("data", "mc_mhr_1e6_stats.RData"))
+
+mc_1e6_summary <- data.frame(
+    mc_mhr_1e6 = c(
+      mc_mhr_1e6_stats$mc_m, 
+      mc_mhr_1e6_stats$mc_s, 
+      mc_mhr_1e6_stats$mc_min, 
+      mc_mhr_1e6_stats$mc_max, 
+      mc_mhr_1e6_stats$dao_probability_percent, 
+      mc_mhr_1e6_stats$percent_losing_paths
+    ),
+    mc_mhr_1e4 = c(
+      mc_output[[6]]$mc_m, 
+      mc_output[[6]]$mc_s, 
+      mc_output[[6]]$mc_min, 
+      mc_output[[6]]$mc_max, 
+      mc_output[[6]]$dao_probability_percent, 
+      mc_output[[6]]$percent_losing_paths
+    ),
+    is_mhr_1e4 = c(
+      round(is_output[[6]]$is_m, 3), ## Must round because coerced to text by "ibid."
+      round(is_output[[6]]$is_s, 3),
+      round(is_output[[6]]$is_min, 3),
+      round(is_output[[6]]$is_max, 3),
+      "ibid.",
+      "ibid."
+    )
+)
+rownames(mc_1e6_summary) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_pct", "dai_pct")
+```
+
+```{r}
+knitr::kable(t(mc_1e6_summary), digits = 4)
+```
+
+```{r eval=FALSE}
+png(file = here("data", "mc_plot_last_period_1e6.png"), width = 600, height=400, units = "px")
+mc_mhr_1e6$mc_plot_last_period()
+dev.off()
+```
+
+```{r echo=FALSE, out.width = '100%'}
+knitr::include_graphics(here("data", "mc_plot_last_period_1e6.png"))
+```
+
+## Arithmetic vs geometric mean
+Let $m$ be the number of steps in each path and $n$ be the number of paths.
+$a$ is the initial capital.
+Use arithmetic mean for mean of all paths at time $t$:
+$$\dfrac{a (e^{z_1} + e^{z_2} + \dots + e^{z_n})}{n}$$
+where
+$$z_i := x_{i, 1} + x_{i, 2} + \dots + x_{i, m}$$
+Use geometric mean for mean of all steps in a single path $i$:
+$$a e^{\frac{x_{i, 1} + x_{i, 2} + \dots + x_{i, m}}{m}} = a \sqrt[m]{e^{x_{i, 1} + x_{i, 2} + \dots + x_{i, m}}}$$
+
+So for **Monte Carlo** of returns after $m$ periods, we 
+
++ fit a skewed t-distribution to log-returns and use that distribution to simulate $\{x_{i, j}\}_j^m$,
++ for each path $i$, calculate $100\cdot e^{z_i}$,
++ calculate the mean of $\{z_i\}_i^n$:
+	+ $$\bar{z} = 100\dfrac{e^{z_1} + e^{z_2} + \dots + e^{z_n}}{n}$$
+
+For **Importance Sampling**, we
+
++ model log-returns on a skewed t-distribution,
++ for each path $i$, calculate $100\cdot e^{z_i}$,
++ fit a skewed t-distribution to $\{z_i\}_i^n$ and use it as our $f$ density function from which we simulate $\{h_i\}_i^n$,
+	+ In our case $h$ and $z$ are identical, because we have an idea for a distribution to simulate $z$, but in general for IS $h$ could be a function of $z$.
++ calculate $w* = \frac{f}{g^*}$, where $g*$ is our proposal distribution, which minimizes the variance of $h\cdot w$.
++ calculate the arithmetic mean of $\{h_i w_i^{*}\}_i^n$: 
+	+ $$100 \dfrac{e^{h_1 w_1^{*}} +  e^{h_2 w_2^{*}} + \dots +  e^{h_n w_n^{*}}}{n}$$
+
+
+## Average of returns vs returns of average
+
+### Math
+
+$$\text{Avg. of returns} := \dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2}$$
+$$\text{Returns of avg.} := \left(\dfrac{ x_t + y_t }{2}\right) \Big/ \left(\dfrac{ x_{t-1} + y_{t-1} }{2}\right) \equiv \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+For which $x_1$ and $y_1$ are
+$\text{Avg. of returns} = \text{Returns of avg.}$?
+
+$$\dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2} = \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$(x_{t-1} + y_{t-1}) x_t y_{t-1} + (x_{t-1} + y_{t-1}) x_{t-1} y_t = 2 (x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+
+$$(x_{t-1}x_1y_{t-1} + y_{t-1}x_ty_{t-1}) + (x_{t-1}x_{t-1}y_t + x_{t-1}y_{t-1}y_t) = 2(x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+This is not generally true, but true if for instance
+$x_{t-1} = y_{t-1}$.
+
+### Example
+
+```{r}
+x0 <- 100
+y0 <- 200
+Rx <- 0.5
+Ry <- 1.5
+```
+
+Definition: `R = 1+r`
+
+```{r}
+cat(paste0("Let x_0 be ", x0, ".\n"))
+cat(paste0("Let y_0 be ", y0, ".\n"))
+cat("So the initial value of the pf is", x0 + y0, ".\n")
+cat("\n")
+cat(paste0("Let R_x be ", Rx, ".\n"))
+cat(paste0("Let R_y be ", Ry, ".\n"))
+```
+
+Then,
+
+```{r}
+cat(paste0("x_1 is R_x * x_0 = ", Rx * x0, ".\n"))
+cat(paste0("y_1 is R_y * y_0 = ", Ry * y0, ".\n"))
+```
+
+Average of returns:
+
+```{r}
+cat("0.5 * (R_x + R_y) =", 0.5 * (Rx + Ry), "\n")
+```
+
+So here the value of the pf at t=1 should be unchanged from t=0:
+
+```{r}
+cat("(x_0 + y_0) * 0.5 * (R_x + R_y) =", (x0 + y0) * 0.5 * (Rx + Ry), "\n")
+```
+
+But this is clearly not the case:
+
+```{r}
+cat("0.5 * (x_1 + y_1) = 0.5 * (R_x * x_0 + R_y * y_0) =", 0.5 * (Rx * x0 + Ry * y0), "\n")
+```
+
+Therefore we should take returns of average, not average of returns!
+
+Let's take the average of log returns instead:
+
+```{r}
+cat("0.5 * (log(R_x) + log(R_y)) =", 0.5 * (log(Rx) + log(Ry)), "\n")
+```
+
+We now get:
+
+```{r}
+cat("(x_0 + y_0) * exp(0.5 * (log(Rx) + log(Ry))) =", (x0 + y0) * exp(0.5 * (log(Rx) + log(Ry))), "\n")
+```
+
+So taking the average of log returns doesn't work either.
+
+## Simulation of mix vs mix of simulations
+
+Test if a simulation of a mix (average) of two returns series has the
+same distribution as a mix of two simulated returns series.
+
+```{r}
+mc_sim <- function(
+    num_runs = 1, 
+    num_paths = 1000, 
+    num_periods = 20,
+    m_a = 0,
+    s_a = 0.4,
+    m_b = 10,
+    s_b = 3
+    ) {
+  
+  data_x <- rnorm(num_periods, m_a, s_a)
+  data_y <- rnorm(num_periods, m_b, s_b)
+  
+  m_data_x <- mean(data_x)
+  s_data_x <- sd(data_x)
+  m_data_y <- mean(data_y)
+  s_data_y <- sd(data_y)
+  
+  cat("m(data_x):", m_data_x, "\n")
+  cat("s(data_x):", s_data_x, "\n")
+  cat("m(data_y):", m_data_y, "\n")
+  cat("s(data_y):", s_data_y, "\n")
+  cat("\n")
+  
+  m_data_xy <- mean(0.5 * data_x + 0.5 * data_y)
+  s_data_xy <- sd(0.5 * data_x + 0.5 * data_y)
+  
+  cat("m(data_x + data_y):", m_data_xy, "\n")
+  cat("s(data_x + data_y):", s_data_xy, "\n")
+  cat("\n")
+  
+  run_sim <- function(num_runs) {
+    df <- data.frame(
+      m_a = rep(0, num_runs), m_b = rep(0, num_runs), 
+      s_a = rep(0, num_runs), s_b = rep(0, num_runs)
+    )
+    for(j in 1:num_runs) {
+      sim_x <- rep(0, num_paths)
+      sim_y <- rep(0, num_paths)
+      sim_xy <- rep(0, num_paths)
+      for(i in 1:num_paths) {
+        sim_x[i] <- sum(rnorm(num_periods, m_data_x, s_data_x))
+        sim_y[i] <- sum(rnorm(num_periods, m_data_y, s_data_y))
+        sim_xy[i] <- sum(rnorm(num_periods, m_data_xy, s_data_xy))
+      }
+
+      df$m_a[j] <-  mean(0.5 * sim_x + 0.5 * sim_y)
+      df$m_b[j] <-  mean(sim_xy)
+      df$s_a[j] <-  sd(0.5 * sim_x + 0.5 * sim_y)
+      df$s_b[j] <-  sd(sim_xy)
+    }
+    df
+  }
+  
+  run_sim(num_runs)
+}
+```
+
+```{r}
+mc_sim_df <- mc_sim(
+  num_runs = 10, 
+  num_paths = 1000, 
+  num_periods = 20,
+  m_a = 0,
+  s_a = 0.4,
+  m_b = 10,
+  s_b = 3
+)
+```
+
+m and s of final state of all paths.\
+`_a` is mix of simulated returns.\
+`_b` is simulated mixed returns.
+
+```{r}
+knitr::kable(mc_sim_df, digits = 3)
+```
+
+```{r}
+summary(mc_sim_df)
+```
+
+`_a` and `_b` are very close to equal.\
+We attribute the differences to differences in estimating the
+distributions in version a and b.
+
+The final state is independent of the order of the preceding steps:
+
+```{r}
+vect1 <- c(rnorm(100))
+vect2 <- c(sample(vect1, 100))
+vect3 <- c(sample(vect1, 100))
+path1 <- c(0, cumsum(vect1))
+path2 <- c(0, cumsum(vect2))
+path3 <- c(0, cumsum(vect3))
+plot(path1, type = "l", col = "blue", 
+     ylim = c(
+       min(c(path1, path2, path3)), 
+       max(c(path1, path2, path3))
+     )
+)
+lines(path2, col = "red")
+lines(path3, col = "green")
+```
+
+So does the order of the steps in the two processes matter, when mixing
+simulated returns?
+
+```{r}
+vect1a <- c(rnorm(100, 0.05, 0.06))
+vect1b <- c(sample(vect1a, 100))
+vect2a <- c(rnorm(100, 0.05, 0.06))
+vect2b <- c(sample(vect2a, 100))
+
+path1a <- 100 * c(1, cumprod(1 + vect1a))
+path1b <- 100 * c(1, cumprod(1 + vect1b))
+path2a <- 100 * c(1, cumprod(1 + vect2a))
+path2b <- 100 * c(1, cumprod(1 + vect2b))
+
+mix_path_a <- 0.5 * path1a + 0.5 * path2a
+mix_path_b <- 0.5 * path1b + 0.5 * path2b
+
+plot(path1a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(path1a, path1b, path2a, path2b)), 
+       max(c(path1a, path1b, path2a, path2b))
+     )
+)
+lines(path1b, lty = 2, col = "blue")
+lines(path2a, lty = 1, col = "red")
+lines(path2b, lty = 2, col = "red")
+```
+
+```{r}
+plot(mix_path_a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(mix_path_a, mix_path_b)), 
+       max(c(mix_path_a, mix_path_b))
+     )
+)
+lines(mix_path_b, lty = 2, col = "blue")
+```
+
+The order of steps in the individual paths do not matter, because the
+mix of simulated paths is a sum of a sum, so the order of terms doesn't
+affect the sum. If there is variation it is because the sets preceding
+steps are not the same. For instance, the steps between step 1 and 60 in
+the plot above are not the same for the two lines.
+
+Recall,
+$$\text{Var}(aX+bY) = a^2 \text{Var}(X) + b^2 \text{Var}(Y) + 2ab \text{Cov}(a, b)$$
+
+```{r include=TRUE, echo=TRUE}
+var(0.5 * vhr + 0.5 * phr)
+0.5^2 * var(vhr) + 0.5^2 * var(phr) + 2 * 0.5 * 0.5 * cov(vhr, phr)
+```
+
+Our distribution estimate is based on 13 observations. Is that enough
+for a robust estimate? What if we suddenly hit a year like 2008? How
+would that affect our estimate?\
+Let's try to include the Velliv data from 2007-2010.\
+We do this by sampling 13 observations from `vmrl`.
+
+```{r}
+n <- 50
+test_df <- data.frame(m = rep(0, n), s = rep(0, n))
+for(i in 1:n) {
+  vmrl_smp <- sample(vmrl, 13)
+  test_df$m[i] <- mean(0.5 * vmrl_smp + 0.5 * phr)
+  test_df$s[i] <- sd(0.5 * vmrl_smp + 0.5 * phr)
+}
+summary(test_df)
+```
+
+## The meaning of `xi`
+
+The fit for `mhr` has the highest `xi` value of all. This suggests
+right-skew:
+
+```{r}
+plot((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 1), xlim = c(-20, 20), ylim = c(0, 0.1), type = "l", xlab = "value", ylab = "likelihood", main = "Skew t-distribution density")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 0.5), col="red")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 2), col="blue")
+legend("topright", c("xi=1", "xi=0.5", "xi=2"), col = c("black", "red", "blue"), lty = 1)
+```
+
+## Max vs sum plot
+
+If the Law Of Large Numbers holds true,
+$$\dfrac{\max (X_1^p, ..., X^p)}{\sum_{i=1}^n X_i^p} \rightarrow 0$$ for
+$n \rightarrow \infty$.
+
+If not, $X$ doesn't have a $p$'th moment.
+
+See Taleb: The Statistical Consequences Of Fat Tails, p. 192
