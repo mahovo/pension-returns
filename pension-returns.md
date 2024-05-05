@@ -22,8 +22,10 @@ params:
   run_comparison: TRUE ## Include comparison report? Depends on run_individual.
   run_comments: TRUE
   run_appendix: TRUE ## Depends on run_individual
-date: "14:14 05 May 2024"
+date: "22:14 05 May 2024"
 ---
+
+
 
 
 
@@ -93,7 +95,9 @@ For 2011, medium risk data is used in the high risk data set, as no high risk fu
 
 
 
-## Summary of gross returns
+## Summary of log-returns
+
+The summary statistics are transformed back to the scale of gross returns by taking $exp()$ of each summary statistic. (Note: Taking arithmetic mean of gross returns directly is no good. Must be geometric mean.)
 
 
 
@@ -104,10 +108,10 @@ For 2011, medium risk data is used in the high risk data set, as no high risk fu
 |         |   vmr|   vhr|  vmrl|   pmr|   phr|   mmr|   mhr| vmr_phr| vhr_pmr|
 |:--------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-------:|-------:|
 |Min.   : | 0.868| 0.849| 0.801| 0.904| 0.878| 0.988| 0.977|   0.979|   0.967|
-|1st Qu.: | 1.044| 1.039| 1.013| 1.042| 1.068| 1.013| 1.013|   1.021|   1.012|
+|1st Qu.: | 1.044| 1.039| 1.013| 1.042| 1.068| 1.013| 1.013|   1.021|   1.011|
 |Median : | 1.097| 1.099| 1.085| 1.084| 1.128| 1.085| 1.113|   1.102|   1.094|
-|Mean   : | 1.070| 1.085| 1.061| 1.065| 1.095| 1.066| 1.087|   1.081|   1.074|
-|3rd Qu.: | 1.136| 1.160| 1.128| 1.107| 1.182| 1.101| 1.128|   1.121|   1.106|
+|Mean   : | 1.067| 1.080| 1.057| 1.063| 1.089| 1.064| 1.085|   1.079|   1.072|
+|3rd Qu.: | 1.136| 1.160| 1.128| 1.107| 1.182| 1.101| 1.128|   1.121|   1.107|
 |Max.   : | 1.168| 1.214| 1.193| 1.141| 1.208| 1.133| 1.207|   1.178|   1.163|
 
 
@@ -115,15 +119,15 @@ For 2011, medium risk data is used in the high risk data set, as no high risk fu
 
 | Min.   :|ranking | 1st Qu.:|ranking | Median :|ranking | Mean   :|ranking | 3rd Qu.:|ranking | Max.   :|ranking |
 |--------:|:-------|--------:|:-------|--------:|:-------|--------:|:-------|--------:|:-------|--------:|:-------|
-|    0.988|mmr     |    1.068|phr     |    1.128|phr     |    1.095|phr     |    1.182|phr     |    1.214|vhr     |
-|    0.979|vmr_phr |    1.044|vmr     |    1.113|mhr     |    1.087|mhr     |    1.160|vhr     |    1.208|phr     |
-|    0.977|mhr     |    1.042|pmr     |    1.102|vmr_phr |    1.085|vhr     |    1.136|vmr     |    1.207|mhr     |
-|    0.967|vhr_pmr |    1.039|vhr     |    1.099|vhr     |    1.081|vmr_phr |    1.128|vmrl    |    1.193|vmrl    |
-|    0.904|pmr     |    1.021|vmr_phr |    1.097|vmr     |    1.074|vhr_pmr |    1.128|mhr     |    1.178|vmr_phr |
-|    0.878|phr     |    1.013|vmrl    |    1.094|vhr_pmr |    1.070|vmr     |    1.121|vmr_phr |    1.168|vmr     |
-|    0.868|vmr     |    1.013|mmr     |    1.085|vmrl    |    1.066|mmr     |    1.107|pmr     |    1.163|vhr_pmr |
-|    0.849|vhr     |    1.013|mhr     |    1.085|mmr     |    1.065|pmr     |    1.106|vhr_pmr |    1.141|pmr     |
-|    0.801|vmrl    |    1.012|vhr_pmr |    1.084|pmr     |    1.061|vmrl    |    1.101|mmr     |    1.133|mmr     |
+|    0.988|mmr     |    1.068|phr     |    1.128|phr     |    1.089|phr     |    1.182|phr     |    1.214|vhr     |
+|    0.979|vmr_phr |    1.044|vmr     |    1.113|mhr     |    1.085|mhr     |    1.160|vhr     |    1.208|phr     |
+|    0.977|mhr     |    1.042|pmr     |    1.102|vmr_phr |    1.080|vhr     |    1.136|vmr     |    1.207|mhr     |
+|    0.967|vhr_pmr |    1.039|vhr     |    1.099|vhr     |    1.079|vmr_phr |    1.128|vmrl    |    1.193|vmrl    |
+|    0.904|pmr     |    1.021|vmr_phr |    1.097|vmr     |    1.072|vhr_pmr |    1.128|mhr     |    1.178|vmr_phr |
+|    0.878|phr     |    1.013|vmrl    |    1.094|vhr_pmr |    1.067|vmr     |    1.121|vmr_phr |    1.168|vmr     |
+|    0.868|vmr     |    1.013|mmr     |    1.085|vmrl    |    1.064|mmr     |    1.107|pmr     |    1.163|vhr_pmr |
+|    0.849|vhr     |    1.013|mhr     |    1.085|mmr     |    1.063|pmr     |    1.107|vhr_pmr |    1.141|pmr     |
+|    0.801|vmrl    |    1.011|vhr_pmr |    1.084|pmr     |    1.057|vmrl    |    1.101|mmr     |    1.133|mmr     |
 
 
 ## Correlations and covariance
@@ -1024,17 +1028,17 @@ So for **Monte Carlo** of returns after $m$ periods, we
 + fit a skewed t-distribution to log-returns and use that distribution to simulate $\{x_{i, j}\}_j^m$,
 + for each path $i$, calculate $100\cdot e^{z_i}$,
 + calculate the mean of $\{z_i\}_i^n$:
-	+ $$\bar{z} = 100\dfrac{e^{z_1} + e^{z_2} + \dots + e^{z_n}}{n}$$
+    + $$\bar{z} = 100\dfrac{e^{z_1} + e^{z_2} + \dots + e^{z_n}}{n}$$
 
 For **Importance Sampling**, we
 
 + model log-returns on a skewed t-distribution,
 + for each path $i$, calculate $100\cdot e^{z_i}$,
 + fit a skewed t-distribution to $\{z_i\}_i^n$ and use it as our $f$ density function from which we simulate $\{h_i\}_i^n$,
-	+ In our case $h$ and $z$ are identical, because we have an idea for a distribution to simulate $z$, but in general for IS $h$ could be a function of $z$.
+    + In our case $h$ and $z$ are identical, because we have an idea for a distribution to simulate $z$, but in general for IS $h$ could be a function of $z$.
 + calculate $w* = \frac{f}{g^*}$, where $g*$ is our proposal distribution, which minimizes the variance of $h\cdot w$.
 + calculate the arithmetic mean of $\{h_i w_i^{*}\}_i^n$: 
-	+ $$100 \dfrac{e^{h_1 w_1^{*}} +  e^{h_2 w_2^{*}} + \dots +  e^{h_n w_n^{*}}}{n}$$
+    + $$100 \dfrac{e^{h_1 w_1^{*}} +  e^{h_2 w_2^{*}} + \dots +  e^{h_n w_n^{*}}}{n}$$
 
 
 ## Average of returns vs returns of average

@@ -67,16 +67,25 @@ library(here)
 source(here("src", "pension-returns_functions.R"))
 ```
 
-```{r chunk6, eval=FALSE, include=FALSE}
+```{r chunk6}
+################################################################################
+##
+##                          GENERATE HTML AND PDF
+##                        (DON'T USE KNIT BUTTON!)
+##
+################################################################################
+```
+
+```{r chunk6a, eval=FALSE, include=FALSE}
 ## Render this document to html and pdf
-rmarkdown::render(here("pension-returns.Rmd"), output_format ="all")
+rmarkdown::render(here::here("pension-returns.Rmd"), output_format ="all")
 ```
 
 
 ```{r chunk6b}
 ################################################################################
 ##
-##                             GENERATE PDF MANUALLY
+##              GENERATE PDF MANUALLY AFTER GENERATING HTML AND MD
 ##
 ################################################################################
 ```

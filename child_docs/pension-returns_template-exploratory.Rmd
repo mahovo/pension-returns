@@ -1,12 +1,14 @@
-## Summary of gross returns
+## Summary of log-returns
+
+The summary statistics are transformed back to the scale of gross returns by taking $exp()$ of each summary statistic. (Note: Taking arithmetic mean of gross returns directly is no good. Must be geometric mean.)
 
 ```{r}
-df_summary <- df_summary_to_df(summary(exp(data_df)))
+df_summary <- exp(df_summary_to_df(summary(data_df)))
 ```
 
 
 ```{r}
-df_l_summary <- df_summary_to_df(summary(exp(data_df_l)))
+df_l_summary <- exp(df_summary_to_df(summary(data_df_l)))
 ```
 
 ```{r}

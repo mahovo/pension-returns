@@ -98,17 +98,17 @@ So for **Monte Carlo** of returns after $m$ periods, we
 + fit a skewed t-distribution to log-returns and use that distribution to simulate $\{x_{i, j}\}_j^m$,
 + for each path $i$, calculate $100\cdot e^{z_i}$,
 + calculate the mean of $\{z_i\}_i^n$:
-	+ $$\bar{z} = 100\dfrac{e^{z_1} + e^{z_2} + \dots + e^{z_n}}{n}$$
+    + $$\bar{z} = 100\dfrac{e^{z_1} + e^{z_2} + \dots + e^{z_n}}{n}$$
 
 For **Importance Sampling**, we
 
 + model log-returns on a skewed t-distribution,
 + for each path $i$, calculate $100\cdot e^{z_i}$,
 + fit a skewed t-distribution to $\{z_i\}_i^n$ and use it as our $f$ density function from which we simulate $\{h_i\}_i^n$,
-	+ In our case $h$ and $z$ are identical, because we have an idea for a distribution to simulate $z$, but in general for IS $h$ could be a function of $z$.
+    + In our case $h$ and $z$ are identical, because we have an idea for a distribution to simulate $z$, but in general for IS $h$ could be a function of $z$.
 + calculate $w* = \frac{f}{g^*}$, where $g*$ is our proposal distribution, which minimizes the variance of $h\cdot w$.
 + calculate the arithmetic mean of $\{h_i w_i^{*}\}_i^n$: 
-	+ $$100 \dfrac{e^{h_1 w_1^{*}} +  e^{h_2 w_2^{*}} + \dots +  e^{h_n w_n^{*}}}{n}$$
+    + $$100 \dfrac{e^{h_1 w_1^{*}} +  e^{h_2 w_2^{*}} + \dots +  e^{h_n w_n^{*}}}{n}$$
 
 
 ## Average of returns vs returns of average
