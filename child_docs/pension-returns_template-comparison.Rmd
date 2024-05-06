@@ -411,3 +411,106 @@ Average number of years between min or max events (respectively):
 ```{r}
 knitr::kable(avg_yrs_btw_events, digits = 3)
 ```
+
+
+For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
+
+Conditional probabilities for smallest observed log-returns:
+
+```{r}
+# Defining the different probabilities for P[gaussian]
+p_gaussian_values <- 1 - 10^(-(seq(0, 6, length.out = 100)))
+par(mfrow = c(2, 4))
+lapply(
+  seq_along(data_df),
+  function(i) {
+    probs <- bayes_survival(
+      p_gaussian_values, 
+      min(data_df[[i]]),
+      fits_norm[[1]],
+      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
+      mode = "min"
+    )
+    plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
+         xlab = "P[Gauss]", ylab = "P[Gauss | event]",
+         main = fund_names[i]
+    )
+    abline(0, 1, col = "red")
+  }
+)
+par(mfrow = c(1, 1))
+```
+
+```{r}
+p_gaussian_values <- c(0.5, 0.9, 0.95, 0.99, 0.999)
+wittgenstein_min <- as.data.frame(lapply(
+  seq_along(data_df),
+  function(i) {
+    probs <- bayes_survival(
+      p_gaussian_values, 
+      min(data_df[[i]]),
+      fits_norm[[1]],
+      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
+      mode = "min"
+    )
+    probs[[2]]
+  }
+))
+colnames(wittgenstein_min) <- fund_names
+rownames(wittgenstein_min) <- p_gaussian_values
+```
+
+```{r}
+knitr::kable(wittgenstein_min, digits = 3)
+```
+
+
+
+Conditional probabilities for smallest observed log-returns:
+
+```{r}
+# Defining the different probabilities for P[gaussian]
+p_gaussian_values <- 1 - 10^(-(seq(0, 6, length.out = 100)))
+par(mfrow = c(2, 4))
+lapply(
+  seq_along(data_df),
+  function(i) {
+    probs <- bayes_survival(
+      p_gaussian_values, 
+      max(data_df[[i]]),
+      fits_norm[[1]],
+      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
+      mode = "max"
+    )
+    plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
+         xlab = "P[Gauss]", ylab = "P[Gauss | event]",
+         main = fund_names[i]
+    )
+    abline(0, 1, col = "red")
+  }
+)
+par(mfrow = c(1, 1))
+```
+
+```{r}
+p_gaussian_values <- c(0.5, 0.9, 0.95, 0.99, 0.999)
+wittgenstein_min <- as.data.frame(lapply(
+  seq_along(data_df),
+  function(i) {
+    probs <- bayes_survival(
+      p_gaussian_values, 
+      max(data_df[[i]]),
+      fits_norm[[1]],
+      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
+      mode = "max"
+    )
+    probs[[2]]
+  }
+))
+colnames(wittgenstein_min) <- fund_names
+rownames(wittgenstein_min) <- p_gaussian_values
+```
+
+```{r}
+knitr::kable(wittgenstein_min, digits = 3)
+```
