@@ -413,51 +413,81 @@ knitr::kable(avg_yrs_btw_events, digits = 3)
 ```
 
 
+#### Lilliefors test
+```{r}
+library(nortest)
+```
+
+```{r}
+lillie_tests <- as.data.frame(lapply(
+  data_df,
+  function(x) {
+    lillie.test(x)$p.value
+  }
+))
+rownames(lillie_tests) <- "p value"
+```
+
+p-values for Lilliefors test.  
+Testing $H_0$, that log-returns are Gaussian.
+
+```{r}
+knitr::kable(lillie_tests, digits = 3)
+```
+
+
+
+#### Wittgenstein's Ruler
 For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
 
 Conditional probabilities for smallest observed log-returns:
 
-```{r}
+```{r fig.width=9}
 # Defining the different probabilities for P[gaussian]
 p_gaussian_values <- 1 - 10^(-(seq(0, 6, length.out = 100)))
 par(mfrow = c(2, 4))
-lapply(
-  seq_along(data_df),
-  function(i) {
-    probs <- bayes_survival(
-      p_gaussian_values, 
-      min(data_df[[i]]),
-      fits_norm[[1]],
-      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
-      mode = "min"
-    )
-    plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
-         xlab = "P[Gauss]", ylab = "P[Gauss | event]",
-         main = fund_names[i]
-    )
-    abline(0, 1, col = "red")
-  }
-)
+for(i in seq_along(data_df)) {
+  probs <- bayes_survival(
+    p_gaussian_values, 
+    min(data_df[[i]]),
+    fits_norm[[1]],
+    c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
+    mode = "min"
+  )
+  plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
+       xlab = "P[Gauss]", ylab = "P[Gauss | event]",
+       main = fund_names[i]
+  )
+  abline(0, 1, col = "red")
+}
 par(mfrow = c(1, 1))
 ```
 
+
+Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
+$x_{\text{obs}} = \min(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{Gauss}}[X \leq x_{\text{min}}]$:
+
 ```{r}
-p_gaussian_values <- c(0.5, 0.9, 0.95, 0.99, 0.999)
 wittgenstein_min <- as.data.frame(lapply(
   seq_along(data_df),
   function(i) {
+    lillie_p <- unlist(lillie_tests[i])
     probs <- bayes_survival(
-      p_gaussian_values, 
+      1 - lillie_p, 
       min(data_df[[i]]),
       fits_norm[[1]],
-      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
+      c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
       mode = "min"
     )
-    probs[[2]]
+    c(
+      unlist(lillie_tests[i]),
+      1 - lillie_p,
+      unlist(probs[[2]])
+    )
   }
 ))
 colnames(wittgenstein_min) <- fund_names
-rownames(wittgenstein_min) <- p_gaussian_values
+rownames(wittgenstein_min) <- c("Lillie p-val", "Prior prob", "P[Gauss | Event]")
 ```
 
 ```{r}
@@ -466,51 +496,53 @@ knitr::kable(wittgenstein_min, digits = 3)
 
 
 
-Conditional probabilities for smallest observed log-returns:
+Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
+$x_{\text{obs}} = \max(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{Gauss}}[X \geq x_{\text{max}}]$:
 
-```{r}
+```{r fig.width=9}
 # Defining the different probabilities for P[gaussian]
 p_gaussian_values <- 1 - 10^(-(seq(0, 6, length.out = 100)))
 par(mfrow = c(2, 4))
-lapply(
-  seq_along(data_df),
-  function(i) {
-    probs <- bayes_survival(
-      p_gaussian_values, 
-      max(data_df[[i]]),
-      fits_norm[[1]],
-      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
-      mode = "max"
-    )
-    plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
-         xlab = "P[Gauss]", ylab = "P[Gauss | event]",
-         main = fund_names[i]
-    )
-    abline(0, 1, col = "red")
-  }
-)
+for(i in seq_along(data_df)) {
+  probs <- bayes_survival(
+    p_gaussian_values, 
+    max(data_df[[i]]),
+    fits_norm[[1]],
+    c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
+    mode = "max"
+  )
+  plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
+       xlab = "P[Gauss]", ylab = "P[Gauss | event]",
+       main = fund_names[i]
+  )
+  abline(0, 1, col = "red")
+}
 par(mfrow = c(1, 1))
 ```
 
 ```{r}
-p_gaussian_values <- c(0.5, 0.9, 0.95, 0.99, 0.999)
-wittgenstein_min <- as.data.frame(lapply(
+wittgenstein_max <- as.data.frame(lapply(
   seq_along(data_df),
   function(i) {
+    lillie_p <- unlist(lillie_tests[i])
     probs <- bayes_survival(
-      p_gaussian_values, 
+      1 - lillie_p, 
       max(data_df[[i]]),
       fits_norm[[1]],
-      c(fits[[1]]$m, fits[[1]]$s, fits[[1]]$nu, fits[[1]]$xi),
+      c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
       mode = "max"
     )
-    probs[[2]]
+    c(
+      unlist(lillie_tests[i]),
+      1 - lillie_p,
+      unlist(probs[[2]])
+    )
   }
 ))
-colnames(wittgenstein_min) <- fund_names
-rownames(wittgenstein_min) <- p_gaussian_values
+colnames(wittgenstein_max) <- fund_names
+rownames(wittgenstein_max) <- c("Lillie p-val", "Prior prob", "P[Gauss | Event]")
 ```
 
 ```{r}
-knitr::kable(wittgenstein_min, digits = 3)
+knitr::kable(wittgenstein_max, digits = 3)
 ```
