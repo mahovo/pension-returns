@@ -22,7 +22,7 @@ params:
   run_comparison: TRUE ## Include comparison report? Depends on run_individual.
   run_comments: TRUE
   run_appendix: TRUE ## Depends on run_individual
-date: "22:14 05 May 2024"
+date: "15:06 06 May 2024"
 ---
 
 
@@ -441,35 +441,87 @@ Average number of years between min or max events (respectively):
 |t: avg yrs btw max    | 848.548| 640.410|  35.400| 531.552| 205.104| 19.450| 437.280| 572.483|
 
 
+#### Lilliefors test
+
+
+
+
+p-values for Lilliefors test.  
+Testing $H_0$, that log-returns are Gaussian.
+
+
+|        |   vmr|   vhr|   pmr|  phr|  mmr|   mhr| vmr_phr| vhr_pmr|
+|:-------|-----:|-----:|-----:|----:|----:|-----:|-------:|-------:|
+|p value | 0.052| 0.343| 0.024| 0.06| 0.24| 0.137|   0.375|   0.415|
+
+
+
+#### Wittgenstein's Ruler
+For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
+
+Conditional probabilities for smallest observed log-returns:
+
+![](pension-returns_files/figure-html/unnamed-chunk-80-1.png)<!-- -->
+
+
+Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
+$x_{\text{obs}} = \min(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{Gauss}}[X \leq x_{\text{min}}]$:
+
+
+
+
+|                      |   vmr|   vhr|   pmr|   phr|   mmr|   mhr| vmr_phr| vhr_pmr|
+|:---------------------|-----:|-----:|-----:|-----:|-----:|-----:|-------:|-------:|
+|Lillie p-val          | 0.052| 0.343| 0.024| 0.060| 0.240| 0.137|   0.375|   0.415|
+|Prior prob            | 0.948| 0.657| 0.976| 0.940| 0.760| 0.863|   0.625|   0.585|
+|P[Gauss &#124; Event] | 0.661| 0.088| 0.960| 0.754| 0.839| 0.917|   0.653|   0.603|
+
+
+
+Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
+$x_{\text{obs}} = \max(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{Gauss}}[X \geq x_{\text{max}}]$:
+
+![](pension-returns_files/figure-html/unnamed-chunk-83-1.png)<!-- -->
+
+
+
+
+|                      |   vmr|   vhr|   pmr|   phr|   mmr|   mhr| vmr_phr| vhr_pmr|
+|:---------------------|-----:|-----:|-----:|-----:|-----:|-----:|-------:|-------:|
+|Lillie p-val          | 0.052| 0.343| 0.024| 0.060| 0.240| 0.137|   0.375|   0.415|
+|Prior prob            | 0.948| 0.657| 0.976| 0.940| 0.760| 0.863|   0.625|   0.585|
+|P[Gauss &#124; Event] | 1.000| 0.986| 0.997| 0.998| 0.993| 0.888|   0.988|   0.991|
+
+
 # Velliv medium risk (vmr), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-112-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-130-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-113-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-131-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-114-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-132-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-115-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-133-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-116-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-134-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-117-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-135-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-118-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-136-1.png)<!-- -->
 
 
 ## Convergence
@@ -478,17 +530,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-119-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-137-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-120-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-138-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-121-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-139-1.png)<!-- -->
 
 Parameters
 
@@ -498,9 +550,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-123-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-141-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-124-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-142-1.png)<!-- -->
 
 
 
@@ -509,32 +561,32 @@ Objective function plots
 # Velliv high risk (vhr), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-139-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-157-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-140-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-158-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-141-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-159-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-142-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-160-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-143-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-161-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-144-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-162-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-145-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-163-1.png)<!-- -->
 
 
 ## Convergence
@@ -543,17 +595,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-146-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-164-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-147-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-165-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-148-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-166-1.png)<!-- -->
 
 Parameters
 
@@ -563,9 +615,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-150-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-168-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-151-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-169-1.png)<!-- -->
 
 
 
@@ -574,32 +626,32 @@ Objective function plots
 # PFA medium risk (pmr), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-166-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-184-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-167-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-185-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-168-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-186-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-169-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-187-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-170-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-188-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-171-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-189-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-172-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-190-1.png)<!-- -->
 
 
 ## Convergence
@@ -608,17 +660,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-173-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-191-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-174-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-192-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-175-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-193-1.png)<!-- -->
 
 Parameters
 
@@ -628,9 +680,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-177-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-195-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-178-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-196-1.png)<!-- -->
 
 
 
@@ -639,32 +691,32 @@ Objective function plots
 # PFA high risk (phr), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-193-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-211-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-194-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-212-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-195-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-213-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-196-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-214-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-197-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-215-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-198-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-216-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-199-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-217-1.png)<!-- -->
 
 
 ## Convergence
@@ -673,17 +725,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-200-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-218-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-201-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-219-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-202-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-220-1.png)<!-- -->
 
 Parameters
 
@@ -693,9 +745,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-204-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-222-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-205-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-223-1.png)<!-- -->
 
 
 
@@ -704,32 +756,32 @@ Objective function plots
 # Mix medium risk (mmr), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-220-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-238-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-221-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-239-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-222-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-240-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-223-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-241-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-224-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-242-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-225-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-243-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-226-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-244-1.png)<!-- -->
 
 
 ## Convergence
@@ -738,17 +790,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-227-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-245-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-228-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-246-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-229-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-247-1.png)<!-- -->
 
 Parameters
 
@@ -758,9 +810,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-231-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-249-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-232-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-250-1.png)<!-- -->
 
 
 
@@ -769,32 +821,32 @@ Objective function plots
 # Mix high risk (mhr), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-247-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-265-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-248-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-266-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-249-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-267-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-250-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-268-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-251-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-269-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-252-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-270-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-253-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-271-1.png)<!-- -->
 
 
 ## Convergence
@@ -803,17 +855,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-254-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-272-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-255-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-273-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-256-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-274-1.png)<!-- -->
 
 Parameters
 
@@ -823,9 +875,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-258-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-276-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-259-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-277-1.png)<!-- -->
 
 
 
@@ -834,32 +886,32 @@ Objective function plots
 # Mix vmr+phr (vm_ph), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-274-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-292-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-275-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-293-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-276-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-294-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-277-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-295-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-278-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-296-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-279-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-297-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-280-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-298-1.png)<!-- -->
 
 
 ## Convergence
@@ -868,17 +920,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-281-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-299-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-282-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-300-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-283-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-301-1.png)<!-- -->
 
 Parameters
 
@@ -888,9 +940,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-285-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-303-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-286-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-304-1.png)<!-- -->
 
 
 
@@ -899,32 +951,32 @@ Objective function plots
 # Mix vhr+pmr (mh_pm), 2011 - 2023
 
 ## QQ Plot
-![](pension-returns_files/figure-html/unnamed-chunk-301-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-319-1.png)<!-- -->
 
 
 ## Data vs fit
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_files/figure-html/unnamed-chunk-302-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-320-1.png)<!-- -->
 
 
 ## Estimated distribution
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_files/figure-html/unnamed-chunk-303-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-321-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-304-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-322-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-305-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-323-1.png)<!-- -->
 
 
 ## Monte Carlo
 
-![](pension-returns_files/figure-html/unnamed-chunk-306-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-324-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-307-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-325-1.png)<!-- -->
 
 
 ## Convergence
@@ -933,17 +985,17 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-![](pension-returns_files/figure-html/unnamed-chunk-308-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-326-1.png)<!-- -->
 
 
 ### MC
 
-![](pension-returns_files/figure-html/unnamed-chunk-309-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-327-1.png)<!-- -->
 
 
 ### IS
 
-![](pension-returns_files/figure-html/unnamed-chunk-310-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-328-1.png)<!-- -->
 
 Parameters
 
@@ -953,9 +1005,9 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_files/figure-html/unnamed-chunk-312-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-330-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-313-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-331-1.png)<!-- -->
 
 
 # Comments
@@ -1137,13 +1189,13 @@ Test if a simulation of a mix (average) of two returns series has the
 same distribution as a mix of two simulated returns series.
 
 ```
-## m(data_x): -0.1146739 
-## s(data_x): 0.2956609 
-## m(data_y): 8.922576 
-## s(data_y): 3.092783 
+## m(data_x): 0.08883305 
+## s(data_x): 0.4589474 
+## m(data_y): 9.292777 
+## s(data_y): 2.750134 
 ## 
-## m(data_x + data_y): 4.403951 
-## s(data_x + data_y): 1.580084
+## m(data_x + data_y): 4.690805 
+## s(data_x + data_y): 1.346744
 ```
 
 m and s of final state of all paths.\
@@ -1153,25 +1205,25 @@ m and s of final state of all paths.\
 
 |    m_a|    m_b|   s_a|   s_b|
 |------:|------:|-----:|-----:|
-| 87.759| 88.184| 6.885| 7.191|
-| 88.310| 87.811| 6.654| 7.175|
-| 88.536| 87.998| 6.969| 6.852|
-| 88.259| 88.014| 6.979| 7.049|
-| 88.007| 88.401| 7.173| 7.020|
-| 88.163| 87.453| 6.855| 7.463|
-| 88.307| 88.035| 6.845| 7.146|
-| 88.019| 88.083| 7.155| 7.023|
-| 88.310| 88.002| 7.018| 6.828|
-| 88.297| 88.096| 6.900| 6.929|
+| 94.046| 93.891| 6.264| 6.020|
+| 93.913| 93.587| 6.106| 6.177|
+| 93.660| 93.652| 6.204| 5.915|
+| 94.064| 93.675| 6.300| 5.859|
+| 93.895| 93.743| 6.284| 6.008|
+| 93.750| 93.820| 6.172| 6.190|
+| 94.229| 93.836| 6.275| 6.015|
+| 93.410| 93.649| 6.378| 6.194|
+| 93.998| 93.960| 6.205| 5.944|
+| 93.712| 93.724| 6.426| 6.167|
 
 ```
 ##       m_a             m_b             s_a             s_b       
-##  Min.   :87.76   Min.   :87.45   Min.   :6.654   Min.   :6.828  
-##  1st Qu.:88.06   1st Qu.:88.00   1st Qu.:6.862   1st Qu.:6.952  
-##  Median :88.28   Median :88.02   Median :6.935   Median :7.036  
-##  Mean   :88.20   Mean   :88.01   Mean   :6.943   Mean   :7.068  
-##  3rd Qu.:88.31   3rd Qu.:88.09   3rd Qu.:7.008   3rd Qu.:7.168  
-##  Max.   :88.54   Max.   :88.40   Max.   :7.173   Max.   :7.463
+##  Min.   :93.41   Min.   :93.59   Min.   :6.106   Min.   :5.859  
+##  1st Qu.:93.72   1st Qu.:93.66   1st Qu.:6.205   1st Qu.:5.960  
+##  Median :93.90   Median :93.73   Median :6.269   Median :6.018  
+##  Mean   :93.87   Mean   :93.75   Mean   :6.261   Mean   :6.049  
+##  3rd Qu.:94.03   3rd Qu.:93.83   3rd Qu.:6.296   3rd Qu.:6.174  
+##  Max.   :94.23   Max.   :93.96   Max.   :6.426   Max.   :6.194
 ```
 
 `_a` and `_b` are very close to equal.\
@@ -1180,14 +1232,14 @@ distributions in version a and b.
 
 The final state is independent of the order of the preceding steps:
 
-![](pension-returns_files/figure-html/unnamed-chunk-351-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-369-1.png)<!-- -->
 
 So does the order of the steps in the two processes matter, when mixing
 simulated returns?
 
-![](pension-returns_files/figure-html/unnamed-chunk-352-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-370-1.png)<!-- -->
 
-![](pension-returns_files/figure-html/unnamed-chunk-353-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-371-1.png)<!-- -->
 
 The order of steps in the individual paths do not matter, because the
 mix of simulated paths is a sum of a sum, so the order of terms doesn't
@@ -1222,12 +1274,12 @@ We do this by sampling 13 observations from `vmrl`.
 
 ```
 ##        m                 s          
-##  Min.   :0.06145   Min.   :0.04697  
-##  1st Qu.:0.06605   1st Qu.:0.06298  
-##  Median :0.06773   Median :0.06736  
-##  Mean   :0.06994   Mean   :0.06841  
-##  3rd Qu.:0.07468   3rd Qu.:0.07433  
-##  Max.   :0.08310   Max.   :0.08990
+##  Min.   :0.06156   Min.   :0.04718  
+##  1st Qu.:0.06885   1st Qu.:0.06157  
+##  Median :0.07107   Median :0.07015  
+##  Mean   :0.07218   Mean   :0.07064  
+##  3rd Qu.:0.07693   3rd Qu.:0.08091  
+##  Max.   :0.08582   Max.   :0.09479
 ```
 
 ## The meaning of `xi`
@@ -1235,7 +1287,7 @@ We do this by sampling 13 observations from `vmrl`.
 The fit for `mhr` has the highest `xi` value of all. This suggests
 right-skew:
 
-![](pension-returns_files/figure-html/unnamed-chunk-356-1.png)<!-- -->
+![](pension-returns_files/figure-html/unnamed-chunk-374-1.png)<!-- -->
 
 ## Max vs sum plot
 

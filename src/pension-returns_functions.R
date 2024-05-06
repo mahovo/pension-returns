@@ -715,7 +715,41 @@ importance_sampling <- function(
   )
 }
 
+## Taleb's Wittgenstein's Ruler
+# Define the survival functions
+calculate_normal_dist <- function(x, params = c(0, 1)) {pnorm(x, mean = params[1], sd = params[2])}
+calculate_t_dist <- function(x, params = c(0, 1, 3, 1)) {psstd(x, mean = params[1], sd = params[2], nu = params[3], xi = params[4])}
+calculate_normal_survival <- function(x, params = c(0, 1)) {1 - calculate_normal_dist(x, params)}
+calculate_t_survival <- function(x, params = c(0, 1, 3, 1)) {1 - calculate_t_dist(x, params)}
 
+## Probability of distribution being Gaussian rather than skewed t conditional 
+## on event x.
+## mode = "min": Calculate conditional probability for smallest observed value or less
+## mode = "max": Calculate conditional probability for largest observed value or more
+##
+## This is based on Taleb: The Statistical Consequences Of Fat Tails, p. 55
+bayes_survival <- function(p_gaussian, x, norm_params, sstd_params, mode = "min") {
+  
+  if(mode == "min") {
+    normal_prob <- calculate_normal_dist(x, norm_params)
+    t_prob <- calculate_t_dist(x, sstd_params)
+  } else {
+    normal_prob <- calculate_normal_survival(x, norm_params)
+    t_prob <- calculate_t_survival(x, sstd_params)
+  }
+  
+  # Calculating the conditional probabilities using Bayes' theorem
+  numerator = normal_prob * p_gaussian
+  denominator = (t_prob * (1 - p_gaussian)) + (normal_prob * p_gaussian)
+  
+  # Returning the probability P[gaussian | event]
+  p_event_given_gaussian = numerator / denominator
+  
+  list(
+    p_gaussian = p_gaussian,
+    conditional_probability = p_event_given_gaussian
+  )
+}
 
 
 
