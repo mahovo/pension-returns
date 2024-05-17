@@ -437,7 +437,8 @@ knitr::kable(lillie_tests, digits = 3)
 
 
 
-#### Wittgenstein's Ruler
+#### Wittgenstein's Ruler  
+
 For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
 
 Conditional probabilities for smallest observed log-returns:

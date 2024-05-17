@@ -5,25 +5,62 @@ output:
     toc: true
     toc_depth: 3
     keep_md: yes
-date: "2024-04-17"
+  # pdf_document:
+  #   toc: true
+  #   toc_depth: 3
+params:
+  include_code: FALSE
+  eval_code: FALSE
+date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 ---
+
+```{r eval=FALSE, include=FALSE}
+## Set eval=TRUE if running entire document
+params <- list(include_code = FALSE, eval_code = FALSE)
+```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r include=FALSE}
+```{r lib_load, include=FALSE}
 library(ggplot2)
+library(tidyr)
+library(here)
+library(fGarch)
+library(MASS)
+library(forcats)
+library(gridExtra)
+library(grid)
+#library(sgt) ## Error during installation
 #library(ifft)
-#library(sgt)
 ```
 
+```{bash make_pdf, eval=FALSE, include=FALSE}
+## Convert md to pdf
+## Run manually after knitting:
+pandoc sgt.md -o sgt.pdf
+```
 
-```{r include=FALSE, eval=FALSE}
+```{bash copy_to_site, eval=FALSE, include=FALSE}
+## Copy to sites folder
+## Run manually:
+cp ~/R\ work/pension-returns/misc_docs/sgt.pdf ~/var/site/sgt.pdf
+cp ~/R\ work/pension-returns/misc_docs/sgt.html ~/var/site/sgt.html
+```
+
+# Estimating the parameters of a sum skewed $t$ distributed r.v's
+
+```{r}
 num_simulations <- 1000
 num_paths <- 10000
 num_periods <- 20
-params <- c(0.08, 0.12, 3.18, 0.02)
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
+```
+
+
+```{r save_params_for_sums, include=params$include_code, eval=params$eval_code}
 
 #####################################
 
@@ -36,7 +73,7 @@ pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
 params_for_sums <- data.frame(m = numeric(0), s =  numeric(0), nu = numeric(0), xi = numeric(0))
 suppressWarnings({
   for(i in 1:num_simulations) {
-    x_sstd_mat <- replicate(num_paths, rsstd(num_periods, mean = params[1], sd = params[2], nu = params[3], xi = params[4]))
+    x_sstd_mat <- replicate(num_paths, rsstd(num_periods, mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4]))
     x_sstd_sums <- apply(x_sstd_mat, 2, sum)
     
     loglik_sstd <- function(beta, x) {sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))}
@@ -45,15 +82,18 @@ suppressWarnings({
     setTxtProgressBar(pb, i)
   }
 })
-
-saveRDS(params_for_sums, file="params_for_sums.RData")
-```
-```{r}
-params_for_sums <- readRDS(file="params_for_sums.RData")
 ```
 
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(params_for_sums, file=here("data", "params_for_sums.RData"))
+```
 
-```{r include=FALSE, eval=FALSE}
+```{r load_params_for_sums, include=FALSE, eval=(!params$eval_code)}
+params_for_sums <- readRDS(file=here("data", "params_for_sums.RData"))
+```
+
+
+```{r save_params_for_sums_summary, include=params$include_code, eval=params$eval_code}
 params_for_sums_means <- as.data.frame(lapply(
   params_for_sums,
   mean
@@ -66,29 +106,34 @@ params_for_sums_sd <- as.data.frame(lapply(
 
 params_for_sums_summary <- rbind(params_for_sums_means, params_for_sums_sd)
 rownames(params_for_sums_summary) <- c("m", "s")
-
-saveRDS(params_for_sums_summary, file="params_for_sums_summary.RData")
 ```
 
- 	  m 	    s 	        nu 	      xi
-m 	1.605 	7060.920 	  320.586 	0.02
-s 	0.005 	85.209 	    67.491 	  0.14
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(params_for_sums_summary, file=here("data", "params_for_sums_summary.RData"))
+```
 
-```{r}
-params_for_sums_summary <-  readRDS(file="params_for_sums_summary.RData")
+```{r include=FALSE, eval=(!params$eval_code)}
+params_for_sums_summary <- readRDS(file=here("data", "params_for_sums_summary.RData"))
+```
+
+
+
+Estimated parameters for sum, $S_{20}$:
+
+```{r params_for_sums_summary_table, echo=FALSE}
 knitr::kable(params_for_sums_summary, digits = 3)
 ```
 
 
-```{r}
+```{r global_vars}
 num_simulations <- 100
 num_paths <- 10000
 num_periods <- 20
-params <- c(0.08, 0.12, 3.18, 0.02)
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
 ```
 
 
-```{r include=FALSE, eval=FALSE}
+```{r estimated_params, include=params$include_code, eval=params$eval_code}
 
 #####################################
 
@@ -106,7 +151,7 @@ nu_for_sums <- matrix(numeric(num_periods * num_simulations), num_periods, num_s
 xi_for_sums <- matrix(numeric(num_periods * num_simulations), num_periods, num_simulations)
 suppressWarnings({
   for(i in 1:num_simulations) {
-    sstd_sums_mat <- replicate(num_paths, cumsum(rsstd(num_periods, mean = params[1], sd = params[2], nu = params[3], xi = params[4])))
+    sstd_sums_mat <- replicate(num_paths, cumsum(rsstd(num_periods, mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4])))
     for(j in 1:num_periods) {
       start <-  c(mean(sstd_sums_mat[j, ]), sd(sstd_sums_mat[j, ]), 3, 1)
       hat_params <-  optim(start, loglik_sstd, x = sstd_sums_mat[j, ])$par
@@ -122,10 +167,7 @@ suppressWarnings({
 
 
 
-
-
-
-```{r include=FALSE, eval=FALSE}
+```{r save_params_for_cum_sums_summary, include=params$include_code, eval=params$eval_code}
 params_for_cum_sums_m_means <- as.data.frame(apply(
   m_for_sums,
   1,
@@ -211,15 +253,20 @@ colnames(params_for_cum_sums_summary) <- c(
   "xi_ci_l",
   "xi_ci_u"
 )
-
-saveRDS(params_for_cum_sums_summary, file="params_for_cum_sums_summary.RData")
 ```
 
-```{r}
-params_for_cum_sums_summary <- readRDS(file="params_for_cum_sums_summary.RData")
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(params_for_cum_sums_summary, file=here("data", "params_for_cum_sums_summary.RData"))
 ```
 
-```{r}
+
+## Estimating the $m$ parameter of the skewed $t$ distribution
+
+```{r load_params_for_cum_sums_summary, include=FALSE, eval=(!params$eval_code)}
+params_for_cum_sums_summary <- readRDS(file=here("data", "params_for_cum_sums_summary.RData"))
+```
+
+```{r plot_m_mean, echo=FALSE}
 ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = m_mean)) +
   geom_ribbon(
       mapping = aes(
@@ -227,27 +274,76 @@ ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = m_mean)) +
         ymax = m_ci_u
       ), fill = "gray") +
   geom_line() +
-  labs(title = "Means of simulations of m-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean m")
+  labs(
+    title = "Means of simulations of m-parameter for skewed t", 
+    subtitle = "95% c.i.", x = "time", y = "mean m")
 ```
+
 This looks like:
 
 $$m(n) = n \cdot m(0)$$
 
-```{r}
-formula_m <- data.frame(m_n = 1:20 * params[1])
+```{r compare_m_n_table, include=params$include_code}
+formula_m <- data.frame(m_n = 1:20 * sim_params[1])
 m_n <- params_for_cum_sums_summary$m_mean
 compare_m_n <- t(cbind(formula_m, m_n))
 rownames(compare_m_n) <- c("formula", "m_n")
-knitr::kable(compare_m_n, digits = 3)
+colnames(compare_m_n) <- as.character(1:20)
 ```
-```{r}
-plot(1:20, compare_m_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean m", lwd = 3)
+
+```{r echo=FALSE}
+knitr::kable(compare_m_n[ ,1:10], digits = 3)
+```
+
+```{r echo=FALSE}
+knitr::kable(compare_m_n[ ,11:20], digits = 3)
+```
+
+
+```{r plot_compare_m_n, echo=FALSE}
+plot(1:20, compare_m_n[1, ], type = "l", col = "red", 
+     xlab = "time", ylab = "mean m", lwd = 3)
 lines(compare_m_n[2, ], col = "green", lwd = 1.5, lty = 2)
-legend("topleft", c("formula", "m_n"), col = c("red", "green"), lty = c(1, 2), lwd = c(3, 1.5))
+legend("topleft", c("formula", "m_n"), col = c("red", "green"), 
+       lty = c(1, 2), lwd = c(3, 1.5))
 ```
 
 
+
+### Verify $m(n) = n \cdot m(0)$
+
+Test if the sample means of a sum of F-S Skewed $t$ r.v.'s are equal to $n$ times the mean of a single r.v. from that distribution.
+
+Even with only 50 samples to estimate the sample mean, the fit is spot on.
+
 ```{r}
+num_sim <- 50
+n <- 100
+mu <- 1.7
+sigma <-  2
+nu <- 3
+xi <- 0.25
+```
+
+```{r echo=params$include_code}
+x_df <- replicate(num_sim, cumsum(rsstd(n, mu, sigma, nu, xi)))
+
+theoretical_means <-  (1:n) * mu
+sample_means <- lapply(
+  1:n,
+  function(i) {
+    mean(x_df[i ,])
+  }
+)
+
+plot(theoretical_means, sample_means, pch = 16, cex = 0.5)
+abline(0, 1, col = "red")
+```
+
+
+## Estimating the $s$ parameter of the skewed $t$ distribution
+
+```{r plot_s_mean, echo=FALSE}
 ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = s_mean)) +
   geom_ribbon(
       mapping = aes(
@@ -255,30 +351,255 @@ ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = s_mean)) +
         ymax = s_ci_u
       ), fill = "gray") +
   geom_line() +
-  labs(title = "Means of simulations of s-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean s")
+  labs(title = "Means of simulations of s-parameter for skewed t", 
+       subtitle = "95% c.i.", x = "time", y = "mean s")
 ```
+
 This looks like:
 
 $$s(n) = \sqrt{n s(1)^2}$$
 
-```{r}
-formula_s <- data.frame(s_n = sqrt(1:20 * params[2]^2))
+```{r s_n_table, echo=FALSE}
+formula_s <- data.frame(s_n = sqrt(1:20 * sim_params[2]^2))
 s_n <- params_for_cum_sums_summary$s_mean
 compare_s_n <- t(cbind(formula_s, s_n))
 rownames(compare_s_n) <- c("formula", "s_n")
-knitr::kable(compare_s_n, digits = 3)
+colnames(compare_s_n) <- as.character(1:20)
 ```
 
-```{r}
+```{r echo=FALSE}
+knitr::kable(compare_s_n[ ,1:10], digits = 3)
+```
+
+```{r echo=FALSE}
+knitr::kable(compare_s_n[ ,11:20], digits = 3)
+```
+
+```{r plot_s_n, echo=FALSE}
 plot(1:20, compare_s_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean s")
 lines(compare_s_n[2, ], col = "green")
 legend("topleft", c("formula", "s_n"), col = c("red", "green"), lty = 1)
 ```
 
+Let's use that (according to Taleb, ch. 8)
+$$\mathbb{M}(n) = n^{1/\tilde{\alpha}} \mathbb{M}(1) = n^{1/\tilde{\alpha}}\sqrt{\dfrac{2}{\pi}} \sigma$$
+where
+
+$$\tilde{\alpha} = \alpha I\{\alpha < 0\} + 2 I\{\alpha < \geq 0\}$$
+for the Power Law class and otherwise
+
+$$\tilde{\alpha} = 2$$
 
 
+We'll implement this as formula 1.
 
-```{r}
+Let formula 2 be:
+$$\mathbb{M}(n) = \dfrac{\sum_k^m \lvert S_{n, k} - n \mu_{X_i} \rvert}{n}$$
+where $\mu_{X_i}$ is the location parameter we use to generate $\{X_i\}$, and $S_{n, k}$, is the sum of $X_{k,1}, X_{k,2}, \dots, X_{k,n}$ for the $k$'th simulation.
+
+
+```{r global_vars_2}
+num_simulations <- 1000
+num_paths <- 10000
+num_periods <- 20
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
+```
+
+
+```{r save_sstd_simulations, include=params$include_code, eval=params$eval_code}
+#####################################
+
+pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
+                     max = num_simulations, # Maximum value of the progress bar
+                     style = 3,    # Progress bar style (also available style = 1 and style = 2)
+                     width = 50,   # Progress bar width. Defaults to getOption("width")
+                     char = "=")   # Character used to create the bar
+
+
+x_sstd_mat_list <- list()
+Sn_sstd_list <- list()
+suppressWarnings({
+  for(i in 1:num_simulations) {
+    x_sstd_mat_list[[i]] <- replicate(num_paths, rsstd(num_periods, mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4]))
+    Sn_sstd_df_i <- x_sstd_mat_list[[i]] 
+    for(j in 2:num_periods) {
+      Sn_sstd_df_i[j, ] <- apply(x_sstd_mat_list[[i]][1:j, ], 2, sum)
+    }
+    Sn_sstd_list[[i]] <- Sn_sstd_df_i
+      
+    setTxtProgressBar(pb, i)
+  }
+})
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(x_sstd_mat_list, file=here("data", "x_sstd_mat_list.RData"))
+saveRDS(Sn_sstd_list, file=here("data", "Sn_sstd_list.RData"))
+```
+
+```{r load_sstd_simulations, include=FALSE, eval=FALSE}
+x_sstd_mat_list <- readRDS(file=here("data", "x_sstd_mat_list.RData"))
+```
+
+```{r load_sstd_simulations_b, include=FALSE, eval=(!params$eval_code)}
+Sn_sstd_list <- readRDS(file=here("data", "Sn_sstd_list.RData"))
+```
+
+```{r f_mad, include=params$include_code}
+f_mad <- function(x) {
+  sum(abs(x - mean(x))) / length(x)
+}
+```
+
+```{r save_mad_list, include=params$include_code, eval=params$eval_code}
+mad_list <- list()
+for(i in seq_along(Sn_sstd_list)) {
+  mad_list_i <- list()
+  for(j in 1:num_periods) {
+    mad_list_i[[j]] <- f_mad(Sn_sstd_list[[i]][j, ])
+  }
+  mad_list[[i]] <- unlist(mad_list_i)
+}
+mad_list <- as.data.frame(mad_list)
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(mad_list, file=here("data", "mad_list.RData"))
+```
+
+```{r load_mad_list, include=FALSE, eval=(!params$eval_code)}
+mad_list <- readRDS(file=here("data", "mad_list.RData"))
+```
+
+
+```{r save_mad_list2, include=params$include_code, eval=params$eval_code}
+mad_list2 <- list()
+for(i in seq_along(Sn_sstd_list)) {
+  mad_list2_i <- list()
+  for(j in 1:num_periods) {
+    mad_list2_i[[j]] <-sum(abs(Sn_sstd_list[[i]][j, ] - j * sim_params[1])) / num_paths
+  }
+  mad_list2[[i]] <- unlist(mad_list2_i)
+}
+mad_list2 <- as.data.frame(mad_list2)
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(mad_list2, file=here("data", "mad_list2.RData"))
+```
+
+```{r load_mad_list2, include=FALSE, eval=(!params$eval_code)}
+mad_list2 <- readRDS(file=here("data", "mad_list2.RData"))
+```
+
+
+```{r mad_table, include=params$include_code}
+formula1_s <- data.frame(s_n = sim_params[2] * sqrt(2/pi) * (1:num_periods)^(1/sim_params[3]))
+formula2_s <- apply(mad_list2, 1, mean)
+s_n <- apply(mad_list, 1, mean)
+compare_s_n <- t(cbind(formula1_s, formula2_s, s_n))
+rownames(compare_s_n) <- c("f1", "f2", "s_n")
+colnames(compare_s_n) <- as.character(1:20)
+```
+
+```{r echo=FALSE}
+knitr::kable(compare_s_n[ ,1:10], digits = 4)
+```
+
+```{r echo=FALSE}
+knitr::kable(compare_s_n[ ,11:20], digits = 4)
+```
+
+
+```{r mad_plot, echo=FALSE}
+plot(1:20, compare_s_n[1, ], type = "l",  col = "red", xlab = "time", ylab = "mean MAD", ylim = c(0, max(compare_s_n)))
+lines(compare_s_n[2, ], col = "blue")
+lines(compare_s_n[3, ], col = "green", lty = 2)
+legend("topleft", c("formula 1", "formula 2", "MAD_n"), col = c("red", "blue", "green"), lty = c(1, 1, 2))
+```
+
+Formula 2 matches the realized MAD of $\{S_{n, k}\}_k^m$ very well.  
+Formula 1 matches the realized MAD of $\{S_{n, k}\}_k^m$ very badly.
+
+We notice that:
+
+$$\sqrt{\dfrac{2}{\pi}} \sigma_{X_i} = 0.09575$$
+
+$$\sqrt{\dfrac{2}{\pi}} \hat{\sigma}_{X_i} = \text{approx.} 0.09$$
+
+```{r mad_vs_sd_a}
+sd(rsstd(1e5, 
+         mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4])
+   ) * sqrt(2/pi)
+```
+
+
+while
+
+$$\mathbb{M}(1) =\dfrac{\sum_{k=1}^m \lvert X_{k, i} - n \overline{X_i} \rvert}{m} = \text{approx.} 0.07$$
+
+```{r mad_vs_sd_b}
+f_mad(rsstd(1e5, mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4]))
+```
+
+But are we supposed to see that
+
+$$\mathbb{M}(1) =\sqrt{\dfrac{2}{\pi}} \sigma$$
+
+??
+
+Actually no:  
+
+The relation $\mathbb{M}^{\nu}(1) = \sqrt{\frac{2}{\pi}} \sigma$ only holds for the standard normal distribution, and only asymptotically. The ratio $\frac{\text{MAD}(X)}{\text{sd}(X)}$ varies between 0 and 1.
+
+https://en.wikipedia.org/wiki/Average_absolute_deviation#Mean_absolute_deviation_around_the_mean 
+
+For a Student $t$ with 3 df, the ratio is $\frac{\pi}{2}$. (See Taleb ch. 4 for further discussion.)
+
+```{r mad_vs_sd_c}
+sd(rsstd(1e5, mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4])) * 2/pi
+```
+
+That's better!
+
+So let's use this ratio instead:
+```{r mad_table2, include=params$include_code}
+#formula1_s <- data.frame(s_n = sim_params[2] * sqrt(2/pi) * (1:num_periods)^(1/sim_params[3]))
+formula1_s <- data.frame(s_n = sim_params[2] * 2/pi * (1:num_periods)^(1/2))
+formula2_s <- apply(mad_list2, 1, mean)
+s_n <- apply(mad_list, 1, mean)
+compare_s_n <- t(cbind(formula1_s, formula2_s, s_n))
+rownames(compare_s_n) <- c("f1", "f2", "s_n")
+colnames(compare_s_n) <- as.character(1:20)
+```
+
+```{r echo=FALSE}
+knitr::kable(compare_s_n[ ,1:10], digits = 4)
+```
+
+```{r echo=FALSE}
+knitr::kable(compare_s_n[ ,11:20], digits = 4)
+```
+
+
+```{r mad_plot2, echo=FALSE}
+plot(1:20, compare_s_n[1, ], type = "l",  col = "red", 
+     xlab = "time", ylab = "mean MAD", ylim = c(0, max(compare_s_n)))
+lines(compare_s_n[2, ], col = "blue")
+lines(compare_s_n[3, ], col = "green", lty = 2)
+legend("topleft", c("formula 1", "formula 2", "MAD_n"), 
+       col = c("red", "blue", "green"), lty = c(1, 1, 2))
+```
+
+Now formula 1 matches the realized MAD of $\{S_{n, k}\}_k^m$ better, but still not very well.  
+Formula 2 is the way to go.
+
+See "taleb_kappa.pdf" for further discussion.
+
+
+## Estimating the $\nu$ parameter of the skewed $t$ distribution
+
+```{r plot_nu_mean, echo=FALSE}
 ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = nu_mean)) +
   geom_ribbon(
       mapping = aes(
@@ -286,26 +607,39 @@ ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = nu_mean)) +
         ymax = nu_ci_u
       ), fill = "gray") +
   geom_line() +
-  labs(title = "Means of simulations of nu-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean nu")
+  labs(title = "Means of simulations of nu-parameter for skewed t", 
+       subtitle = "95% c.i.", x = "time", y = "mean nu")
 ```
 
-We don't have a good guess here:
+We don't have a good guess here.
 
-```{r}
-formula_nu <- data.frame(nu_n = (1:20 * params[4]^4)^(-4))
+```{r nu_table, eval=FALSE, include=FALSE}
+formula_nu <- data.frame(nu_n = (1:20 * sim_params[3]^3)^(-3))
 nu_n <- params_for_cum_sums_summary$nu_mean
 compare_nu_n <- t(cbind(formula_nu, nu_n))
 rownames(compare_nu_n) <- c("formula", "nu_n")
-knitr::kable(compare_nu_n, digits = 3)
+colnames(compare_nu_n) <- as.character(1:20)
 ```
 
-```{r}
+```{r echo=FALSE, eval=FALSE, include=FALSE}
+knitr::kable(compare_nu_n[ , 1:10], digits = 3)
+```
+
+```{r echo=FALSE, eval=FALSE, include=FALSE}
+knitr::kable(compare_nu_n[ , 11:20], digits = 3)
+```
+
+
+```{r plot_nu, echo=FALSE, eval=FALSE, include=FALSE}
 plot(1:20, compare_nu_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean nu")
 lines(compare_nu_n[2, ], col = "green")
 legend("topleft", c("formula", "nu_n"), col = c("red", "green"), lty = 1)
 ```
 
-```{r}
+
+## Estimating the $\xi$ parameter of the skewed $t$ distribution
+
+```{r plot_xi_mean, echo=FALSE}
 ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = xi_mean)) +
   geom_ribbon(
       mapping = aes(
@@ -313,30 +647,806 @@ ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = xi_mean)) +
         ymax = xi_ci_u
       ), fill = "gray") +
   geom_line() +
-  labs(title = "Means of simulations of xi-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean xi")
+  labs(title = "Means of simulations of xi-parameter for skewed t", 
+       subtitle = "95% c.i.", x = "time", y = "mean xi")
 ```
 
-Again, no good guess:
-```{r}
-formula_xi <- data.frame(xi_n = (1:20 * params[3]^3)^(-3))
+Again, no good guess.
+```{r xi_table, eval=FALSE, include=FALSE}
+formula_xi <- data.frame(xi_n = (1:20 * sim_params[4]^4)^(-4))
 xi_n <- params_for_cum_sums_summary$xi_mean
 compare_xi_n <- t(cbind(formula_xi, xi_n))
 rownames(compare_xi_n) <- c("formula", "xi_n")
-knitr::kable(compare_xi_n, digits = 3)
+colnames(compare_xi_n) <- as.character(1:20)
 ```
 
-```{r}
-plot(1:20, compare_xi_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean xi", ylim = c(0, max(c(compare_xi_n[1, ], compare_xi_n[2, ]))))
+```{r echo=FALSE, eval=FALSE, include=FALSE}
+knitr::kable(compare_xi_n[ ,1:5], digits = 3)
+```
+
+```{r echo=FALSE, eval=FALSE, include=FALSE}
+knitr::kable(compare_xi_n[ ,6:10], digits = 3)
+```
+
+```{r echo=FALSE, eval=FALSE, include=FALSE}
+knitr::kable(compare_xi_n[ ,11:15], digits = 3)
+```
+
+```{r echo=FALSE, eval=FALSE, include=FALSE}
+knitr::kable(compare_xi_n[ ,16:20], digits = 3)
+```
+
+
+```{r plot_xi, echo=FALSE, eval=FALSE, include=FALSE}
+plot(1:20, compare_xi_n[1, ], type = "l", col = "red", 
+     xlab = "time", ylab = "mean xi", ylim = c(0, max(c(compare_xi_n[1, ], compare_xi_n[2, ]))))
 lines(compare_xi_n[2, ], col = "green")
 legend("topleft", c("formula", "xi_n"), col = c("red", "green"), lty = 1)
 ```
 
 
+## Analytical m and s from $\alpha$
 
+According to Taleb, the better way to estimate dispersion is to estimate the tail parameter using MLE and then computing the analytical mean and standard deviation as a function of $\nu$.
 
+```{r include=params$include_code}
+f_sstd_nu_xi <- function(x, nu, xi) {
+  k <- (2 * xi / (xi^2 + 1)) * (gamma((nu + 1) / 2) / (sqrt(pi * nu) * gamma(nu / 2)))
+  k * (1 + ((x^2 / nu) * (ifelse(x < 0, xi^2, 1 / (xi^2)))))^(-(nu + 1) / 2)
+}
 
-```{bash eval=FALSE, include=FALSE}
-## Convert md to pdf
-## Run manually after knitting:
-pandoc sgt.md -o sgt.pdf
+M_r <- function(nu, xi, r) {
+  m_r <- function(x) {
+    2 * x^r * f_sstd_nu_xi(x, nu, xi)
+  }
+  integrate(m_r, 0, Inf)
+}
+
+E_X_r <- function(nu, xi, r) {
+  nominator <- xi^(r + 1) + ((-1)^r / (xi^(r + 1)))
+  denominator <- xi + (1 / xi)
+  Mr_output <- M_r(nu, xi, r)
+  list(
+    value = Mr_output$value * nominator / denominator,
+    integration.abs.error = Mr_output$abs.error
+  )
+}
 ```
+
+#### Analytical moments
+
+According to `help(std)`, you obtain `sd(rt())` by `sd() / sqrt(nu / (nu - 2))`.  
+
+So this should give sd of 1:
+
+```{r include=params$include_code}
+x_rt_vect <- unlist(lapply(seq(2.1, 4, by = 0.1), function(nu) {sd(((rt(n = 1e6, df = nu) * sqrt((nu - 2) / nu)) + 0.4))}))
+```
+
+```{r echo=FALSE}
+plot(seq(2.1, 4, by = 0.1), x_rt_vect, xlab = "df (nu)", ylab = "s_hat")
+```
+
+
+
+```{r include=params$include_code}
+x_rt_vect <- unlist(lapply(seq(2.1, 4, by = 0.1), function(nu) {mean(((rt(n = 1e6, df = nu) * sqrt((nu - 2) / nu)) + 0.4))}))
+
+plot(seq(2.1, 4, by = 0.1), x_rt_vect, xlab = "df (nu)", ylab = "m_hat")
+```
+
+
+
+```{r}
+df = 30
+x_rt <- ((rt(n = 1e6, df = df) * sqrt((df - 2) / df)) * 0.9 + 0.4) 
+x_std <- rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = df)
+x_sstd <- rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = df, xi = 0.2)
+```
+
+```{r}
+mean(x_rt)
+mean(x_std)
+mean(x_sstd)
+```
+
+```{r}
+sd(x_rt)
+sd(x_std)
+sd(x_sstd)
+```
+
+The mean seems fine for all `df > 2`:
+
+```{r include=params$include_code, eval=params$eval_code}
+df_vals <- seq(2.1, 8, by = 0.1)
+m_sim_df <- t(as.data.frame(lapply(df_vals, function(nu) {
+  c(
+    mean(((rt(n = 1e6, df = nu) * sqrt((nu - 2) / nu)) * 0.9 + 0.4)),
+    mean(rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = nu)),
+    mean(rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = nu, xi = 0.2))
+  )
+})))
+rownames(m_sim_df) <- NULL
+colnames(m_sim_df) <- c("x_rt", "x_std", "x_sstd")
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(m_sim_df, file=here("data", "m_sim_df.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+m_sim_df <- readRDS(file=here("data", "m_sim_df.RData"))
+```
+
+```{r echo=FALSE}
+df_vals <- seq(2.1, 8, by = 0.1)
+plot(df_vals, m_sim_df[ ,"x_rt"], col = "blue",
+     xlab = "df (nu)", ylab = "m_hat", type = "l", ylim = c(min(m_sim_df), max(m_sim_df)),
+     main = "Simulation mean = 0.4, sd = 0.9, n = 1e6"
+)
+lines(x = df_vals, y = m_sim_df[ ,"x_std"], col = "red")
+lines(x = df_vals, y = m_sim_df[ ,"x_sstd"], col = "green")
+legend(x = 6.5, y = 0.402, legend = c("rt()", "rstd()", "rsstd"), col = c("blue", "red", "green"), lty = c(1,1,1))
+```
+
+For less than approx. 3 df (nu) it doesn't hold:
+
+```{r include=params$include_code, eval=params$eval_code}
+df_vals <- seq(2.1, 8, by = 0.1)
+sd_sim_df <- t(as.data.frame(lapply(df_vals, function(nu) {
+  c(
+    sd(((rt(n = 1e6, df = nu) * sqrt((nu - 2) / nu)) * 0.9 + 0.4)),
+    sd(rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = nu)),
+    sd(rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = nu, xi = 0.2))
+  )
+})))
+rownames(sd_sim_df) <- NULL
+colnames(sd_sim_df) <- c("x_rt", "x_std", "x_sstd")
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(sd_sim_df, file=here("data", "sd_sim_df.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+sd_sim_df <- readRDS(file=here("data", "sd_sim_df.RData"))
+```
+
+```{r echo=FALSE}
+df_vals <- seq(2.1, 8, by = 0.1)
+plot(df_vals, sd_sim_df[ ,"x_rt"], col = "blue",
+     xlab = "df (nu)", ylab = "s_hat", type = "l", ylim = c(min(sd_sim_df), max(sd_sim_df)),
+     main = "Simulation sd = 0.9, n = 1e6"
+)
+lines(x = df_vals, y = sd_sim_df[ ,"x_std"], col = "red")
+lines(x = df_vals, y = sd_sim_df[ ,"x_sstd"], col = "green")
+legend(x = 6.5, y = 1.5, legend = c("rt()", "rstd()", "rsstd"), col = c("blue", "red", "green"), lty = c(1,1,1))
+```
+
+```{r include=params$include_code, eval=params$eval_code}
+df_vals <- seq(2.1, 8, by = 0.1)
+mad_sim_df <- t(as.data.frame(lapply(df_vals, function(nu) {
+  c(
+    f_mad(((rt(n = 1e6, df = nu) * sqrt((nu - 2) / nu)) * 0.9 + 0.4)),
+    f_mad(rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = nu)),
+    f_mad(rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = nu, xi = 0.2))
+  )
+})))
+rownames(mad_sim_df) <- NULL
+colnames(mad_sim_df) <- c("x_rt", "x_std", "x_sstd")
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(mad_sim_df, file=here("data", "mad_sim_df.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+mad_sim_df <- readRDS(file=here("data", "mad_sim_df.RData"))
+```
+
+```{r echo=FALSE}
+df_vals <- seq(2.1, 8, by = 0.1)
+plot(df_vals, mad_sim_df[ ,"x_rt"], col = "blue",
+     xlab = "df (nu)", ylab = "mad_hat", type = "l", ylim = c(min(mad_sim_df), max(mad_sim_df)),
+     main = "Simulation sd = 0.9, n = 1e6"
+)
+lines(x = df_vals, y = mad_sim_df[ ,"x_std"], col = "red")
+lines(x = df_vals, y = mad_sim_df[ ,"x_sstd"], col = "green")
+legend(x = 6.5, y = 0.4, legend = c("rt()", "std()", "sstd()"), col = c("blue", "red", "green"), lty = c(1,1,1))
+```
+
+
+```{r echo=FALSE}
+df_vals <- seq(2.1, 8, by = 0.1)
+plot(df_vals, mad_sim_df[ ,"x_rt"]/sd_sim_df[ ,"x_rt"], col = "blue",
+     xlab = "df (nu)", ylab = "MAD/sd", type = "l", ylim = c(min(mad_sim_df/sd_sim_df), 0.9),
+     main = "MAD/sd ratio (simulation sd = 0.9, n = 1e6)"
+)
+lines(x = df_vals, y = mad_sim_df[ ,"x_std"]/sd_sim_df[ ,"x_std"], col = "red")
+lines(x = df_vals, y = mad_sim_df[ ,"x_sstd"]/sd_sim_df[ ,"x_sstd"], col = "green")
+abline(sqrt(2 / pi), 0, col = "gray")
+legend(x = 6.5, y = 0.5, legend = c("rt()", "std()", "sstd()", "sqrt(2 / pi)"), col = c("blue", "red", "green", "gray"), lty = c(1,1,1))
+```
+
+
+
+### Analytical mean
+
+"A review of Student’s t distribution and its generalizations.pdf"
+
+```{r echo=params$include_code}
+cat("Input mean param:", sim_params[1], "\n")
+cat("\n")
+cat("Analytical mean param:\n")
+E_X_r(nu = sim_params[3], xi = sim_params[4], r = 1)
+```
+
+fGarch vignette:
+
+```{r echo=params$include_code}
+cat("Input mean param:", sim_params[1], "\n")
+cat("\n")
+cat("Analytical mean param:\n")
+M_1 <- M_r(nu = sim_params[3], xi = sim_params[4], r = 1)$value
+M_1 * (sim_params[3] - 1 / sim_params[3])
+```
+
+
+### Analytical sd
+
+"A review of Student’s t distribution and its generalizations"
+
+```{r echo=params$include_code}
+cat("Input sd param:", sim_params[2], "\n")
+cat("\n")
+cat("Analytical sd param:\n")
+E_X_r(nu = sim_params[3], xi = sim_params[4], r = 2)
+```
+
+
+fGarch vignette:
+
+```{r echo=params$include_code}
+cat("Input sd param:", sim_params[2], "\n")
+cat("\n")
+cat("Analytical sd param:\n")
+M_2 <- M_r(nu = sim_params[3], xi = sim_params[4], r = 2)$value
+(M_2 - M_1^2) * (sim_params[3]^2 + 1 / sim_params[3]^2) + 2 * M_1^2 - M_2
+```
+
+
+
+
+
+## Convergence
+
+```{r}
+num_simulations <- 100
+n_exponent <- 15
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
+sim_data <- replicate(num_simulations, rsstd(2^n_exponent, sim_params[1], sim_params[2], sim_params[3], sim_params[4]))
+```
+
+Simulate parameter estimation
+```{r echo=params$include_code}
+## hat_vals is a data frame with nrow=num_simulations and ncol=n_exponent
+hat_stats <- function(hat_vals) {
+  ## Stats of estimated param
+  est_stats <- data.frame(matrix(numeric(n_exponent * 5), nrow = n_exponent))
+  for(i in 1:n_exponent) {
+    est_stats[i, 1] <- 2^i
+    est_stats[i, 2] <- mean(hat_vals[, i])
+    est_stats[i, 3] <- sd(hat_vals[, i])
+    est_stats[i, 4] <- est_stats[i, 2] - 1.96 * est_stats[i, 3]
+    est_stats[i, 5] <- est_stats[i, 2] + 1.96 * est_stats[i, 3]
+  }
+  
+  rownames(est_stats) <- NULL
+  colnames(est_stats) <- c("n", "m", "s", "ci_l", "ci_u")
+  
+  est_stats
+}
+
+hat_stats_plot <- function(est_stats, func_name) {  
+  ggplot(est_stats, aes(x = n, y = m)) +
+  geom_ribbon(
+      mapping = aes(
+        ymin = ci_l, 
+        ymax = ci_u
+      ), fill = "gray") +
+  geom_line() +
+  scale_y_continuous(limits = c(min(est_stats$ci_l), max(est_stats$ci_u))) +
+  labs(
+    title = paste0("Means of simulations of ", func_name, " for skewed t"), 
+    subtitle = "95% c.i.", x = "n", y = paste0("mean of estimated ", func_name, "-values")
+  )
+}
+
+## data is matrix with one column for each simulation of n^N_exponent data points
+## param_func can be mean(), sd() or f_mad(), or similar, as long as it only takes a numeric vector as input.
+sim_par_est <- function(data, num_simulations, n_exponent, param_func) {
+  pb <- txtProgressBar(
+    min = 0,      # Minimum value of the progress bar
+    max = num_simulations, # Maximum value of the progress bar
+    style = 3,    # Progress bar style (also available style = 1 and style = 2)
+    width = 50,   # Progress bar width. Defaults to getOption("width")
+    char = "="    # Character used to create the bar
+  )   
+  
+  n_vals <-  2^1:n_exponent
+  
+  ## Estimate param
+  hat_vals <- data.frame(matrix(numeric(n_exponent * num_simulations), ncol = n_exponent))
+  for(i in 1:num_simulations) {
+    for(j in 1:n_exponent) {
+      hat_vals[i, j] <- param_func(data[1:(2^j), i])
+    }
+    setTxtProgressBar(pb, i)
+  }
+  colnames(hat_vals) <- as.character(n_vals)
+  rownames(hat_vals) <- as.character(1:num_simulations)
+  
+  est_stats <-  hat_stats(hat_vals)
+  
+  list(
+    hat_vals = hat_vals,
+    est_stats = est_stats,
+    hats_plot = hat_stats_plot(
+      est_stats, 
+      func_name = as.character(substitute(param_func))
+    )
+  )
+}
+```
+
+
+```{r include=FALSE}
+m_hats <- sim_par_est(
+  data = sim_data, 
+  num_simulations = num_simulations, 
+  n_exponent = n_exponent, 
+  param_func = mean
+)
+```
+
+```{r echo=FALSE}
+m_hats$hats_plot
+```
+
+
+
+
+```{r include=FALSE}
+s_hats <- sim_par_est(
+  data = sim_data, 
+  num_simulations = num_simulations, 
+  n_exponent = n_exponent, 
+  param_func = sd
+)
+```
+
+```{r echo=FALSE}
+s_hats$hats_plot
+```
+
+
+
+```{r include=FALSE}
+mad_hats <- sim_par_est(
+  data = sim_data, 
+  num_simulations = num_simulations, 
+  n_exponent = n_exponent, 
+  param_func = f_mad
+)
+```
+
+```{r echo=FALSE}
+mad_hats$hats_plot
+```
+
+
+
+### Compare estimation packages
+
+```{r}
+num_simulations <- 100
+n_exponent <- 13
+sim_params <- c(0.058, 0.123, 2.265, 0.477) ## pmr
+sim_data <- as.data.frame(replicate(num_simulations, rsstd(2^n_exponent, sim_params[1], sim_params[2], sim_params[3], sim_params[4])))
+```
+
+```{r echo=params$include_code}
+loglik_sstd = function(beta, x) {sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))}
+
+compare_packages <- function(sim_data) {
+  
+  packages_to_compare <- list(
+    "optim(start, loglik_sstd, x = col_i)$par",
+    "sstdFit(col_i)$estimate",
+    "c(fitdistr(col_i, \"t\")[[1]], NA)"
+  )
+    
+  make_package_df <- function(estimator) {
+    package_df  <- t(as.data.frame(
+      lapply(
+        sim_data,
+        function(col_i) {
+          suppressWarnings({
+            start <- c(mean(col_i), sd(col_i), 3, 1)
+            tryCatch(
+              eval(parse(text = estimator)),
+              error = function(e) {c(NA, NA, NA, NA)}
+            )
+          })
+        }
+      )
+    ))
+    colnames(package_df) <- c("m", "s", "nu", "xi")
+    package_df
+  }
+
+  ll <- lapply(
+    packages_to_compare,
+    function(estimator) {
+      make_package_df(estimator)
+    }
+  )
+  
+  names(ll) <- c("sstd", "sstdFit", "fitdistr_t")
+  ll
+}
+```
+
+```{r include=params$include_code, eval=params$eval_code}
+pb <- txtProgressBar(
+    min = 0,      # Minimum value of the progress bar
+    max = num_simulations, # Maximum value of the progress bar
+    style = 3,    # Progress bar style (also available style = 1 and style = 2)
+    width = 50,   # Progress bar width. Defaults to getOption("width")
+    char = "="    # Character used to create the bar
+  )  
+
+packages_comparison_list <- list()
+suppressWarnings({
+  for(i in 1:n_exponent) {
+    packages_comparison_list[[i]] <- compare_packages(sim_data[1:(2^i), ])
+    setTxtProgressBar(pb, i)
+  }
+})
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(packages_comparison_list, file=here("data", "packages_comparison_list.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+packages_comparison_list <- readRDS(file=here("data", "packages_comparison_list.RData"))
+```
+
+
+```{r include=params$include_code, eval=params$eval_code}
+## packages_comparison_list: 
+##   n_exponent lists containing 1 data frame for each package:
+##     each data frame: num_simulations x 4 ("m", "s", "nu", "xi")
+##
+## hat_vals_list:
+##   list of 4 lists, one list for each of ("m", "s", "nu", "xi")
+##     list of 3 data frames, one for each package
+##       hat_vals data frames: num_simulations x n_exponent
+hat_vals_list <- list()
+for(i in 1:4) {
+  hat_vals_list[[i]] <- list()
+  for(j in 1:3) {
+    hat_vals_list[[i]][[j]] <- data.frame(matrix(numeric(num_simulations * 4), nrow = num_simulations))
+    for(k in 1:n_exponent) {
+      hat_vals_list[[i]][[j]][, k] <- packages_comparison_list[[k]][[j]][, i]
+    }
+  }
+}
+```
+
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(hat_vals_list, file=here("data", "hat_vals_list.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+hat_vals_list <- readRDS(file=here("data", "hat_vals_list.RData"))
+```
+
+
+```{r include=params$include_code, eval=params$eval_code}
+## packages_comparison_stats_list: 
+##   list of 4 lists, one list for each of ("m", "s", "nu", "xi")
+##     list of 3 data frames - with hat_stats(hat_vals)
+##       each data frame (hat_stats): n_exponent x 5 (n as factor, m, sd, ci_l, ci_u)
+packages_comparison_stats_list <- list()
+for(i in 1:4) {
+  packages_comparison_stats_list[[i]] <- list()
+  for(j in 1:3) {
+    packages_comparison_stats_list[[i]][[j]] <- hat_stats(hat_vals_list[[i]][[j]])
+  }
+  names(packages_comparison_stats_list[[i]]) <- c("sstd", "sstdFit", "fitdistr_t")
+}
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(packages_comparison_stats_list, file=here("data", "packages_comparison_stats_list.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+packages_comparison_stats_list <- readRDS(file=here("data", "packages_comparison_stats_list.RData"))
+```
+
+```{r include=params$include_code, eval=params$eval_code}
+## Compile the stats for the three packages into one df
+packages_comparison_stats_list_for_plot <- list()
+for(i in 1:4) {
+  packages_comparison_stats_list_for_plot[[i]] <- rbind(
+    packages_comparison_stats_list[[i]][[1]],
+    packages_comparison_stats_list[[i]][[2]],
+    packages_comparison_stats_list[[i]][[3]]
+  )
+  ## Create a column with package names
+  packages_comparison_stats_list_for_plot[[i]] <- cbind(
+    data.frame(package = c(
+      rep(names(packages_comparison_stats_list[[i]])[1], n_exponent),
+      rep(names(packages_comparison_stats_list[[i]])[2], n_exponent),
+      rep(names(packages_comparison_stats_list[[i]])[3], n_exponent)
+    )),
+    packages_comparison_stats_list_for_plot[[i]]
+  )
+}
+
+hat_vals_list_for_boxplot <- list()
+for(i in 1:4) {
+  hat_vals_list_for_boxplot[[i]] <- rbind(
+    hat_vals_list[[i]][[1]],
+    hat_vals_list[[i]][[2]],
+    hat_vals_list[[i]][[3]]
+  )
+  ## Create a column with package names
+  hat_vals_list_for_boxplot[[i]] <- cbind(
+    data.frame(package = c(
+      rep(names(packages_comparison_stats_list[[i]])[1], num_simulations),
+      rep(names(packages_comparison_stats_list[[i]])[2], num_simulations),
+      rep(names(packages_comparison_stats_list[[i]])[3], num_simulations)
+    )),
+    hat_vals_list_for_boxplot[[i]]
+  )
+  colnames(hat_vals_list_for_boxplot[[i]]) <- c("package", as.character(2^(1:n_exponent)))
+  
+  hat_vals_list_for_boxplot[[i]] <- hat_vals_list_for_boxplot[[i]] %>% gather(
+    key = "n", value = "estimate", -package
+  )
+}
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(packages_comparison_stats_list_for_plot, file=here("data", "packages_comparison_stats_list_for_plot.RData"))
+saveRDS(hat_vals_list_for_boxplot, file=here("data", "hat_vals_list_for_boxplot.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+packages_comparison_stats_list_for_plot <- readRDS(file=here("data", "packages_comparison_stats_list_for_plot.RData"))
+hat_vals_list_for_boxplot <- readRDS(file=here("data", "hat_vals_list_for_boxplot.RData"))
+```
+
+```{r include=params$include_code, eval=params$eval_code}
+plot_data <- lapply(
+    1:4,
+    function(i) {
+      list(
+        packages_comparison_stats_list_for_plot[[i]] %>% filter(n <= 128),
+        packages_comparison_stats_list_for_plot[[i]] %>% filter(n >= 128)
+      )
+    }
+)
+names(plot_data) <- c("m", "s", "nu", "xi")
+
+boxplot_data <- lapply(
+    1:4,
+    function(i) {
+      list(
+        hat_vals_list_for_boxplot[[i]] %>% filter(as.numeric(n) <= 128),
+        hat_vals_list_for_boxplot[[i]] %>% filter(as.numeric(n) >= 128)
+      )
+    }
+)
+names(boxplot_data) <- c("m", "s", "nu", "xi")
+```
+
+```{r include=FALSE, eval=params$eval_code}
+saveRDS(plot_data, file=here("data", "plot_data.RData"))
+saveRDS(boxplot_data, file=here("data", "boxplot_data.RData"))
+```
+
+```{r include=FALSE, eval=(!params$eval_code)}
+plot_data <- readRDS(file=here("data", "plot_data.RData"))
+boxplot_data <- readRDS(file=here("data", "boxplot_data.RData"))
+```
+
+```{r define_plot_functions, echo=FALSE}
+hat_stats_plot <- function(plot_data, parameter_ID, ci = TRUE) {
+  plot_dfs <-  plot_data[[parameter_ID]]
+  func_name <- names(plot_data)[parameter_ID]
+  
+  plots <- list()
+  for(p in 1:2) {
+    plot_df <- as.data.frame(plot_dfs[[p]])
+    plots[[p]] <- ggplot(
+      plot_df, 
+      aes(x = n, y = m, col = package)) +
+    geom_ribbon(
+        mapping = aes(
+          ymin = ci_l,
+          ymax = ci_u,
+          fill = package #ifelse(ci == TRUE, package, NA)
+        ),
+        alpha = 0.1
+        #fill = ifelse(ci == TRUE, "gray", NA)
+      ) +
+    geom_line() +
+    scale_color_manual(values = c("#E87A5D", "#3B5BA5", "#F3B941")) +
+    scale_fill_manual(values = c("#E87A5D", "#3B5BA5", "#F3B941")) +
+    scale_y_continuous(limits = c(min(plot_df$ci_l, na.rm = TRUE), max(plot_df$ci_u, na.rm = TRUE))) +
+    theme(legend.position = "bottom") +
+      labs(
+      #   title = paste0("Means of simulations of ", func_name, " for skewed t"), 
+      #   subtitle = "95% c.i.", 
+      x = "n", y = ifelse(p == 1, paste0("mean of estimated ", func_name, "-values"), "")
+      )
+  }
+  
+  ## Works, but not for knitting:
+  # plots[[1]] + plots[[2]] +
+  #   plot_annotation(
+  #     title = paste0("Means of simulations of ", func_name, " for skewed t"), 
+  #     subtitle = paste0("sim. params: m=", sim_params[1], " s=", sim_params[2], " nu=", sim_params[3], " xi=", sim_params[4])
+  #   )
+  
+  ## for knitting, do this:
+  grid.arrange(plots[[1]], plots[[2]], ncol = 2, top = textGrob(paste0("Means of simulations of ", func_name, " for skewed t\nsim. params: m=", sim_params[1], " s=", sim_params[2], " nu=", sim_params[3], " xi=", sim_params[4])))
+}
+
+hat_stats_boxplot <- function(plot_data, parameter_ID) {
+  plot_dfs <-  plot_data[[parameter_ID]]
+  func_name <- names(plot_data)[parameter_ID]
+  plots <- list()
+  for(p in 1:2) {
+    plot_df <- as.data.frame(plot_dfs[[p]]) ## Redundant but needed for knitting
+    
+    plots[[p]] <- ggplot(plot_df, aes(
+        x = fct_reorder(as.character(n), as.numeric(n)),  ## Sort factor levels n in the order of as.numeric(n)
+        #x = n,
+        y =  estimate
+        )) +
+      geom_boxplot(aes(fill = package)) +
+      #geom_boxplot() +
+      geom_jitter(aes(color = package), width= 0.25, size=0.2, alpha=0.5) +
+      #geom_jitter(width= 0.25, size=0.2, alpha=0.5) +
+      scale_color_manual(values = c("#E87A5D", "#3B5BA5", "#F3B941")) +
+      scale_fill_manual(values = c("#E87A5D", "#3B5BA5", "#F3B941")) +
+      theme(legend.position = "bottom") +
+      labs(
+      #   title = paste0("Means of simulations of ", func_name, " for skewed t"), 
+      #   subtitle = "95% c.i.", 
+      x = "n", y = ifelse(p == 1, paste0("mean of estimated ", func_name, "-values"), "")
+      )
+  }
+  
+  ## Works, but not for knitting:
+  # plots[[1]] + plots[[2]] +
+  #   plot_annotation(
+  #     title = paste0("Means of simulations of ", func_name, " for skewed t"), 
+  #     subtitle = paste0("sim. params: m=", sim_params[1], " s=", sim_params[2], " nu=", sim_params[3], " xi=", sim_params[4])
+  #   )
+  
+  ## for knitting, do this:
+  grid.arrange(plots[[1]], plots[[2]], ncol = 2, top = textGrob(paste0("Means of simulations of ", func_name, " for skewed t\nsim. params: m=", sim_params[1], " s=", sim_params[2], " nu=", sim_params[3], " xi=", sim_params[4])))
+}
+```
+
+
+
+
+
+```{r echo=FALSE}
+parameter_ID <- 1
+
+hat_stats_boxplot(boxplot_data, parameter_ID) 
+```
+
+
+```{r echo=FALSE}
+parameter_ID <- 1
+
+hat_stats_plot(plot_data, parameter_ID) 
+```
+
+```{r echo=FALSE}
+parameter_ID <- 2
+
+hat_stats_boxplot(boxplot_data, parameter_ID) 
+```
+
+
+```{r echo=FALSE}
+parameter_ID <- 2
+
+hat_stats_plot(plot_data, parameter_ID) 
+```
+
+```{r echo=FALSE}
+parameter_ID <- 3
+
+hat_stats_boxplot(boxplot_data, parameter_ID) 
+```
+
+
+```{r echo=FALSE}
+parameter_ID <- 3
+
+hat_stats_plot(plot_data, parameter_ID) 
+```
+
+
+```{r eval=FALSE, include=FALSE}
+# parameter_ID <- 4
+# 
+# hat_stats_boxplot(boxplot_data, parameter_ID) 
+```
+(No boxplot for xi, because fitdistr fits to a t-distribution, i.e. no xi parameter.)
+
+```{r echo=FALSE}
+parameter_ID <- 4
+
+hat_stats_plot(plot_data, parameter_ID) 
+```
+
+
+
+
+
+```{r eval = FALSE}
+##########################
+## Data object dimensions:
+##########################
+##
+## sim_data: 2^n_exponent x num_simulations  
+## hat_vals: num_simulations x n_exponent  
+## hat_stats: n_exponent x 5 (n, mean, sd, ci_l, ci_u)  
+## package_df: 
+## packages_comparison_list: 
+##   n_exponent lists containing 1 data frame for each package:
+##     each data frame: num_simulations x 4 ("m", "s", "nu", "xi")
+##
+## hat_vals_list:
+##   list of 4 lists, one list for each of ("m", "s", "nu", "xi")
+##     list of 3 data frames, one for each package
+##       hat_vals data frames: num_simulations x n_exponent
+##
+## packages_comparison_stats_list: 
+##   list of 4 lists, one list for each of ("m", "s", "nu", "xi")
+##     list of 3 data frames - with hat_stats(hat_vals)
+##       each data frame (hat_stats): n_exponent x 5 (n as factor, m, sd, ci_l, ci_u)
+##
+## From each hat_stats df, make hat_stats_plot
+##
+## packages_comparison_stats_list_for_plot:
+##   list of 4 data frames, one for each of ("m", "s", "nu", "xi"): 
+##     packages_comparison_stats_df: 3 * n_exponent x 6 (n as factor, m, sd, ci_l, ci_u, package)
+```
+
+
+
+```{r include=FALSE, eval=FALSE}
+## TODO:
+## 1) line 957
+##    func_name is not substituted, insted it prints as "param_func":
+##      title = paste0("Means of simulations of ", func_name, " for skewed t"),
+## 2) line 868
+##    Write equations in latex
+```
+
