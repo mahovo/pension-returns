@@ -97,6 +97,20 @@ pandoc pension-returns.md -o pension-returns.pdf
 ```
 
 
+```{r chunk6b}
+################################################################################
+##
+##                             COPY TO SITES FOLDER
+##
+################################################################################
+```
+
+```{bash eval=FALSE, include=FALSE}
+## Run manually:
+cp ~/R\ work/pension-returns/pension-returns.html ~/var/site/pension-returns.html
+cp ~/R\ work/pension-returns/pension-returns.pdf ~/var/site/pension-returns.pdf
+```
+
 
 ```{r chunk8}
 ################################################################################

@@ -1,7 +1,5 @@
 # Comments
 
-(Ignoring `mhr_a`...)
-
 `mhr` has some nice properties:  
 
 - It has a relatively high `nu` value of 90, which means it is tending more towards exponential tails than polynomial tails. All other funds have `nu` values close to 3, except `phr` which is even worse at close to 2. (Note that for a Gaussian, `nu` is infinite.)  
@@ -19,6 +17,6 @@ Taleb, Statistical Consequences Of Fat Tails, p. 97:
 "the variance of a finite variance random variable with tail exponent $< 4$ will be infinite".
 
 And p. 363:  
-"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, un- der a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
+"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, under a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
 
 - Note: QQ lines by design pass through 1st and 3rd quantiles. They are not trendlines in the sense of linear regression.  
