@@ -211,8 +211,10 @@ fit_gauss <- function(x, method = "Nelder-Mead") {
 
 ## Fit data to a skewed t distribution
 fit_skewed_t <- function(x, method = "BFGS") {
+  
   loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))
   start = c(mean(x), sd(x), 3, 1)
+ 
   #fit_sstd = optim(start, loglik_sstd, hessian = F, method="L-BFGS-B", lower = c(0, 0.1, 1.1, -2))
   fit_sstd = optim(start, loglik_sstd, method = method)
   
@@ -333,6 +335,192 @@ fit_skewed_t <- function(x, method = "BFGS") {
   output
 }
 
+
+
+## Fit data to a skewed t, standardized t or normal distribution
+## distribution = "sstd", "std" or "normal"
+## If "normal", method="Nelder-Mead" is recommended, else method="BFGS"
+fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
+  
+  if(distribution == "sstd") {
+    loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))
+    start = c(mean(x), sd(x), 3, 1)
+  } else if(distribution == "std") {
+    loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], log = TRUE))
+    start = c(mean(x), sd(x), 3)
+  } else {
+    loglik_sstd = function(beta) sum(- dnorm(x, mean = beta[1], sd = beta[2], log = TRUE))
+    start = c(mean(x), sd(x))
+  }
+  
+  optim_out = optim(start, loglik_sstd, method = method)
+  
+  n = length(x)
+  
+  aic = 2 * optim_out$value + 2 * 4
+  bic = 2 * optim_out$value + log(n) * 4
+
+  if(distribution == "sstd") {
+    fit <- qsstd((1:n - 0.5)/n, mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
+    quantile_data <- qsstd(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
+    dist_data <- psstd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
+    dens_data <- dsstd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
+    theoretical_quantiles <- qsstd(ppoints(n), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)
+  } else if (distribution == "std") {
+    fit <- qstd((1:n - 0.5)/n, mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
+    quantile_data <- qstd(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
+    dist_data <- pssd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
+    dens_data <- dstd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
+    theoretical_quantiles <- qstd(ppoints(n), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
+  } else {
+    fit <- qnorm((1:n - 0.5)/n, mean = optim_out$par[1], sd = optim_out$par[2])
+    quantile_data <- qnorm(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
+    dist_data <- pnorm(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
+    dens_data <- dnorm(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
+    theoretical_quantiles <- qstd(ppoints(n), mean = optim_out$par[1], sd = optim_out$par[2])
+  }
+    
+  r_squared <- cor(sort(fit), sort(x))
+  r_squared_round <- round(r_squared, 3)
+
+  sample_mean <- mean(dist_data)
+
+  output <- list(
+    # Plot with estimated skewed t-distribution
+    # qq plot for t-distribution
+    qqplot = function() {
+      qqplot(
+        x = theoretical_quantiles, 
+        y = x, 
+        main = "QQ-plot, skewed t", 
+        xlab = paste0(distribution, "quantiles"), 
+        ylab = "log returns", 
+        xlim = c(min(fit) - abs(min(fit))/10, max(fit) + abs(max(fit))/10),  
+        ylim = c(min(x) - abs(min(x))/10, max(x) + abs(max(x))/10)
+      )
+      mtext(
+        paste0("params=", round(optim_out$par, 4), ", R^2=", r_squared_round), 
+        side=3,  
+        cex = 0.8, 
+        adj=0
+      )
+      qqline(
+        x, 
+        distribution = function(p) {
+          if(distribution == "sstd") {
+            qsstd(
+              p, optim_out$par[1], optim_out$par[2], optim_out$par[3], optim_out$par[4]
+            )
+          } else if (distribution == "std") {
+            qstd(
+              p, optim_out$par[1], optim_out$par[2], optim_out$par[3]
+            )
+          } else {
+            qnorm(p, optim_out$par[1], optim_out$par[2])
+          }
+        }, 
+        datax = FALSE, 
+        col="black"
+      )
+      abline(0, 1, col = "red")
+      legend(
+        "bottomright", 
+        legend = c("data trendline", "45 degree line"), 
+        col = c("black", "red"), 
+        lty = c(1, 1)
+      )
+    },
+    fit_plot = function() {
+      plot(
+        sort(x), 
+        col="blue", 
+        ylab = "log returns", 
+        main = "Data vs fit",
+        ylim = c(min(c(x, fit)), max(c(x, fit)))
+      )
+      points(
+        sort(fit), 
+        col="red"
+        )
+      legend(
+        "bottomright", 
+        legend = c("data", "fit"), 
+        col = c("blue", "red"), 
+        pch = c(1, 1)
+      )
+    },
+    quantile_plot = function() {
+      plot(
+        x = seq(0.005, 0.995, length.out = 600), 
+        sort(quantile_data), 
+        pch = 16, 
+        cex = 0.3, 
+        main = paste0("Estimated ", distribution, " distribution quantiles"),
+        xlab = "probability", ylab = "log-returns")
+      abline(a = 0, b = 0, col = "gray", lty = 2)
+    },
+    dist_plot = function() {
+      plot(
+        x = seq(-0.3, 0.3, length.out = 600), 
+        sort(dist_data), 
+        pch = 16, 
+        cex = 0.3, 
+        main = paste0("Estimated ", distribution, " distribution CDF"),
+        xlab = "log-returns", ylab = "probability")
+      abline(v = c(min(x), max(x)), col = c("red", "green"))
+      abline(
+        h = if(distribution == "sstd") {
+          c(
+            psstd(min(x), optim_out$par[1], optim_out$par[2], optim_out$par[3], optim_out$par[4]), 
+            psstd(max(x), optim_out$par[1], optim_out$par[2], optim_out$par[3], optim_out$par[4])
+          )
+        } else if (distribution == "std") {
+          c(
+            pstd(min(x), optim_out$par[1], optim_out$par[2], optim_out$par[3]), 
+            pstd(max(x), optim_out$par[1], optim_out$par[2], optim_out$par[3])
+          )
+        } else {
+          c(
+            pnorm(min(x), optim_out$par[1], optim_out$par[2]), 
+            pnorm(max(x), optim_out$par[1], optim_out$par[2])
+          )
+        }, 
+        col = c("red", "green")
+      )
+    },
+    dens_plot = function() {
+      plot(
+        x = seq(-0.3, 0.3, length.out = 600), 
+        y = dens_data, cex = 0.3, 
+        pch = 16, 
+        xlab = "log-return", 
+        ylab = "likelihood", 
+        main = paste0("Estimated ", distribution, " distribution PDF"),
+        sub = paste0("m = ", round(optim_out$par[1], 3), ", sample mean = ", round(sample_mean, 3)))
+      abline(v = optim_out$par[1], col = "red")
+      abline(v = sample_mean, lty = 2, col = "blue")
+      legend(
+        "topleft", 
+        legend = c("density", "m", "sample mean"), 
+        col = c("black", "red", "blue"), 
+        lty = c(1, 1, 2)
+      )
+    },
+    data = x,
+    fit = fit,
+    dist_params = optim_out$par,
+    dist_data = dist_data,
+    dens_data = dens_data,
+    quantile_data = quantile_data,
+    theoretical_quantiles = theoretical_quantiles,
+    r_squared = r_squared,
+    aic = aic,
+    bic = bic,
+    
+  )
+  
+  output
+}
 
 
 

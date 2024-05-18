@@ -228,6 +228,20 @@ fits <- lapply(
     fit_skewed_t(unlist(data_df[i]))
   }
 )
+
+fits_std <- lapply(
+  seq_along(data_df),
+  function(i) {
+    fit_t(unlist(data_df[i]))
+  }
+)
+
+fits_norm <- lapply(
+  seq_along(data_df),
+  function(i) {
+    fit_norm(unlist(data_df[i]))
+  }
+)
 ```
 
 ```{r chunk15, eval=run_individual}
