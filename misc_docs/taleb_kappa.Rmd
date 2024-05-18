@@ -80,7 +80,7 @@ For a Student $t$ with 3 df, the ratio is $\frac{\pi}{2}$. (See Taleb ch. 4 for 
 The tail exponent $\alpha$ of a Student $t$ distribution with $\nu$ degrees of freedom is $\alpha = \nu + 1$, which can be seen from the density function, which is proportional to
 $$x^{-(\nu+1)}$$
 
-Confusingly, on p. 147 Taleb uses the notation "Student T($\alpha$)$, where $\alpha = 3$. Does this mean 2 or 3 degrees of freedom??
+Confusingly, on p. 147 Taleb uses the notation "Student T($\alpha$), where $\alpha = 3$. Does this mean 2 or 3 degrees of freedom??
 
 Taleb et al seem confused by this themselves On p. 150 they write:
 
