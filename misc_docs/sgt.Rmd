@@ -50,6 +50,34 @@ cp ~/R\ work/pension-returns/misc_docs/sgt.pdf ~/var/site/sgt.pdf
 cp ~/R\ work/pension-returns/misc_docs/sgt.html ~/var/site/sgt.html
 ```
 
+```{r echo=FALSE}
+# plot_grey <- function(x, ...) {
+#   
+#   plot(x, frame = FALSE)
+#   
+#   # Set plot region color
+#   rect(
+#       par("usr")[1],
+#       par("usr")[3],
+#       par("usr")[2],
+#       par("usr")[4],
+#       col = "grey90",
+#       lwd = 0
+#   )
+#   grid(nx = NULL, ny = NULL, col = "white", lty = 1, lwd = 1)
+#   
+#   # Add the new plot
+#   par(new = TRUE, bty="n")
+#   
+#   
+#   plot(x, frame = FALSE, ...)
+# }
+```
+
+
+
+
+
 # Estimating the parameters of a sum skewed $t$ distributed r.v's
 
 ```{r}
@@ -300,11 +328,11 @@ knitr::kable(compare_m_n[ ,11:20], digits = 3)
 ```
 
 
-```{r plot_compare_m_n, echo=FALSE}
-plot(1:20, compare_m_n[1, ], type = "l", col = "red", 
+```{r plot_compare_m_n, echo=FALSE, dpi=100, fig.width=7, fig.height=5}
+plot(1:20, compare_m_n[1, ], type = "l", col = "#F8766D", 
      xlab = "time", ylab = "mean m", lwd = 3)
-lines(compare_m_n[2, ], col = "green", lwd = 1.5, lty = 2)
-legend("topleft", c("formula", "m_n"), col = c("red", "green"), 
+lines(compare_m_n[2, ], col = "#00BFC4", lwd = 1.5, lty = 2)
+legend("topleft", c("formula", "m_n"), col = c("#F8766D", "#00BFC4"), 
        lty = c(1, 2), lwd = c(3, 1.5))
 ```
 
@@ -335,9 +363,12 @@ sample_means <- lapply(
     mean(x_df[i ,])
   }
 )
+```
 
+
+```{r echo=FALSE, dpi=100, fig.width=7, fig.height=5}
 plot(theoretical_means, sample_means, pch = 16, cex = 0.5)
-abline(0, 1, col = "red")
+abline(0, 1, col = "#F8766D")
 ```
 
 
@@ -376,9 +407,9 @@ knitr::kable(compare_s_n[ ,11:20], digits = 3)
 ```
 
 ```{r plot_s_n, echo=FALSE}
-plot(1:20, compare_s_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean s")
-lines(compare_s_n[2, ], col = "green")
-legend("topleft", c("formula", "s_n"), col = c("red", "green"), lty = 1)
+plot(1:20, compare_s_n[1, ], type = "l", col = "#F8766D", xlab = "time", ylab = "mean s")
+lines(compare_s_n[2, ], col = "#00BFC4")
+legend("topleft", c("formula", "s_n"), col = c("#F8766D", "#00BFC4"), lty = 1)
 ```
 
 Let's use that (according to Taleb, ch. 8)
@@ -512,10 +543,11 @@ knitr::kable(compare_s_n[ ,11:20], digits = 4)
 
 
 ```{r mad_plot, echo=FALSE}
-plot(1:20, compare_s_n[1, ], type = "l",  col = "red", xlab = "time", ylab = "mean MAD", ylim = c(0, max(compare_s_n)))
-lines(compare_s_n[2, ], col = "blue")
-lines(compare_s_n[3, ], col = "green", lty = 2)
-legend("topleft", c("formula 1", "formula 2", "MAD_n"), col = c("red", "blue", "green"), lty = c(1, 1, 2))
+plot(1:20, compare_s_n[1, ], type = "l",  lwd = 2, col = "#C77CFF", 
+      xlab = "time", ylab = "mean MAD", ylim = c(0, max(compare_s_n)))
+lines(compare_s_n[2, ], col = "#00BFC4", lwd = 2)
+lines(compare_s_n[3, ], col = "#F8766D", lty = 2, lwd = 2)
+legend("topleft", c("formula 1", "formula 2", "MAD_n"), col = c("#C77CFF", "#00BFC4", "#F8766D"), lty = c(1, 1, 2), lwd = 2)
 ```
 
 Formula 2 matches the realized MAD of $\{S_{n, k}\}_k^m$ very well.  
@@ -583,12 +615,11 @@ knitr::kable(compare_s_n[ ,11:20], digits = 4)
 
 
 ```{r mad_plot2, echo=FALSE}
-plot(1:20, compare_s_n[1, ], type = "l",  col = "red", 
+plot(1:20, compare_s_n[1, ], type = "l",  lwd = 2, col = "#C77CFF", 
      xlab = "time", ylab = "mean MAD", ylim = c(0, max(compare_s_n)))
-lines(compare_s_n[2, ], col = "blue")
-lines(compare_s_n[3, ], col = "green", lty = 2)
-legend("topleft", c("formula 1", "formula 2", "MAD_n"), 
-       col = c("red", "blue", "green"), lty = c(1, 1, 2))
+lines(compare_s_n[2, ], col = "#00BFC4", lwd = 2)
+lines(compare_s_n[3, ], col = "#F8766D", lty = 2, lwd = 2)
+legend("topleft", c("formula 1", "formula 2", "MAD_n"), col = c("#C77CFF", "#00BFC4", "#F8766D"), lty = c(1, 1, 2), lwd = 2)
 ```
 
 Now formula 1 matches the realized MAD of $\{S_{n, k}\}_k^m$ better, but still not very well.  
@@ -631,9 +662,9 @@ knitr::kable(compare_nu_n[ , 11:20], digits = 3)
 
 
 ```{r plot_nu, echo=FALSE, eval=FALSE, include=FALSE}
-plot(1:20, compare_nu_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean nu")
-lines(compare_nu_n[2, ], col = "green")
-legend("topleft", c("formula", "nu_n"), col = c("red", "green"), lty = 1)
+plot(1:20, compare_nu_n[1, ], type = "l", col = "#F8766D", xlab = "time", ylab = "mean nu")
+lines(compare_nu_n[2, ], col = "#C77CFF")
+legend("topleft", c("formula", "nu_n"), col = c("#F8766D", "#C77CFF"), lty = 1)
 ```
 
 
@@ -678,10 +709,10 @@ knitr::kable(compare_xi_n[ ,16:20], digits = 3)
 
 
 ```{r plot_xi, echo=FALSE, eval=FALSE, include=FALSE}
-plot(1:20, compare_xi_n[1, ], type = "l", col = "red", 
+plot(1:20, compare_xi_n[1, ], type = "l", col = "#F8766D", 
      xlab = "time", ylab = "mean xi", ylim = c(0, max(c(compare_xi_n[1, ], compare_xi_n[2, ]))))
-lines(compare_xi_n[2, ], col = "green")
-legend("topleft", c("formula", "xi_n"), col = c("red", "green"), lty = 1)
+lines(compare_xi_n[2, ], col = "#C77CFF")
+legend("topleft", c("formula", "xi_n"), col = c("#F8766D", "#C77CFF"), lty = 1)
 ```
 
 
@@ -689,31 +720,7 @@ legend("topleft", c("formula", "xi_n"), col = c("red", "green"), lty = 1)
 
 According to Taleb, the better way to estimate dispersion is to estimate the tail parameter using MLE and then computing the analytical mean and standard deviation as a function of $\nu$.
 
-```{r include=params$include_code}
-f_sstd_nu_xi <- function(x, nu, xi) {
-  k <- (2 * xi / (xi^2 + 1)) * (gamma((nu + 1) / 2) / (sqrt(pi * nu) * gamma(nu / 2)))
-  k * (1 + ((x^2 / nu) * (ifelse(x < 0, xi^2, 1 / (xi^2)))))^(-(nu + 1) / 2)
-}
-
-M_r <- function(nu, xi, r) {
-  m_r <- function(x) {
-    2 * x^r * f_sstd_nu_xi(x, nu, xi)
-  }
-  integrate(m_r, 0, Inf)
-}
-
-E_X_r <- function(nu, xi, r) {
-  nominator <- xi^(r + 1) + ((-1)^r / (xi^(r + 1)))
-  denominator <- xi + (1 / xi)
-  Mr_output <- M_r(nu, xi, r)
-  list(
-    value = Mr_output$value * nominator / denominator,
-    integration.abs.error = Mr_output$abs.error
-  )
-}
-```
-
-#### Analytical moments
+### Analytical moments  
 
 According to `help(std)`, you obtain `sd(rt())` by `sd() / sqrt(nu / (nu - 2))`.  
 
@@ -724,15 +731,17 @@ x_rt_vect <- unlist(lapply(seq(2.1, 4, by = 0.1), function(nu) {sd(((rt(n = 1e6,
 ```
 
 ```{r echo=FALSE}
-plot(seq(2.1, 4, by = 0.1), x_rt_vect, xlab = "df (nu)", ylab = "s_hat")
+plot(seq(2.1, 4, by = 0.1), x_rt_vect, xlab = "df (nu)", ylab = "s_hat", pch = 16)
 ```
 
 
 
 ```{r include=params$include_code}
 x_rt_vect <- unlist(lapply(seq(2.1, 4, by = 0.1), function(nu) {mean(((rt(n = 1e6, df = nu) * sqrt((nu - 2) / nu)) + 0.4))}))
+```
 
-plot(seq(2.1, 4, by = 0.1), x_rt_vect, xlab = "df (nu)", ylab = "m_hat")
+```{r echo=FALSE}
+plot(seq(2.1, 4, by = 0.1), x_rt_vect, xlab = "df (nu)", ylab = "m_hat", pch = 16)
 ```
 
 
@@ -781,13 +790,13 @@ m_sim_df <- readRDS(file=here("data", "m_sim_df.RData"))
 
 ```{r echo=FALSE}
 df_vals <- seq(2.1, 8, by = 0.1)
-plot(df_vals, m_sim_df[ ,"x_rt"], col = "blue",
+plot(df_vals, m_sim_df[ ,"x_rt"], col = "#00BFC4",
      xlab = "df (nu)", ylab = "m_hat", type = "l", ylim = c(min(m_sim_df), max(m_sim_df)),
      main = "Simulation mean = 0.4, sd = 0.9, n = 1e6"
 )
-lines(x = df_vals, y = m_sim_df[ ,"x_std"], col = "red")
-lines(x = df_vals, y = m_sim_df[ ,"x_sstd"], col = "green")
-legend(x = 6.5, y = 0.402, legend = c("rt()", "rstd()", "rsstd"), col = c("blue", "red", "green"), lty = c(1,1,1))
+lines(x = df_vals, y = m_sim_df[ ,"x_std"], col = "#F8766D")
+lines(x = df_vals, y = m_sim_df[ ,"x_sstd"], col = "#C77CFF")
+legend(x = 6.5, y = 0.402, legend = c("rt()", "rstd()", "rsstd"), col = c("#00BFC4", "#F8766D", "#C77CFF"), lty = c(1,1,1))
 ```
 
 For less than approx. 3 df (nu) it doesn't hold:
@@ -815,13 +824,13 @@ sd_sim_df <- readRDS(file=here("data", "sd_sim_df.RData"))
 
 ```{r echo=FALSE}
 df_vals <- seq(2.1, 8, by = 0.1)
-plot(df_vals, sd_sim_df[ ,"x_rt"], col = "blue",
+plot(df_vals, sd_sim_df[ ,"x_rt"], col = "#00BFC4",
      xlab = "df (nu)", ylab = "s_hat", type = "l", ylim = c(min(sd_sim_df), max(sd_sim_df)),
      main = "Simulation sd = 0.9, n = 1e6"
 )
-lines(x = df_vals, y = sd_sim_df[ ,"x_std"], col = "red")
-lines(x = df_vals, y = sd_sim_df[ ,"x_sstd"], col = "green")
-legend(x = 6.5, y = 1.5, legend = c("rt()", "rstd()", "rsstd"), col = c("blue", "red", "green"), lty = c(1,1,1))
+lines(x = df_vals, y = sd_sim_df[ ,"x_std"], col = "#F8766D")
+lines(x = df_vals, y = sd_sim_df[ ,"x_sstd"], col = "#C77CFF")
+legend(x = 6.5, y = 1.5, legend = c("rt()", "rstd()", "rsstd"), col = c("#00BFC4", "#F8766D", "#C77CFF"), lty = c(1,1,1))
 ```
 
 ```{r include=params$include_code, eval=params$eval_code}
@@ -847,33 +856,72 @@ mad_sim_df <- readRDS(file=here("data", "mad_sim_df.RData"))
 
 ```{r echo=FALSE}
 df_vals <- seq(2.1, 8, by = 0.1)
-plot(df_vals, mad_sim_df[ ,"x_rt"], col = "blue",
+plot(df_vals, mad_sim_df[ ,"x_rt"], col = "#00BFC4",
      xlab = "df (nu)", ylab = "mad_hat", type = "l", ylim = c(min(mad_sim_df), max(mad_sim_df)),
      main = "Simulation sd = 0.9, n = 1e6"
 )
-lines(x = df_vals, y = mad_sim_df[ ,"x_std"], col = "red")
-lines(x = df_vals, y = mad_sim_df[ ,"x_sstd"], col = "green")
-legend(x = 6.5, y = 0.4, legend = c("rt()", "std()", "sstd()"), col = c("blue", "red", "green"), lty = c(1,1,1))
+lines(x = df_vals, y = mad_sim_df[ ,"x_std"], col = "#F8766D")
+lines(x = df_vals, y = mad_sim_df[ ,"x_sstd"], col = "#C77CFF")
+legend(x = 6.5, y = 0.4, legend = c("rt()", "std()", "sstd()"), col = c("#00BFC4", "#F8766D", "#C77CFF"), lty = c(1,1,1))
 ```
 
 
 ```{r echo=FALSE}
 df_vals <- seq(2.1, 8, by = 0.1)
-plot(df_vals, mad_sim_df[ ,"x_rt"]/sd_sim_df[ ,"x_rt"], col = "blue",
+plot(df_vals, mad_sim_df[ ,"x_rt"]/sd_sim_df[ ,"x_rt"], col = "#00BFC4",
      xlab = "df (nu)", ylab = "MAD/sd", type = "l", ylim = c(min(mad_sim_df/sd_sim_df), 0.9),
      main = "MAD/sd ratio (simulation sd = 0.9, n = 1e6)"
 )
-lines(x = df_vals, y = mad_sim_df[ ,"x_std"]/sd_sim_df[ ,"x_std"], col = "red")
-lines(x = df_vals, y = mad_sim_df[ ,"x_sstd"]/sd_sim_df[ ,"x_sstd"], col = "green")
-abline(sqrt(2 / pi), 0, col = "gray")
-legend(x = 6.5, y = 0.5, legend = c("rt()", "std()", "sstd()", "sqrt(2 / pi)"), col = c("blue", "red", "green", "gray"), lty = c(1,1,1))
+lines(x = df_vals, y = mad_sim_df[ ,"x_std"]/sd_sim_df[ ,"x_std"], col = "#F8766D")
+lines(x = df_vals, y = mad_sim_df[ ,"x_sstd"]/sd_sim_df[ ,"x_sstd"], col = "#C77CFF")
+abline(sqrt(2 / pi), 0, col = "gray40", lwd = 2)
+legend(x = 6.5, y = 0.5, legend = c("rt()", "std()", "sstd()", "sqrt(2 / pi)"), col = c("#00BFC4", "#F8766D", "#C77CFF", "gray40"), lty = c(1,1,1))
 ```
 
 
 
 ### Analytical mean
 
-"A review of Student’s t distribution and its generalizations.pdf"
+```{r include=params$include_code}
+f_sstd_nu_xi <- function(x, nu, xi) {
+  k <- (2 * xi / (xi^2 + 1)) * (gamma((nu + 1) / 2) / (sqrt(pi * nu) * gamma(nu / 2)))
+  k * (1 + ((x^2 / nu) * (ifelse(x < 0, xi^2, 1 / (xi^2)))))^(-(nu + 1) / 2)
+}
+
+M_r <- function(nu, xi, r) {
+  m_r <- function(x) {
+    2 * x^r * f_sstd_nu_xi(x, nu, xi)
+  }
+  integrate(m_r, 0, Inf)
+}
+
+E_X_r <- function(nu, xi, r) {
+  nominator <- xi^(r + 1) + ((-1)^r / (xi^(r + 1)))
+  denominator <- xi + (1 / xi)
+  Mr_output <- M_r(nu, xi, r)
+  list(
+    value = Mr_output$value * nominator / denominator,
+    integration.abs.error = Mr_output$abs.error
+  )
+}
+```
+
+"A review of Student’s t distribution and its generalizations.pdf", p. 10
+
+$$
+f(x) = \dfrac{2 \xi}{\xi^2 + 1}\dfrac{\Gamma\left(\frac{\nu + 1}{2}\right)}{\sqrt{\pi \nu} \Gamma\left(\frac{\nu}{2}\right)} \left[ 1 + \dfrac{x^2}{\nu}\left(\dfrac{1}{\xi^2}I\{x \geq 0\} + \xi^2 I\{x<0\} \right)\right]^{-\frac{\nu + 1}{2}}
+$$
+
+$$
+\mathbb{E}[X^r] = M_r \dfrac{\xi^{r+1} + \frac{(-1)^r}{\xi^{r+1}}}{\xi+\frac{1}{\xi}}
+$$
+where
+
+$$
+M_r = \int_0^{\infty}2 x^r f(x) dx
+$$
+
+
 
 ```{r echo=params$include_code}
 cat("Input mean param:", sim_params[1], "\n")
@@ -897,6 +945,8 @@ M_1 * (sim_params[3] - 1 / sim_params[3])
 
 "A review of Student’s t distribution and its generalizations"
 
+(See above)
+
 ```{r echo=params$include_code}
 cat("Input sd param:", sim_params[2], "\n")
 cat("\n")
@@ -905,7 +955,21 @@ E_X_r(nu = sim_params[3], xi = sim_params[4], r = 2)
 ```
 
 
-fGarch vignette:
+fGarch vignette:  
+"Parameter Estimation of ARMA Models with GARCH/APARCH Errors An R and SPlus Software Implementation", p. 12
+
+$$
+f(x \mid \xi) = \dfrac{2}{\xi + \frac{1}{\xi}} \left[f(\xi x) I\{x \geq 0\} + f\left(\dfrac{x}{\xi}\right) I\{x<0\} \right]
+$$
+$$
+\mu_{\xi} = M_1 \left( \xi - \dfrac{1}{\xi} \right)
+$$
+$$
+\sigma_{\xi}^2 = (M_2 - M_1^2)\left(\xi^2 + \dfrac{1}{\xi^2} \right) + 2 M_1^2 - M_2
+$$
+where $M_r$ is defined as above.
+
+
 
 ```{r echo=params$include_code}
 cat("Input sd param:", sim_params[2], "\n")
@@ -1441,12 +1505,4 @@ hat_stats_plot(plot_data, parameter_ID)
 
 
 
-```{r include=FALSE, eval=FALSE}
-## TODO:
-## 1) line 957
-##    func_name is not substituted, insted it prints as "param_func":
-##      title = paste0("Means of simulations of ", func_name, " for skewed t"),
-## 2) line 868
-##    Write equations in latex
-```
 
