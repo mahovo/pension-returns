@@ -1,8 +1,22 @@
 # `r headlines[i]`
 
-## QQ Plot
 ```{r}
+library(gridExtra)
+```
+
+
+## QQ Plot
+
+Skewed $t$-distribution (sstd):  
+
+```{r fig.height=3, fig.width=10}
+par(mfrow = c(1, 3))
 (fits[[i]]$qqplot)()
+
+(fits_std[[i]]$qqplot)()
+
+(fits_norm[[i]]$qqplot)()
+par(mfrow = c(1, 1))
 ```
 
 
@@ -10,8 +24,14 @@
 
 Let's plot the fit and the observed returns together.  
 
-```{r}
+```{r fig.height=3, fig.width=10}
+par(mfrow = c(1, 3))
 (fits[[i]]$fit_plot)()
+
+(fits_std[[i]]$fit_plot)()
+
+(fits_norm[[i]]$fit_plot)()
+par(mfrow = c(1, 1))
 ```
 
 
@@ -19,27 +39,83 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-```{r}
+```{r fig.height=8, fig.width=10}
+par(mfrow = c(3, 3))
 (fits[[i]]$dist_plot)()
-```
 
-```{r}
+(fits_std[[i]]$dist_plot)()
+
+(fits_norm[[i]]$dist_plot)()
+
 (fits[[i]]$quantile_plot)()
-```
 
-```{r}
+(fits_std[[i]]$quantile_plot)()
+
+(fits_norm[[i]]$quantile_plot)()
+
 (fits[[i]]$dens_plot)()
+
+(fits_std[[i]]$dens_plot)()
+
+(fits_norm[[i]]$dens_plot)()
+par(mfrow = c(1, 1))
 ```
 
 
 ## Monte Carlo
 
-```{r results='hide',fig.keep='all'}
-(mc_output[[i]]$mc_plot)()
+
+
+```{r}
+max_nu_test <- fund_names[i] == rank_summary(fit_summary[3, ], sorting = "hi")[1, 2] 
+
+min_nu_test <- fund_names[i] == rank_summary(fit_summary[3, ], sorting = "hi")[8, 2] 
+
+nu_test <- max_nu_test + min_nu_test
 ```
 
-```{r results='hide',fig.keep='all'}
+`r if(max_nu_test) {paste0(fund_names[i], " has the sstd fit with thehighest sstd fit with thevalue of nu. Inspect simulations:")}`
+
+`r if(min_nu_test) {paste0(fund_names[i], " has the sstd fit with the lowest value of nu. Inspect simulations:")}`
+
+```{r results='hide',fig.keep='all', eval=params$run_mc_plot, fig.height=6, fig.width=8}
+
+## Plot only for funds with smallest and biggest value of nu
+
+if(nu_test) {
+  (mc_output[[i]]$mc_plot)()
+}
+```
+
+```{r results='hide',fig.keep='all', eval=params$run_mc_plot, fig.height=6, fig.width=8}
+
+## Plot only for funds with smallest and biggest value of nu
+
+if(nu_test) {
+  (mc_output_std[[i]]$mc_plot)()
+}
+```
+
+```{r results='hide',fig.keep='all', eval=params$run_mc_plot, fig.height=6, fig.width=8}
+
+## Plot only for funds with smallest and biggest value of nu
+
+if(nu_test) {
+  (mc_output_norm[[i]]$mc_plot)()
+}
+```
+
+
+Sorted portfolio index values for last period of all runs
+
+```{r results='hide',fig.keep='all', fig.height=3, fig.width=10}
+par(mfrow = c(1, 3))
 (mc_output[[i]]$mc_plot_last_period)()
+
+(mc_output_std[[i]]$mc_plot_last_period)()
+
+(mc_output_norm[[i]]$mc_plot_last_period)()
+par(mfrow = c(1, 1))
 ```
 
 
@@ -49,38 +125,86 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Max vs sum plots for the first four moments:
 
-```{r}
-max_sum_plots[[i]]
+```{r fig.height=8, fig.width=10}
+grid.arrange(
+  arrangeGrob(
+    max_sum_plots[[i]][[1]], 
+    max_sum_plots[[i]][[2]], 
+    max_sum_plots[[i]][[3]], 
+    max_sum_plots[[i]][[4]],
+    top = "sstd",
+    nrow = 4
+  ), 
+  arrangeGrob(
+    max_sum_plots_std[[i]][[1]], 
+    max_sum_plots_std[[i]][[2]], 
+    max_sum_plots_std[[i]][[3]], 
+    max_sum_plots_std[[i]][[4]],
+    top = "std",
+    nrow = 4
+  ),
+  arrangeGrob(
+    max_sum_plots_norm[[i]][[1]], 
+    max_sum_plots_norm[[i]][[2]], 
+    max_sum_plots_norm[[i]][[3]], 
+    max_sum_plots_norm[[i]][[4]],
+    top = "normal",
+    nrow = 4
+  ),
+  ncol = 3
+)
 ```
+
+
 
 
 ### MC
 
-```{r}
-mc_output[[i]]$mc_conv_plot()
+```{r fig.height=3, fig.width=10}
+grid.arrange(
+  arrangeGrob(
+    mc_output[[i]]$mc_conv_plot(),
+    top = "sstd",
+    nrow = 1
+  ),
+  arrangeGrob(
+    mc_output_std[[i]]$mc_conv_plot(),
+    top = "std",
+    nrow = 1
+  ),
+  arrangeGrob(
+    mc_output_norm[[i]]$mc_conv_plot(),
+    top = "normal",
+    nrow = 1
+  ),
+  ncol = 3
+)
 ```
 
 
 ### IS
 
-```{r}
+Skewed $t$-distribution with a normal proposal distribution.
+
+```{r fig.height=4, fig.width=5}
 is_output[[i]]$is_plot()
 ```
 
 Parameters
 
-```{r}
+```{r fig.height=3, fig.width=4}
 is_g_fits[[i]]$par
 ```
 
 Objective function plots
 
-```{r}
-is_g_fits[[i]]$mean_vect_plot()
-```
+```{r fig.height=4, fig.width=10}
+grid.arrange(
+  is_g_fits[[i]]$mean_vect_plot(),
+  is_g_fits[[i]]$sd_vect_plot(),
+  ncol = 2
+)
 
-```{r}
-is_g_fits[[i]]$sd_vect_plot()
 ```
 
 

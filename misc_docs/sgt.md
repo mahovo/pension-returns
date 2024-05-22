@@ -5,7 +5,13 @@ output:
     toc: true
     toc_depth: 3
     keep_md: yes
-date: "2024-04-17"
+  # pdf_document:
+  #   toc: true
+  #   toc_depth: 3
+params:
+  include_code: FALSE
+  eval_code: FALSE
+date: "14:11 18 May 2024"
 ---
 
 
@@ -15,29 +21,49 @@ date: "2024-04-17"
 
 
 
+
+
+
+
+
+
+
+
+
+
+# Estimating the parameters of a sum skewed $t$ distributed r.v's
+
+
 ```r
-params_for_sums <- readRDS(file="params_for_sums.RData")
+num_simulations <- 1000
+num_paths <- 10000
+num_periods <- 20
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
 ```
 
 
 
 
- 	  m 	    s 	        nu 	      xi
-m 	1.605 	7060.920 	  320.586 	0.02
-s 	0.005 	85.209 	    67.491 	  0.14
-
-
-```r
-params_for_sums_summary <-  readRDS(file="params_for_sums_summary.RData")
-knitr::kable(params_for_sums_summary, digits = 3)
-```
 
 
 
-|   |     m|        s|      nu|   xi|
-|:--|-----:|--------:|-------:|----:|
-|m  | 1.605| 7060.920| 320.586| 0.02|
-|s  | 0.005|   85.209|  67.491| 0.14|
+
+
+
+
+
+
+
+
+
+
+Estimated parameters for sum, $S_{20}$:
+
+
+|   |     m|     s|    nu|    xi|
+|:--|-----:|-----:|-----:|-----:|
+|m  | 1.605| 0.522| 8.856| 0.653|
+|s  | 0.005| 0.006| 0.846| 0.011|
 
 
 
@@ -45,7 +71,7 @@ knitr::kable(params_for_sums_summary, digits = 3)
 num_simulations <- 100
 num_paths <- 10000
 num_periods <- 20
-params <- c(0.08, 0.12, 3.18, 0.02)
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
 ```
 
 
@@ -58,180 +84,705 @@ params <- c(0.08, 0.12, 3.18, 0.02)
 
 
 
-
-```r
-params_for_cum_sums_summary <- readRDS(file="params_for_cum_sums_summary.RData")
-```
+## Estimating the $m$ parameter of the skewed $t$ distribution
 
 
-```r
-ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = m_mean)) +
-  geom_ribbon(
-      mapping = aes(
-        ymin = m_ci_l, 
-        ymax = m_ci_u
-      ), fill = "gray") +
-  geom_line() +
-  labs(title = "Means of simulations of m-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean m")
-```
 
-![](sgt_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](sgt_files/figure-html/plot_m_mean-1.png)<!-- -->
+
 This looks like:
 
 $$m(n) = n \cdot m(0)$$
 
 
+
+
+|        |     1|     2|     3|     4|     5|     6|     7|     8|     9|    10|
+|:-------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+|formula | 0.080| 0.160| 0.240| 0.320| 0.400| 0.480| 0.560| 0.640| 0.720| 0.800|
+|m_n     | 0.081| 0.163| 0.243| 0.324| 0.404| 0.484| 0.564| 0.644| 0.725| 0.805|
+
+
+|        |    11|    12|    13|    14|    15|    16|    17|    18|    19|    20|
+|:-------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+|formula | 0.880| 0.960| 1.040| 1.120| 1.200| 1.280| 1.360| 1.440| 1.520| 1.600|
+|m_n     | 0.885| 0.965| 1.045| 1.125| 1.205| 1.285| 1.365| 1.446| 1.526| 1.606|
+
+
+![](sgt_files/figure-html/plot_compare_m_n-1.png)<!-- -->
+
+
+
+### Verify $m(n) = n \cdot m(0)$
+
+Test if the sample means of a sum of F-S Skewed $t$ r.v.'s are equal to $n$ times the mean of a single r.v. from that distribution.
+
+Even with only 50 samples to estimate the sample mean, the fit is spot on.
+
+
 ```r
-formula_m <- data.frame(m_n = 1:20 * params[1])
-m_n <- params_for_cum_sums_summary$m_mean
-compare_m_n <- t(cbind(formula_m, m_n))
-rownames(compare_m_n) <- c("formula", "m_n")
-knitr::kable(compare_m_n, digits = 3)
+num_sim <- 50
+n <- 100
+mu <- 1.7
+sigma <-  2
+nu <- 3
+xi <- 0.25
 ```
 
 
 
-|        |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
-|:-------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
-|formula | 0.080| 0.160| 0.240| 0.320| 0.400| 0.480| 0.560| 0.640| 0.720| 0.800| 0.880| 0.960| 1.040| 1.120| 1.200| 1.280| 1.360| 1.440| 1.520| 1.600|
-|m_n     | 0.081| 0.163| 0.243| 0.324| 0.404| 0.484| 0.564| 0.644| 0.724| 0.804| 0.885| 0.965| 1.045| 1.125| 1.205| 1.285| 1.365| 1.445| 1.525| 1.605|
-
-```r
-plot(1:20, compare_m_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean m", lwd = 3)
-lines(compare_m_n[2, ], col = "green", lwd = 1.5, lty = 2)
-legend("topleft", c("formula", "m_n"), col = c("red", "green"), lty = c(1, 2), lwd = c(3, 1.5))
-```
 
 ![](sgt_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 
+## Estimating the $s$ parameter of the skewed $t$ distribution
 
-```r
-ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = s_mean)) +
-  geom_ribbon(
-      mapping = aes(
-        ymin = s_ci_l, 
-        ymax = s_ci_u
-      ), fill = "gray") +
-  geom_line() +
-  labs(title = "Means of simulations of s-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean s")
-```
+![](sgt_files/figure-html/plot_s_mean-1.png)<!-- -->
 
-![](sgt_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 This looks like:
 
 $$s(n) = \sqrt{n s(1)^2}$$
 
 
+
+
+|        |     1|     2|     3|     4|     5|     6|     7|     8|     9|    10|
+|:-------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+|formula | 0.120| 0.170| 0.208| 0.240| 0.268| 0.294| 0.317| 0.339| 0.360| 0.379|
+|s_n     | 0.115| 0.158| 0.194| 0.226| 0.253| 0.279| 0.302| 0.324| 0.345| 0.364|
+
+
+|        |    11|    12|    13|    14|    15|    16|    17|    18|    19|    20|
+|:-------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+|formula | 0.398| 0.416| 0.433| 0.449| 0.465| 0.480| 0.495| 0.509| 0.523| 0.537|
+|s_n     | 0.382| 0.400| 0.417| 0.433| 0.449| 0.464| 0.479| 0.493| 0.507| 0.520|
+
+![](sgt_files/figure-html/plot_s_n-1.png)<!-- -->
+
+Let's use that (according to Taleb, ch. 8)
+$$\mathbb{M}(n) = n^{1/\tilde{\alpha}} \mathbb{M}(1) = n^{1/\tilde{\alpha}}\sqrt{\dfrac{2}{\pi}} \sigma$$
+where
+
+$$\tilde{\alpha} = \alpha I\{\alpha < 0\} + 2 I\{\alpha < \geq 0\}$$
+for the Power Law class and otherwise
+
+$$\tilde{\alpha} = 2$$
+
+
+We'll implement this as formula 1.
+
+Let formula 2 be:
+$$\mathbb{M}(n) = \dfrac{\sum_k^m \lvert S_{n, k} - n \mu_{X_i} \rvert}{n}$$
+where $\mu_{X_i}$ is the location parameter we use to generate $\{X_i\}$, and $S_{n, k}$, is the sum of $X_{k,1}, X_{k,2}, \dots, X_{k,n}$ for the $k$'th simulation.
+
+
+
 ```r
-formula_s <- data.frame(s_n = sqrt(1:20 * params[2]^2))
-s_n <- params_for_cum_sums_summary$s_mean
-compare_s_n <- t(cbind(formula_s, s_n))
-rownames(compare_s_n) <- c("formula", "s_n")
-knitr::kable(compare_s_n, digits = 3)
+num_simulations <- 1000
+num_paths <- 10000
+num_periods <- 20
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
 ```
 
 
 
-|        |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
-|:-------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
-|formula | 0.120| 0.170| 0.208| 0.240| 0.268| 0.294| 0.317| 0.339| 0.360| 0.379| 0.398| 0.416| 0.433| 0.449| 0.465| 0.480| 0.495| 0.509| 0.523| 0.537|
-|s_n     | 0.119| 0.164| 0.193| 0.225| 0.253| 0.278| 0.302| 0.324| 0.345| 0.364| 0.383| 0.400| 0.417| 0.433| 0.450| 0.465| 0.480| 0.494| 0.508| 0.522|
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+|    |      1|      2|      3|      4|      5|      6|      7|      8|      9|     10|
+|:---|------:|------:|------:|------:|------:|------:|------:|------:|------:|------:|
+|f1  | 0.0957| 0.1191| 0.1353| 0.1481| 0.1588| 0.1682| 0.1766| 0.1841| 0.1911| 0.1975|
+|f2  | 0.0743| 0.1119| 0.1413| 0.1662| 0.1883| 0.2084| 0.2268| 0.2441| 0.2602| 0.2755|
+|s_n | 0.0743| 0.1119| 0.1413| 0.1662| 0.1883| 0.2083| 0.2268| 0.2440| 0.2602| 0.2755|
+
+
+|    |     11|     12|     13|     14|     15|    16|     17|     18|     19|     20|
+|:---|------:|------:|------:|------:|------:|-----:|------:|------:|------:|------:|
+|f1  | 0.2035| 0.2092| 0.2145| 0.2196| 0.2244| 0.229| 0.2334| 0.2376| 0.2417| 0.2456|
+|f2  | 0.2902| 0.3041| 0.3176| 0.3305| 0.3429| 0.355| 0.3667| 0.3781| 0.3892| 0.3999|
+|s_n | 0.2901| 0.3041| 0.3175| 0.3304| 0.3429| 0.355| 0.3667| 0.3780| 0.3891| 0.3999|
+
+
+![](sgt_files/figure-html/mad_plot-1.png)<!-- -->
+
+Formula 2 matches the realized MAD of $\{S_{n, k}\}_k^m$ very well.  
+Formula 1 matches the realized MAD of $\{S_{n, k}\}_k^m$ very badly.
+
+We notice that:
+
+$$\sqrt{\dfrac{2}{\pi}} \sigma_{X_i} = 0.09575$$
+
+$$\sqrt{\dfrac{2}{\pi}} \hat{\sigma}_{X_i} = \text{approx.} 0.09$$
 
 
 ```r
-plot(1:20, compare_s_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean s")
-lines(compare_s_n[2, ], col = "green")
-legend("topleft", c("formula", "s_n"), col = c("red", "green"), lty = 1)
+sd(rsstd(1e5, 
+         mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4])
+   ) * sqrt(2/pi)
 ```
 
-![](sgt_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+```
+## [1] 0.09330654
+```
+
+
+while
+
+$$\mathbb{M}(1) =\dfrac{\sum_{k=1}^m \lvert X_{k, i} - n \overline{X_i} \rvert}{m} = \text{approx.} 0.07$$
+
+
+```r
+f_mad(rsstd(1e5, mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4]))
+```
+
+```
+## [1] 0.07448496
+```
+
+But are we supposed to see that
+
+$$\mathbb{M}(1) =\sqrt{\dfrac{2}{\pi}} \sigma$$
+
+??
+
+Actually no:  
+
+The relation $\mathbb{M}^{\nu}(1) = \sqrt{\frac{2}{\pi}} \sigma$ only holds for the standard normal distribution, and only asymptotically. The ratio $\frac{\text{MAD}(X)}{\text{sd}(X)}$ varies between 0 and 1.
+
+https://en.wikipedia.org/wiki/Average_absolute_deviation#Mean_absolute_deviation_around_the_mean 
+
+For a Student $t$ with 3 df, the ratio is $\frac{\pi}{2}$. (See Taleb ch. 4 for further discussion.)
+
+
+```r
+sd(rsstd(1e5, mean = sim_params[1], sd = sim_params[2], nu = sim_params[3], xi = sim_params[4])) * 2/pi
+```
+
+```
+## [1] 0.0758978
+```
+
+That's better!
+
+So let's use this ratio instead:
+
+
+
+|    |      1|      2|      3|      4|      5|      6|      7|      8|      9|     10|
+|:---|------:|------:|------:|------:|------:|------:|------:|------:|------:|------:|
+|f1  | 0.0764| 0.1080| 0.1323| 0.1528| 0.1708| 0.1871| 0.2021| 0.2161| 0.2292| 0.2416|
+|f2  | 0.0743| 0.1119| 0.1413| 0.1662| 0.1883| 0.2084| 0.2268| 0.2441| 0.2602| 0.2755|
+|s_n | 0.0743| 0.1119| 0.1413| 0.1662| 0.1883| 0.2083| 0.2268| 0.2440| 0.2602| 0.2755|
+
+
+|    |     11|     12|     13|     14|     15|     16|     17|     18|     19|     20|
+|:---|------:|------:|------:|------:|------:|------:|------:|------:|------:|------:|
+|f1  | 0.2534| 0.2646| 0.2754| 0.2858| 0.2959| 0.3056| 0.3150| 0.3241| 0.3330| 0.3416|
+|f2  | 0.2902| 0.3041| 0.3176| 0.3305| 0.3429| 0.3550| 0.3667| 0.3781| 0.3892| 0.3999|
+|s_n | 0.2901| 0.3041| 0.3175| 0.3304| 0.3429| 0.3550| 0.3667| 0.3780| 0.3891| 0.3999|
+
+
+![](sgt_files/figure-html/mad_plot2-1.png)<!-- -->
+
+Now formula 1 matches the realized MAD of $\{S_{n, k}\}_k^m$ better, but still not very well.  
+Formula 2 is the way to go.
+
+See "taleb_kappa.pdf" for further discussion.
+
+
+## Estimating the $\nu$ parameter of the skewed $t$ distribution
+
+![](sgt_files/figure-html/plot_nu_mean-1.png)<!-- -->
+
+We don't have a good guess here.
+
+
+
+
+
+
+
+
+
+
+
+## Estimating the $\xi$ parameter of the skewed $t$ distribution
+
+![](sgt_files/figure-html/plot_xi_mean-1.png)<!-- -->
+
+Again, no good guess.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Analytical m and s from $\alpha$
+
+According to Taleb, the better way to estimate dispersion is to estimate the tail parameter using MLE and then computing the analytical mean and standard deviation as a function of $\nu$.
+
+### Analytical moments  
+
+According to `help(std)`, you obtain `sd(rt())` by `sd() / sqrt(nu / (nu - 2))`.  
+
+So this should give sd of 1:
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-29-1.png)<!-- -->
+
+
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-31-1.png)<!-- -->
+
+
+
+
+```r
+df = 30
+x_rt <- ((rt(n = 1e6, df = df) * sqrt((df - 2) / df)) * 0.9 + 0.4) 
+x_std <- rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = df)
+x_sstd <- rsstd(n = 1e6, mean = 0.4, sd = 0.9, nu = df, xi = 0.2)
+```
+
+
+```r
+mean(x_rt)
+```
+
+```
+## [1] 0.3999944
+```
+
+```r
+mean(x_std)
+```
+
+```
+## [1] 0.4004414
+```
+
+```r
+mean(x_sstd)
+```
+
+```
+## [1] 0.3999329
+```
+
+
+```r
+sd(x_rt)
+```
+
+```
+## [1] 0.8993699
+```
+
+```r
+sd(x_std)
+```
+
+```
+## [1] 0.9008423
+```
+
+```r
+sd(x_sstd)
+```
+
+```
+## [1] 0.8993905
+```
+
+The mean seems fine for all `df > 2`:
+
+
+
+
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-38-1.png)<!-- -->
+
+For less than approx. 3 df (nu) it doesn't hold:
+
+
+
+
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-42-1.png)<!-- -->
+
+
+
+
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-46-1.png)<!-- -->
+
+
+![](sgt_files/figure-html/unnamed-chunk-47-1.png)<!-- -->
+
+
+
+### Analytical mean
+
+
+
+"A review of Student’s t distribution and its generalizations.pdf", p. 10
+
+$$
+f(x) = \dfrac{2 \xi}{\xi^2 + 1}\dfrac{\Gamma\left(\frac{\nu + 1}{2}\right)}{\sqrt{\pi \nu} \Gamma\left(\frac{\nu}{2}\right)} \left[ 1 + \dfrac{x^2}{\nu}\left(\dfrac{1}{\xi^2}I\{x \geq 0\} + \xi^2 I\{x<0\} \right)\right]^{-\frac{\nu + 1}{2}}
+$$
+
+$$
+\mathbb{E}[X^r] = M_r \dfrac{\xi^{r+1} + \frac{(-1)^r}{\xi^{r+1}}}{\xi+\frac{1}{\xi}}
+$$
+where
+
+$$
+M_r = \int_0^{\infty}2 x^r f(x) dx
+$$
+
+
+
+
+```
+## Input mean param: 0.08
+```
+
+```
+## Analytical mean param:
+```
+
+```
+## $value
+## [1] -0.0008603894
+## 
+## $integration.abs.error
+## [1] 2.295918e-05
+```
+
+fGarch vignette:
+
+
+```
+## Input mean param: 0.08
+```
+
+```
+## Analytical mean param:
+```
+
+```
+## [1] 4.932924e-05
+```
+
+
+### Analytical sd
+
+"A review of Student’s t distribution and its generalizations"
+
+(See above)
+
+
+```
+## Input sd param: 0.12
+```
+
+```
+## Analytical sd param:
+```
+
+```
+## $value
+## [1] 0.002153768
+## 
+## $integration.abs.error
+## [1] 9.062533e-07
+```
+
+
+fGarch vignette:  
+"Parameter Estimation of ARMA Models with GARCH/APARCH Errors An R and SPlus Software Implementation", p. 12
+
+$$
+f(x \mid \xi) = \dfrac{2}{\xi + \frac{1}{\xi}} \left[f(\xi x) I\{x \geq 0\} + f\left(\dfrac{x}{\xi}\right) I\{x<0\} \right]
+$$
+$$
+\mu_{\xi} = M_1 \left( \xi - \dfrac{1}{\xi} \right)
+$$
+$$
+\sigma_{\xi}^2 = (M_2 - M_1^2)\left(\xi^2 + \dfrac{1}{\xi^2} \right) + 2 M_1^2 - M_2
+$$
+where $M_r$ is defined as above.
+
+
+
+
+```
+## Input sd param: 0.12
+```
+
+```
+## Analytical sd param:
+```
+
+```
+## [1] 7.936333e-06
+```
+
+
+
+
+
+## Convergence
+
+
+```r
+num_simulations <- 100
+n_exponent <- 15
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
+sim_data <- replicate(num_simulations, rsstd(2^n_exponent, sim_params[1], sim_params[2], sim_params[3], sim_params[4]))
+```
+
+Simulate parameter estimation
+
+
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-56-1.png)<!-- -->
+
+
+
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-58-1.png)<!-- -->
+
+
+
+
+
+![](sgt_files/figure-html/unnamed-chunk-60-1.png)<!-- -->
+
+
+
+### Compare estimation packages
+
+
+```r
+num_simulations <- 100
+n_exponent <- 13
+sim_params <- c(0.058, 0.123, 2.265, 0.477) ## pmr
+sim_data <- as.data.frame(replicate(num_simulations, rsstd(2^n_exponent, sim_params[1], sim_params[2], sim_params[3], sim_params[4])))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+## Warning: Removed 108 rows containing non-finite outside the scale range
+## (`stat_boxplot()`).
+```
+
+```
+## Warning: Removed 108 rows containing missing values or values outside the scale range
+## (`geom_point()`).
+```
+
+![](sgt_files/figure-html/unnamed-chunk-78-1.png)<!-- -->
+
+
+
+```
+## Warning: Removed 8 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![](sgt_files/figure-html/unnamed-chunk-79-1.png)<!-- -->
+
+
+```
+## Warning: Removed 108 rows containing non-finite outside the scale range
+## (`stat_boxplot()`).
+```
+
+```
+## Warning: Removed 108 rows containing missing values or values outside the scale range
+## (`geom_point()`).
+```
+
+![](sgt_files/figure-html/unnamed-chunk-80-1.png)<!-- -->
+
+
+
+```
+## Warning: Removed 8 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![](sgt_files/figure-html/unnamed-chunk-81-1.png)<!-- -->
+
+
+```
+## Warning: Removed 108 rows containing non-finite outside the scale range
+## (`stat_boxplot()`).
+```
+
+```
+## Warning: Removed 108 rows containing missing values or values outside the scale range
+## (`geom_point()`).
+```
+
+![](sgt_files/figure-html/unnamed-chunk-82-1.png)<!-- -->
+
+
+
+```
+## Warning: Removed 8 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![](sgt_files/figure-html/unnamed-chunk-83-1.png)<!-- -->
+
+
+
+(No boxplot for xi, because fitdistr fits to a t-distribution, i.e. no xi parameter.)
+
+
+```
+## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf
+```
+
+```
+## Warning: Removed 11 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+```
+## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf
+```
+
+```
+## Warning: Removed 7 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![](sgt_files/figure-html/unnamed-chunk-85-1.png)<!-- -->
+
 
 
 
 
 
 ```r
-ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = nu_mean)) +
-  geom_ribbon(
-      mapping = aes(
-        ymin = nu_ci_l, 
-        ymax = nu_ci_u
-      ), fill = "gray") +
-  geom_line() +
-  labs(title = "Means of simulations of nu-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean nu")
+##########################
+## Data object dimensions:
+##########################
+##
+## sim_data: 2^n_exponent x num_simulations  
+## hat_vals: num_simulations x n_exponent  
+## hat_stats: n_exponent x 5 (n, mean, sd, ci_l, ci_u)  
+## package_df: 
+## packages_comparison_list: 
+##   n_exponent lists containing 1 data frame for each package:
+##     each data frame: num_simulations x 4 ("m", "s", "nu", "xi")
+##
+## hat_vals_list:
+##   list of 4 lists, one list for each of ("m", "s", "nu", "xi")
+##     list of 3 data frames, one for each package
+##       hat_vals data frames: num_simulations x n_exponent
+##
+## packages_comparison_stats_list: 
+##   list of 4 lists, one list for each of ("m", "s", "nu", "xi")
+##     list of 3 data frames - with hat_stats(hat_vals)
+##       each data frame (hat_stats): n_exponent x 5 (n as factor, m, sd, ci_l, ci_u)
+##
+## From each hat_stats df, make hat_stats_plot
+##
+## packages_comparison_stats_list_for_plot:
+##   list of 4 data frames, one for each of ("m", "s", "nu", "xi"): 
+##     packages_comparison_stats_df: 3 * n_exponent x 6 (n as factor, m, sd, ci_l, ci_u, package)
 ```
-
-![](sgt_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
-
-We don't have a good guess here:
-
-
-```r
-formula_nu <- data.frame(nu_n = (1:20 * params[4]^4)^(-4))
-nu_n <- params_for_cum_sums_summary$nu_mean
-compare_nu_n <- t(cbind(formula_nu, nu_n))
-rownames(compare_nu_n) <- c("formula", "nu_n")
-knitr::kable(compare_nu_n, digits = 3)
-```
-
-
-
-|        |             |             |             |             |             |             |             |            |            |             |             |             |             |             |             |             |            |            |             |             |
-|:-------|------------:|------------:|------------:|------------:|------------:|------------:|------------:|-----------:|-----------:|------------:|------------:|------------:|------------:|------------:|------------:|------------:|-----------:|-----------:|------------:|------------:|
-|formula | 1.525879e+27| 9.536743e+25| 1.883801e+25| 5.960464e+24| 2.441406e+24| 1.177376e+24| 6.355181e+23| 3.72529e+23| 2.32568e+23| 1.525879e+23| 1.042196e+23| 7.358598e+22| 5.342526e+22| 3.971988e+22| 3.014082e+22| 2.328306e+22| 1.82694e+22| 1.45355e+22| 1.170862e+22| 9.536743e+21|
-|nu_n    | 3.575000e+00| 4.677000e+00| 5.213000e+00| 5.626000e+00| 6.005000e+00| 6.342000e+00| 6.604000e+00| 6.89400e+00| 7.11000e+00| 7.333000e+00| 7.543000e+00| 7.750000e+00| 7.906000e+00| 8.035000e+00| 8.233000e+00| 8.396000e+00| 8.54300e+00| 8.64600e+00| 8.729000e+00| 8.912000e+00|
-
-
-```r
-plot(1:20, compare_nu_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean nu")
-lines(compare_nu_n[2, ], col = "green")
-legend("topleft", c("formula", "nu_n"), col = c("red", "green"), lty = 1)
-```
-
-![](sgt_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
-
-
-```r
-ggplot(params_for_cum_sums_summary, aes(x = 1:20, y = xi_mean)) +
-  geom_ribbon(
-      mapping = aes(
-        ymin = xi_ci_l, 
-        ymax = xi_ci_u
-      ), fill = "gray") +
-  geom_line() +
-  labs(title = "Means of simulations of xi-parameter for skewed t", subtitle = "95% c.i.", x = "time", y = "mean xi")
-```
-
-![](sgt_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
-
-Again, no good guess:
-
-```r
-formula_xi <- data.frame(xi_n = (1:20 * params[3]^3)^(-3))
-xi_n <- params_for_cum_sums_summary$xi_mean
-compare_xi_n <- t(cbind(formula_xi, xi_n))
-rownames(compare_xi_n) <- c("formula", "xi_n")
-knitr::kable(compare_xi_n, digits = 3)
-```
-
-
-
-|        |      |      |      |      |      |      |      |      |      |     |      |      |      |      |      |      |      |      |      |      |
-|:-------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
-|formula | 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.00| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000| 0.000|
-|xi_n    | 0.014| 0.363| 0.445| 0.488| 0.515| 0.537| 0.553| 0.568| 0.581| 0.59| 0.599| 0.608| 0.615| 0.622| 0.627| 0.633| 0.639| 0.644| 0.649| 0.653|
-
-
-```r
-plot(1:20, compare_xi_n[1, ], type = "l", col = "red", xlab = "time", ylab = "mean xi", ylim = c(0, max(c(compare_xi_n[1, ], compare_xi_n[2, ]))))
-lines(compare_xi_n[2, ], col = "green")
-legend("topleft", c("formula", "xi_n"), col = c("red", "green"), lty = 1)
-```
-
-![](sgt_files/figure-html/unnamed-chunk-21-1.png)<!-- -->
-
-
 
 
 

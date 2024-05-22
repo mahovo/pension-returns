@@ -176,14 +176,32 @@ max_sum <- function(data_vector, p = 1) {
 #   par(mfrow = c(1, 1))
 # }
 
-plot_max_sum <- function(fit, num_paths, rnd_seed = 2304) {
+plot_max_sum <- function(fit, num_paths, distribution = "sstd", rnd_seed = 2304) {
   set.seed(rnd_seed)
   
   #ms_log_returns <- rsstd(num_paths, fit$m, fit$s, fit$nu, fit$xi)
   num_fits <- length(fit)
   ms_log_returns <- numeric(num_paths)
-  for(i in seq_along(fit)) {
-    ms_log_returns <- ms_log_returns + rsstd(num_paths, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi)/num_fits
+  
+  if(distribution == "sstd") {
+    for(i in seq_along(fit)) {
+      ms_log_returns <- ms_log_returns + rsstd(
+        num_paths, 
+        fit[[i]]$dist_params[1], fit[[i]]$dist_params[2], fit[[i]]$dist_params[3], fit[[i]]$dist_params[4]
+      )/num_fits
+    }
+  } else if(distribution == "std") {
+    for(i in seq_along(fit)) {
+      ms_log_returns <- ms_log_returns + rstd(
+        num_paths, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2], fit[[i]]$dist_params[3]
+      )/num_fits
+    }
+  } else {
+    for(i in seq_along(fit)) {
+      ms_log_returns <- ms_log_returns + rnorm(
+        num_paths, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2]
+      )/num_fits
+    }
   }
   
   plots <- list()
@@ -196,7 +214,8 @@ plot_max_sum <- function(fit, num_paths, rnd_seed = 2304) {
         ylab(paste0("MS(", p, ")")) +
         labs(title = paste0("MS(", p, ")"))
   }
-  wrap_plots(plots)
+  #wrap_plots(plots)
+  plots
 }
 
 
@@ -205,134 +224,6 @@ fit_gauss <- function(x, method = "Nelder-Mead") {
   start = c(mean(x), sd(x))
   #fit_sstd = optim(start, loglik_sstd, hessian = F, method="L-BFGS-B", lower = c(0, 0.1, 1.1, -2))
   optim(start, loglik_sstd, method = method)
-}
-
-
-
-## Fit data to a skewed t distribution
-fit_skewed_t <- function(x, method = "BFGS") {
-  
-  loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))
-  start = c(mean(x), sd(x), 3, 1)
- 
-  #fit_sstd = optim(start, loglik_sstd, hessian = F, method="L-BFGS-B", lower = c(0, 0.1, 1.1, -2))
-  fit_sstd = optim(start, loglik_sstd, method = method)
-  
-  n = length(x)
-  
-  AIC_sstd = 2 * fit_sstd$value + 2 * 4
-  BIC_sstd = 2 * fit_sstd$value + log(n) * 4
-  # cat("\n")
-  # cat("AIC:", AIC_sstd, "\n")
-  # cat("BIC:", BIC_sstd, "\n")
-  
-  # Middelværdi:
-  mu_sstd_fit <- fit_sstd$par[1]#/1000
-  # cat("m:", mu_sstd_fit, "\n")
-  
-  # Spredning:
-  sigma_sstd_fit <- fit_sstd$par[2]#/1000
-  # cat("s:", sigma_sstd_fit, "\n")
-  
-  # Frihedsgrader:
-  nu_sstd_fit <- fit_sstd$par[3] # 3.36019
-  # cat("nu (df):", nu_sstd_fit, "\n")
-  
-  xi_sstd_fit <- fit_sstd$par[4] # 0.8436514
-  # cat("xi:", xi_sstd_fit, "\n")
-  
-  fit <- qsstd((1:n - 0.5)/n, mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
-  
-  r_squared <- cor(sort(fit), sort(x))
-  # R^2
-  r_squared_round <- round(r_squared, 3)
-  # cat("R^2:", r_squared_round, "\n")
-  # cat("\n")
-  
-  range_cuts <- c(0.0, 0.5, 0.9, 0.95, 0.99, 1.0)
-  # interpretations <- c(
-  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is not great."),
-  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is not completely random."),
-  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is good."),
-  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is very good."),
-  #   paste0("An R^2 of ", r_squared_round, " suggests that the fit is extremely good.")
-  # )
-  # 
-  # cat(interpretations[findInterval(r_squared_round, range_cuts)])
-  # cat("\n")
-  # cat("\n")
-  
-  quantile_data <- qsstd(seq(0.005, 0.995, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
-  
-  dist_data <- psstd(seq(-0.3, 0.3, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
-  
-  dens_data <- dsstd(seq(-0.3, 0.3, length.out = 600), mean = fit_sstd$par[1], sd = fit_sstd$par[2], nu = fit_sstd$par[3], xi = fit_sstd$par[4])
-  
-  sample_mean <- mean(dist_data)
-  
-  # risk_estimate(dist_data, "max", 10)
-  # risk_estimate(dist_data, "max", 25)
-  # risk_estimate(dist_data, "max", 50)
-  # risk_estimate(dist_data, "max", 90)
-  # risk_estimate(dist_data, "max", 99)
-  # cat("\n")
-  # risk_estimate(dist_data, "min", 10)
-  # risk_estimate(dist_data, "min", 25)
-  # risk_estimate(dist_data, "min", 50)
-  # risk_estimate(dist_data, "min", 90)
-  # risk_estimate(dist_data, "min", 99)
-  
-  theoretical_quantiles <- qsstd(ppoints(n), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)
-  
-  output <- list(
-    # Plot with estimated skewed t-distribution
-    # qq plot for t-distribution
-    qqplot = function() {qqplot(x = theoretical_quantiles, y = x, main = "QQ-plot, skewed t", xlab = "skewed t-quantiles", ylab = "log returns", xlim = c(min(fit) - abs(min(fit))/10, max(fit) + abs(max(fit))/10),  ylim = c(min(x) - abs(min(x))/10, max(x) + abs(max(x))/10))
-      mtext(paste0("my=", round(mu_sstd_fit, 4),", sigma =", round(sigma_sstd_fit, 4),", df=",round(nu_sstd_fit, 3), ", xi =", round(xi_sstd_fit, 3), ", R^2=", r_squared_round), side=3,  cex = 0.8, adj=0)
-      qqline(x, distribution = function(p) qsstd(p, mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit), datax = FALSE, col="black")
-      abline(0, 1, col = "red")
-      legend("bottomright", legend = c("data trendline", "45 degree line"), col = c("black", "red"), lty = c(1, 1))
-    },
-    fit_plot = function() {
-      plot(sort(x), col="blue", ylab = "log returns", main = "Data vs fit",
-           ylim = c(min(c(x, fit)), max(c(x, fit))))
-      points(sort(fit), col="red")
-      legend("bottomright", legend = c("data", "fit"), col = c("blue", "red"), pch = c(1, 1))
-    },
-    quantile_plot = function() {
-      plot(x = seq(0.005, 0.995, length.out = 600), sort(quantile_data), pch = 16, cex = 0.3, 
-           main = "Estimated skew t distribution quantiles",
-           xlab = "probability", ylab = "log-returns")
-      abline(a = 0, b = 0, col = "gray", lty = 2)
-    },
-    dist_plot = function() {
-      plot(x = seq(-0.3, 0.3, length.out = 600), sort(dist_data), pch = 16, cex = 0.3, 
-           main = "Estimated skew t distribution CDF",
-           xlab = "log-returns", ylab = "probability")
-      abline(v = c(min(x), max(x)), col = c("red", "green"))
-      abline(h = c(psstd(min(x), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit), psstd(max(x), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)), col = c("red", "green"))
-    },
-    dens_plot = function() {
-      plot(x = seq(-0.3, 0.3, length.out = 600), y = dens_data, cex = 0.3, pch = 16, xlab = "log-return", ylab = "likelihood", main = "Estimated skew t distribution PDF",
-           sub = paste0("m = ", round(mu_sstd_fit, 3), ", sample mean = ", round(sample_mean, 3)))
-      abline(v = mu_sstd_fit, col = "red")
-      abline(v = sample_mean, lty = 2, col = "blue")
-      legend("topleft", legend = c("density", "m", "sample mean"), col = c("black", "red", "blue"), lty = c(1, 1, 2))
-    },
-    data = x,
-    fit = fit,
-    dist_data = dist_data,
-    dens_data = dens_data,
-    quantile_data = quantile_data,
-    m = mu_sstd_fit,
-    s = sigma_sstd_fit,
-    nu = nu_sstd_fit,
-    xi = xi_sstd_fit,
-    r_squared = r_squared,
-    theoretical_quantiles = theoretical_quantiles
-  )
-  
-  output
 }
 
 
@@ -357,33 +248,56 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
   
   n = length(x)
   
-  aic = 2 * optim_out$value + 2 * 4
-  bic = 2 * optim_out$value + log(n) * 4
-
   if(distribution == "sstd") {
     fit <- qsstd((1:n - 0.5)/n, mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
     quantile_data <- qsstd(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
     dist_data <- psstd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
     dens_data <- dsstd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
-    theoretical_quantiles <- qsstd(ppoints(n), mu_sstd_fit, sigma_sstd_fit, nu_sstd_fit, xi_sstd_fit)
+    theoretical_quantiles <- qsstd(ppoints(n),optim_out$par[1], optim_out$par[2], optim_out$par[3], optim_out$par[4])
   } else if (distribution == "std") {
     fit <- qstd((1:n - 0.5)/n, mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
     quantile_data <- qstd(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
-    dist_data <- pssd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
+    dist_data <- pstd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
     dens_data <- dstd(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
     theoretical_quantiles <- qstd(ppoints(n), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3])
   } else {
     fit <- qnorm((1:n - 0.5)/n, mean = optim_out$par[1], sd = optim_out$par[2])
-    quantile_data <- qnorm(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2], nu = optim_out$par[3], xi = optim_out$par[4])
+    quantile_data <- qnorm(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
     dist_data <- pnorm(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
     dens_data <- dnorm(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
     theoretical_quantiles <- qstd(ppoints(n), mean = optim_out$par[1], sd = optim_out$par[2])
   }
-    
+  
   r_squared <- cor(sort(fit), sort(x))
   r_squared_round <- round(r_squared, 3)
-
+  
+  aic = 2 * optim_out$value + 2 * 4
+  bic = 2 * optim_out$value + log(n) * 4
+    
   sample_mean <- mean(dist_data)
+  
+  if(distribution == "sstd") {
+    qq_subtitle <- paste0(
+      "m=", round(optim_out$par[1], 4), 
+      ", s=", round(optim_out$par[2], 4),
+      ", nu=", round(optim_out$par[3], 4),
+      ", xi=", round(optim_out$par[4], 4),
+      ", R^2=", r_squared_round
+    )
+  } else if(distribution == "std") {
+    qq_subtitle <- paste0(
+      "m=", round(optim_out$par[1], 4), 
+      ", s=", round(optim_out$par[2], 4),
+      ", nu=", round(optim_out$par[3], 4),
+      ", R^2=", r_squared_round
+    )
+  } else {
+    qq_subtitle <- paste0(
+      "m=", round(optim_out$par[1], 4), 
+      ", s=", round(optim_out$par[2], 4),
+      ", R^2=", r_squared_round
+    )
+  }
 
   output <- list(
     # Plot with estimated skewed t-distribution
@@ -392,16 +306,16 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
       qqplot(
         x = theoretical_quantiles, 
         y = x, 
-        main = "QQ-plot, skewed t", 
-        xlab = paste0(distribution, "quantiles"), 
+        main = paste0("QQ-plot, ", distribution),
+        xlab = paste0(distribution, " quantiles"), 
         ylab = "log returns", 
         xlim = c(min(fit) - abs(min(fit))/10, max(fit) + abs(max(fit))/10),  
         ylim = c(min(x) - abs(min(x))/10, max(x) + abs(max(x))/10)
       )
       mtext(
-        paste0("params=", round(optim_out$par, 4), ", R^2=", r_squared_round), 
+        qq_subtitle, 
         side=3,  
-        cex = 0.8, 
+        cex = 0.7, 
         adj=0
       )
       qqline(
@@ -491,7 +405,8 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
     dens_plot = function() {
       plot(
         x = seq(-0.3, 0.3, length.out = 600), 
-        y = dens_data, cex = 0.3, 
+        y = dens_data, 
+        cex = 0.3, 
         pch = 16, 
         xlab = "log-return", 
         ylab = "likelihood", 
@@ -515,8 +430,7 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
     theoretical_quantiles = theoretical_quantiles,
     r_squared = r_squared,
     aic = aic,
-    bic = bic,
-    
+    bic = bic
   )
   
   output
@@ -542,7 +456,8 @@ mc_simulation <- function(
     num_paths = 1000, 
     num_periods = 20,
     dao = TRUE,
-    threshold = 0.01
+    threshold = 0.01,
+    distribution = "sstd"
 ) {
   init_capital = 100
   
@@ -552,9 +467,33 @@ mc_simulation <- function(
   ## A list of fits
   init_capital = 100/length(fit)
   mc_df <- data.frame(matrix(rep(0, num_paths * (num_periods + 1)), nrow = num_periods + 1))
-  for(i in seq_along(fit)) {
-    for(j in 1:num_paths) {
-      mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit[[i]]$m, fit[[i]]$s, fit[[i]]$nu, fit[[i]]$xi))))
+  
+  pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
+                       max = num_paths, # Maximum value of the progress bar
+                       style = 3,    # Progress bar style (also available style = 1 and style = 2)
+                       width = 50,   # Progress bar width. Defaults to getOption("width")
+                       char = "=")   # Character used to create the bar
+  
+  if(distribution == "sstd") {
+    for(i in seq_along(fit)) {
+      for(j in 1:num_paths) {
+        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2], fit[[i]]$dist_params[3], fit[[i]]$dist_params[4]))))
+        setTxtProgressBar(pb, j)
+      }
+    }
+  } else if(distribution == "std") {
+    for(i in seq_along(fit)) {
+      for(j in 1:num_paths) {
+        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rstd(num_periods, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2], fit[[i]]$dist_params[3]))))
+        setTxtProgressBar(pb, j)
+      }
+    }
+  } else {
+    for(i in seq_along(fit)) {
+      for(j in 1:num_paths) {
+        mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rnorm(num_periods, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2]))))
+        setTxtProgressBar(pb, j)
+      }
     }
   }
   
@@ -563,11 +502,7 @@ mc_simulation <- function(
     num_dao <- count_num_dao(mc_df, threshold)
     dao_probability_percent <- 100 * num_dao/num_paths
     
-    # cat("Down-and-out simulation:\n")
-    # cat("Probability of down-and-out:", dao_probability_percent, "percent\n")
-    # cat("\n")
   } else {
-    # cat("Simulation (ignoring down-and-out):\n")
     dao_probability_percent <- NA
   }
   
@@ -595,17 +530,36 @@ mc_simulation <- function(
   }
   
   percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
-  
-  # cat("Mean portfolio index value after", num_periods, "years:", round(mc_m, 3), "kr.\n")
-  # cat("SD of portfolio index value after", num_periods, "years:", round(mc_s, 3), "kr.\n")
-  # cat("Min total portfolio index value after", num_periods, "years:", round(mc_min, 3), "kr.\n")
-  # cat("Max total portfolio index value after", num_periods, "years:", round(mc_max, 3), "kr.\n")
-  # cat("\n")
-  # cat("Share of paths finishing below 100:", percent_losing_paths, "percent")
-  
+
   list(
     mc_plot = function() {
-      plot(mc_df[, 1], type = "l", ylim = c(min(mc_df), max(mc_df)), xlab = "period", ylab = "Portfolio index value in kr", main = paste0("MC simulation ", ifelse(dao == TRUE, "with down-and-out", "ignoring down-and-out")), sub = paste0("Number of paths: ", num_paths, ", number of periods: ", num_periods))
+      plot(
+        mc_df[, 1], 
+        type = "l", 
+        ylim = c(min(mc_df), max(mc_df)), 
+        xlab = "period", 
+        ylab = "Portfolio index value in kr"#, 
+       # main = paste0("MC simulation ", ifelse(dao == TRUE, "with down-and-out", "ignoring down-and-out"))#, 
+        #sub = paste0(distribution, " distribution, Number of paths: ", num_paths, ", number of periods: ", num_periods)
+      )
+      ## Title
+      mtext(
+        side=3, 
+        line=2, 
+        at=-0.07, 
+        adj=0, 
+        cex=1, 
+        paste0("MC simulation ", ifelse(dao == TRUE, "with down-and-out", "ignoring down-and-out"))
+      )
+      ## subtitle
+      mtext(
+        side = 3,
+        line = 1, 
+        at = -0.07, 
+        adj = 0, 
+        cex = 0.7, 
+        paste0(distribution, " distribution, number of paths: ", num_paths, ", number of periods: ", num_periods)
+      )
       lapply(mc_df[, -1], function(x) {
         lines(x, col = alpha(sample(col_vector, num_paths, replace = TRUE), 0.3))}
       )
@@ -618,7 +572,7 @@ mc_simulation <- function(
         ylab = "Portfolio index value in kr"
       )
       abline(100, 0, lwd=1, col="red")
-      mtext(side=3, line=2, at=-0.07, adj=0, cex=1, "Sorted portfolio index values for last period of all runs")
+      mtext(side=3, line=2, at=-0.07, adj=0, cex=1, distribution)
       mtext(side=3, line=1, at=-0.07, adj=0, cex=0.7, "(100 is par, 200 is double, 50 is half)")
     },
     mc_conv_plot = function() {
@@ -631,7 +585,12 @@ mc_simulation <- function(
         ), fill = "gray") +
       ylim(min(ci_l), max(ci_u)) +
       geom_line() + 
-      labs(title = paste("Monte Carlo convergence w/ 95% c.i."), subtitle = paste(num_periods, "steps,", num_paths, "paths"), x = "number of paths", y = "mu_hat")
+      labs(
+        title = paste("MC convergence w/ 95% c.i."), 
+        subtitle = paste(num_periods, "steps,", num_paths, "paths"), 
+        x = "number of paths", 
+        y = "mu_hat"
+      )
     },
     mc_m = mc_m,
     mc_s = mc_s,

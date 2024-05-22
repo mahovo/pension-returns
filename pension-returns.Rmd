@@ -22,6 +22,7 @@ params:
   run_comparison: TRUE ## Include comparison report? Depends on run_individual.
   run_comments: TRUE
   run_appendix: TRUE ## Depends on run_individual
+  run_mc_plot: TRUE
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 ---
 
@@ -53,7 +54,7 @@ date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 ```{r chunk3, setup, include=FALSE}
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
 
-run_individual <- (params$run_individual + params$run_comparison + params$run_appendix > 0)
+run_individual <- (params$run_individual + params$run_comparison + params$run_appendix + params$run_mc_plot > 0)
 run_exploratory <- (params$run_exploratory + run_individual > 0)
 
 ## Note: In the second line (run_exploratory <- ...), run_individual is correct that - not params$run_individual, because if we choose params$run_exploratory=TRUE and params$run_comparison=TRUE, but params$run_individual=FALSE, we still have to do the individual calculations.
@@ -88,6 +89,8 @@ rmarkdown::render(here::here("pension-returns.Rmd"), output_format ="all")
 ##              GENERATE PDF MANUALLY AFTER GENERATING HTML AND MD
 ##
 ################################################################################
+
+## Note: Will not produce TOC and a few other things will be different.
 ```
 
 ```{bash chunk7, eval=FALSE, include=FALSE}
@@ -97,7 +100,7 @@ pandoc pension-returns.md -o pension-returns.pdf
 ```
 
 
-```{r chunk6b}
+```{r chunk7b}
 ################################################################################
 ##
 ##                             COPY TO SITES FOLDER
@@ -134,8 +137,10 @@ Fit log returns to F-S skew standardized Student-t distribution.
 `xi` is the estimated skewness parameter.  
 
 # Returns data 2011-2023.  
+
 For 2011, medium risk data is used in the high risk data set, as no high risk fund data is available prior to 2012.  
 `vmrl` is a long version of Velliv medium risk data, from 2007 to 2023. For 2007 to 2011 (both included) no high risk data is available.
+
 ```{r chunk10}
 ## Headlines for individual sections
 headlines <- c(
@@ -224,29 +229,66 @@ legend("bottom", legend = c("vmr", "vhr", "pmr", "phr", "mmr", "mhr"), col = c("
 ```{r chunk14, eval=run_individual}
 fits <- lapply(
   seq_along(data_df),
-  function(i) {
-    fit_skewed_t(unlist(data_df[i]))
-  }
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), distribution = "sstd")
+  })}
 )
 
 fits_std <- lapply(
   seq_along(data_df),
-  function(i) {
-    fit_t(unlist(data_df[i]))
-  }
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), method = "Nelder-Mead", distribution = "std")
+  })}
 )
 
 fits_norm <- lapply(
   seq_along(data_df),
-  function(i) {
-    fit_norm(unlist(data_df[i]))
-  }
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), method = "Nelder-Mead", distribution = "normal")
+  })}
 )
 ```
 
 ```{r chunk15, eval=run_individual}
 saveRDS(fits, file = here("data", "fits.RData"))
+saveRDS(fits_std, file = here("data", "fits_std.RData"))
+saveRDS(fits_norm, file = here("data", "fits_norm.RData"))
 ```
+
+```{r eval=run_individual}
+fit_summary <- as.data.frame(lapply(
+  fits,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary) <- fund_names
+rownames(fit_summary) <- c("m", "s", "nu", "xi", "R^2")
+```
+
+```{r eval=run_individual}
+fit_summary_std <- as.data.frame(lapply(
+  fits_std,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_std) <- fund_names
+rownames(fit_summary_std) <- c("m", "s", "nu", "R^2")
+```
+
+```{r eval=run_individual}
+fit_summary_norm <- as.data.frame(lapply(
+  fits_norm,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_norm) <- fund_names
+rownames(fit_summary_norm) <- c("m", "s", "R^2")
+```
+
+
 
 ```{r chunk16}
 ##                                     MONTE CARLO
@@ -264,22 +306,59 @@ fit_id <- list(
   c(2, 3)
 )
 
+num_fits <- length(fits)
+
 mc_output <- list()
 for(i in seq_along(fits)) {
+  message(paste0("\nsstd: ", i, " of ", num_fits, "\n"))
   mc_output[[i]] <- mc_simulation(
     fits[fit_id[[i]]], 
     num_paths = mc_num_paths, 
     num_periods = mc_num_periods, 
     dao = mc_dao, 
-    threshold = mc_threshold
+    threshold = mc_threshold,
+    distribution = "sstd"
   )
 }
 
+mc_output_std <- list()
+for(i in seq_along(fits_std)) {
+  message(paste0("\nstd: ", i, " of, ", num_fits, "\n"))
+  mc_output_std[[i]] <- mc_simulation(
+    fits_std[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "std"
+  )
+}
+
+mc_output_norm <- list()
+for(i in seq_along(fits_norm)) {
+  message(paste0("\nnormal: ", i, " of, ", num_fits, "\n"))
+  mc_output_norm[[i]] <- mc_simulation(
+    fits_norm[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "normal"
+  )
+}
+```
+
+
+```{r chunk17b, eval=(params$run_sim && run_individual)}
 saveRDS(mc_output, file = here("data", "mc_output.RData"))
+saveRDS(mc_output_std, file = here("data", "mc_output_std.RData"))
+saveRDS(mc_output_norm, file = here("data", "mc_output_norm.RData"))
 ```
 
 ```{r chunk18, eval=(run_individual && !params$run_sim)}
 mc_output <- readRDS(file = here("data", paste0("mc_output.RData")))
+mc_output_std <- readRDS(file = here("data", paste0("mc_output_std.RData")))
+mc_output_norm <- readRDS(file = here("data", paste0("mc_output_norm.RData")))
 ```
 
 ```{r chunk19}
@@ -289,14 +368,44 @@ mc_output <- readRDS(file = here("data", paste0("mc_output.RData")))
 ```{r chunk20, eval=(params$run_sim && run_individual)}
 max_sum_plots <- list()
 for(i in seq_along(fits)) {
-  max_sum_plots[[i]] <- plot_max_sum(fits[fit_id[[i]]], mc_num_paths)
+  max_sum_plots[[i]] <- plot_max_sum(
+    fits[fit_id[[i]]], 
+    mc_num_paths,
+    distribution = "sstd"
+  )
 }
 
-saveRDS(max_sum_plots, here("data", "max_sum_plots.RData"))
+max_sum_plots_std <- list()
+for(i in seq_along(fits_std)) {
+  max_sum_plots_std[[i]] <- plot_max_sum(
+    fits_std[fit_id[[i]]], 
+    mc_num_paths, 
+    distribution = "std"
+  )
+}
+
+max_sum_plots_norm <- list()
+for(i in seq_along(fits_norm)) {
+  max_sum_plots_norm[[i]] <- plot_max_sum(
+    fits_norm[fit_id[[i]]], 
+    mc_num_paths, 
+    distribution = "norm"
+  )
+}
 ```
+
+```{r chunk20b, eval=(params$run_sim && run_individual)}
+saveRDS(max_sum_plots, here("data", "max_sum_plots.RData"))
+saveRDS(max_sum_plots_std, here("data", "max_sum_plots_std.RData"))
+saveRDS(max_sum_plots_norm, here("data", "max_sum_plots_norm.RData"))
+```
+
+
 
 ```{r chunk21, eval=(run_individual && !params$run_sim)}
 max_sum_plots <- readRDS(file = here("data", "max_sum_plots.RData"))
+max_sum_plots_std <- readRDS(file = here("data", "max_sum_plots_std.RData"))
+max_sum_plots_norm <- readRDS(file = here("data", "max_sum_plots_norm.RData"))
 ```
 
 ```{r chunk22}
@@ -328,7 +437,9 @@ for(i in seq_along(fits)) {
     mode = 1
   )
 }
+```
 
+```{r chunk23b, eval=(params$run_sim && run_individual)}
 saveRDS(is_g_fits, here("data", "is_g_fits.RData"))
 saveRDS(is_output, here("data", "is_output.RData"))
 ```
