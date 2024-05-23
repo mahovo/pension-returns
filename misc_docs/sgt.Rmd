@@ -33,6 +33,7 @@ library(MASS)
 library(forcats)
 library(gridExtra)
 library(grid)
+library(bayesmeta)
 #library(sgt) ## Error during installation
 #library(ifft)
 ```
@@ -1503,6 +1504,115 @@ hat_stats_plot(plot_data, parameter_ID)
 ##     packages_comparison_stats_df: 3 * n_exponent x 6 (n as factor, m, sd, ci_l, ci_u, package)
 ```
 
+
+
+
+## Convolution
+
+Try convolution with `bayesmeta::convolve`.
+
+This works, but with `dsstd()` it only with one iteration. In other words, selv-convolution is not possible.
+
+```{r eval=FALSE}
+sim_params <- c(0.08, 0.12, 3.18, 0.02)
+num_periods <- 3
+```
+
+
+```{r eval=FALSE}
+f_0 <-  function(
+    x,
+    mean = sim_params[1],
+    sd = sim_params[2],
+    nu = sim_params[3],
+    xi = sim_params[4]
+  ) {
+  dsstd(
+    x,
+    mean = mean,
+    sd = sd,
+    nu = nu,
+    xi = xi
+  )
+}
+f_i <- function(
+    x,
+    mean = sim_params[1],
+    sd = sim_params[2],
+    nu = sim_params[3],
+    xi = sim_params[4]
+  ) {
+  dsstd(
+    x,
+    mean = mean,
+    sd = sd,
+    nu = nu,
+    xi = xi
+  )
+}
+```
+
+Fails:  
+
+```{r eval=FALSE}
+for(i in 1:num_periods) {
+  f_i <- convolve(
+    f_0,
+    f_i
+  )$density
+}
+```
+
+
+
+Does not fail but does also not complete en reasonable time:
+
+```{r eval=FALSE}
+sim_params <- c(0.08, 0.12)
+num_periods <- 4
+```
+
+```{r eval=FALSE}
+f_0 <-  function(
+    x,
+    mean = sim_params[1],
+    sd = sim_params[2]
+  ) {
+  dnorm(
+    x,
+    mean = mean,
+    sd = sd
+  )
+}
+f_i <- function(
+    x,
+    mean = sim_params[1],
+    sd = sim_params[2]
+  ) {
+  dnorm(
+    x,
+    mean = mean,
+    sd = sd
+  )
+}
+```
+
+```{r eval=FALSE}
+for(i in 1:num_periods) {
+  f_i <- convolve(
+    f_0,
+    f_i
+  )$density
+}
+```
+
+
+
+
+
+
+
+Conclusion for now: It might be interesting to compare convolution with estimating the density of Sn in terms of accuracy vs performance. But for now, self-convolution does not seem feasible with this approach (when we don't have a closed form). Even just a few itarations take a long time.
 
 
 

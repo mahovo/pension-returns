@@ -5,20 +5,13 @@
 Risk of loss at least as big as `x` percent for a single period (year).  
 `x` values are row names.  
 
+Skewed $t$-distribution (sstd):  
+
 ```{r}
 percent_vals = c(0, 5, 10, 25, 50, 90, 99)
-# risk_percentiles_df <-  data.frame(
-#       #Percent = percent_vals,
-#       Vel_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "loss"),
-#       Vel_ml = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "loss"),
-#       Vel_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "loss"),
-#       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "loss"),
-#       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "loss"),
-#       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "loss"),
-#       mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "loss"),
-#       vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "loss"),
-#       vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "loss")
-# )
+```
+
+```{r}
 risk_percentiles_df <- as.data.frame(lapply(
   fits,
   function(fit) {
@@ -34,31 +27,78 @@ knitr::kable(risk_percentiles_df, digits = 3)
 ```
 
 
+Standardized $t$-distribution (std):  
+
+```{r}
+risk_percentiles_std_df <- as.data.frame(lapply(
+  fits_std,
+  function(fit) {
+    risk_percentiles(fit$quantile_data, percent_vals, "loss")
+  }
+))
+colnames(risk_percentiles_std_df) <- fund_names
+rownames(risk_percentiles_std_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(risk_percentiles_std_df, digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+risk_percentiles_norm_df <- as.data.frame(lapply(
+  fits_norm,
+  function(fit) {
+    risk_percentiles(fit$quantile_data, percent_vals, "loss")
+  }
+))
+colnames(risk_percentiles_norm_df) <- fund_names
+rownames(risk_percentiles_norm_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(risk_percentiles_norm_df, digits = 3)
+```
+
+
 ### Worst ranking for loss percentiles
+
+Skewed $t$-distribution (sstd):  
 
 ```{r}
 knitr::kable(rank_summary(risk_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
 ```
+
+
+Standardized $t$-distribution (std):  
+
+```{r}
+knitr::kable(rank_summary(risk_percentiles_std_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+knitr::kable(rank_summary(risk_percentiles_norm_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
 
 ## Chance of min gains
 
 Chance of gains of at least `x` percent for a single period (year).  
 `x` values are row names.
 
+
+Skewed $t$-distribution (sstd):  
+
 ```{r}
 percent_vals = c(0, 5, 10, 25, 50, 100)
-# gain_percentiles_df <-  data.frame(
-#       #Percent = percent_vals,
-#       Velliv_m = risk_percentiles(fit_vmr$quantile_data, percent_vals, "gain"),
-#       Velliv_m_l = risk_percentiles(fit_vmrl$quantile_data, percent_vals, "gain"),
-#       Velliv_h = risk_percentiles(fit_vhr$quantile_data, percent_vals, "gain"),
-#       PFA_m = risk_percentiles(fit_pmr$quantile_data, percent_vals, "gain"),
-#       PFA_h = risk_percentiles(fit_phr$quantile_data, percent_vals, "gain"),
-#       mix_m = risk_percentiles(fit_mmr$quantile_data, percent_vals, "gain"),
-#       mix_h = risk_percentiles(fit_mhr$quantile_data, percent_vals, "gain"),
-#       vm_ph = risk_percentiles(fit_vm_ph$quantile_data, percent_vals, "gain"),
-#       vh_pm = risk_percentiles(fit_vh_pm$quantile_data, percent_vals, "gain")
-# )
+```
+
+```{r}
 gain_percentiles_df <- as.data.frame(lapply(
   fits,
   function(fit) {
@@ -73,10 +113,65 @@ rownames(gain_percentiles_df) <- as.character(percent_vals)
 knitr::kable(gain_percentiles_df, digits = 3)
 ```
 
+
+Standardized $t$-distribution (std):  
+
+```{r}
+gain_percentiles_std_df <- as.data.frame(lapply(
+  fits_std,
+  function(fit) {
+    risk_percentiles(fit$quantile_data, percent_vals, "gain")
+  }
+))
+colnames(gain_percentiles_std_df) <- fund_names
+rownames(gain_percentiles_std_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(gain_percentiles_std_df, digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+gain_percentiles_norm_df <- as.data.frame(lapply(
+  fits_norm,
+  function(fit) {
+    risk_percentiles(fit$quantile_data, percent_vals, "gain")
+  }
+))
+colnames(gain_percentiles_norm_df) <- fund_names
+rownames(gain_percentiles_norm_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(gain_percentiles_norm_df, digits = 3)
+```
+
+
+
 ### Best ranking for gains percentiles
+
+
+Skewed $t$-distribution (sstd):  
 
 ```{r}
 knitr::kable(rank_summary(gain_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+Standardized $t$-distribution (std):  
+
+```{r}
+knitr::kable(rank_summary(gain_percentiles_std_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+knitr::kable(rank_summary(gain_percentiles_norm_df, sorting = rep("hi", length(percent_vals))), digits = 3)
 ```
 
 
@@ -86,20 +181,12 @@ Risk of loss at least as big as row name in percent from first to last period.
 
 ```{r}
 percent_vals = c(0, 5, 10, 25, 50, 90, 99)
-# mc_loss_percentiles_df <-  data.frame(
-#       #Percent = percent_vals,
-#       Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "loss"),
-#       Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "loss"),
-#       Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "loss"),
-#       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "loss"),
-#       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "loss"),
-#       mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "loss"),
-#       mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "loss"),
-#       mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "loss"),
-#       mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "loss"),
-#       vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "loss"),
-#       vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "loss")
-# )
+```
+
+
+Skewed $t$-distribution (sstd):  
+
+```{r}
 mc_loss_percentiles_df <- as.data.frame(lapply(
   mc_output,
   function(x) {
@@ -114,7 +201,8 @@ rownames(mc_loss_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_loss_percentiles_df, digits = 3)
 ```
 
-1e6 simulation paths of `mhr`:
+1e6 sstd simulation paths of `mhr`:  
+
 ```{r}
 # percent_vals = c(0, 5, 10, 25, 50, 90, 99)
 # mc_mhr_b_many_mc_loss_percentiles <-
@@ -143,10 +231,63 @@ rownames(mc_mhr_b_many_mc_loss_percentiles) <- as.character(percent_vals)
 knitr::kable(t(mc_mhr_b_many_mc_loss_percentiles), digits = 3)
 ```
 
+
+Standardized $t$-distribution (std):  
+
+```{r}
+mc_loss_percentiles_std_df <- as.data.frame(lapply(
+  mc_output_std,
+  function(x) {
+    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "loss")
+  }
+))
+colnames(mc_loss_percentiles_std_df) <- fund_names
+rownames(mc_loss_percentiles_std_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(mc_loss_percentiles_std_df, digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+mc_loss_percentiles_norm_df <- as.data.frame(lapply(
+  mc_output_norm,
+  function(x) {
+    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "loss")
+  }
+))
+colnames(mc_loss_percentiles_norm_df) <- fund_names
+rownames(mc_loss_percentiles_norm_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(mc_loss_percentiles_norm_df, digits = 3)
+```
+
+
 ### Worst ranking for MC loss percentiles
+
+Skewed $t$-distribution (sstd):  
 
 ```{r}
 knitr::kable(rank_summary(mc_loss_percentiles_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+Standardized $t$-distribution (std):  
+
+```{r}
+knitr::kable(rank_summary(mc_loss_percentiles_std_df, sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+knitr::kable(rank_summary(mc_loss_percentiles_norm_df, sorting = rep("hi", length(percent_vals))), digits = 3)
 ```
 
 
@@ -154,20 +295,12 @@ knitr::kable(rank_summary(mc_loss_percentiles_df, sorting = rep("hi", length(per
 
 ```{r}
 percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
-# mc_gain_percentiles_df <-  data.frame(
-#       #Percent = percent_vals,
-#       Vel_m = risk_percentiles(log(unlist(mc_vmr$mc_df[20, ])/100), percent_vals, "gain"),
-#       Vel_ml = risk_percentiles(log(unlist(mc_vmrl$mc_df[20, ])/100), percent_vals, "gain"),
-#       Vel_h = risk_percentiles(log(unlist(mc_vhr$mc_df[20, ])/100), percent_vals, "gain"),
-#       PFA_m = risk_percentiles(log(unlist(mc_pmr$mc_df[20, ])/100), percent_vals, "gain"),
-#       PFA_h = risk_percentiles(log(unlist(mc_phr$mc_df[20, ])/100), percent_vals, "gain"),
-#       mix_ma = risk_percentiles(log(unlist(mc_mmr_a$mc_df[20, ])/100), percent_vals, "gain"),
-#       mix_ha = risk_percentiles(log(unlist(mc_mhr_a$mc_df[20, ])/100), percent_vals, "gain"),
-#       mix_mb = risk_percentiles(log(unlist(mc_mmr_b$mc_df[20, ])/100), percent_vals, "gain"),
-#       mix_hb = risk_percentiles(log(unlist(mc_mhr_b$mc_df[20, ])/100), percent_vals, "gain"),
-#       vm_ph = risk_percentiles(log(unlist(mc_vm_ph$mc_df[20, ])/100), percent_vals, "gain"),
-#       vh_pm = risk_percentiles(log(unlist(mc_vh_pm$mc_df[20, ])/100), percent_vals, "gain")
-# )
+```
+
+
+Skewed $t$-distribution (sstd):  
+
+```{r}
 mc_gain_percentiles_df <- as.data.frame(lapply(
   mc_output,
   function(x) {
@@ -182,7 +315,7 @@ rownames(mc_gain_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_gain_percentiles_df, digits = 3)
 ```
 
-1e6 simulation paths of `mhr`: 
+1e6 sstd simulation paths of `mhr`: 
 
 ```{r}
 # percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
@@ -209,7 +342,46 @@ knitr::kable(t(mc_mhr_b_many_mc_gains_percentiles), digits = 3)
 ```
 
 
+Standardized $t$-distribution (std):  
+
+```{r}
+mc_gain_percentiles_std_df <- as.data.frame(lapply(
+  mc_output_std,
+  function(x) {
+    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "gain")
+  }
+))
+colnames(mc_gain_percentiles_std_df) <- fund_names
+rownames(mc_gain_percentiles_std_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(mc_gain_percentiles_std_df, digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+mc_gain_percentiles_norm_df <- as.data.frame(lapply(
+  mc_output_norm,
+  function(x) {
+    risk_percentiles(log(unlist(x$mc_df[20, ])/100), percent_vals, "gain")
+  }
+))
+colnames(mc_gain_percentiles_norm_df) <- fund_names
+rownames(mc_gain_percentiles_norm_df) <- as.character(percent_vals)
+```
+
+```{r}
+knitr::kable(mc_gain_percentiles_norm_df, digits = 3)
+```
+
+
+
 ### Best ranking for MC gains percentiles
+
+Skewed $t$-distribution (sstd):  
 
 ```{r}
 knitr::kable(rank_summary(mc_gain_percentiles_df[1:6, ], sorting = rep("hi", length(percent_vals))), digits = 3)
@@ -218,6 +390,32 @@ knitr::kable(rank_summary(mc_gain_percentiles_df[1:6, ], sorting = rep("hi", len
 ```{r}
 knitr::kable(rank_summary(mc_gain_percentiles_df[7:11, ], sorting = rep("hi", length(percent_vals))), digits = 3)
 ```
+
+
+Standardized $t$-distribution (std):  
+
+```{r}
+knitr::kable(rank_summary(mc_gain_percentiles_std_df[1:6, ], sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+```{r}
+knitr::kable(rank_summary(mc_gain_percentiles_std_df[7:11, ], sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+knitr::kable(rank_summary(mc_gain_percentiles_norm_df[1:6, ], sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+```{r}
+knitr::kable(rank_summary(mc_gain_percentiles_norm_df[7:11, ], sorting = rep("hi", length(percent_vals))), digits = 3)
+```
+
+
+
+
 
 
 ## Summary statistics  
@@ -230,36 +428,96 @@ Summary for fit of log returns to an F-S skew standardized Student-t distributio
 `nu` is the estimated degrees of freedom, or shape parameter.  
 `xi` is the estimated skewness parameter.  
 
-```{r}
-# fit_summary <- data.frame(
-#   Vel_m = c(fit_vmr$m, fit_vmr$s, fit_vmr$nu, fit_vmr$xi, fit_vmr$r_squared),
-#   Vel_ml = c(fit_vmrl$m, fit_vmrl$s, fit_vmrl$nu, fit_vmrl$xi, fit_vmrl$r_squared),
-#   Vel_h = c(fit_vhr$m, fit_vhr$s, fit_vhr$nu, fit_vhr$xi, fit_vhr$r_squared),
-#   PFA_m = c(fit_pmr$m, fit_pmr$s, fit_pmr$nu, fit_pmr$xi, fit_pmr$r_squared),
-#   PFA_h = c(fit_phr$m, fit_phr$s, fit_phr$nu, fit_phr$xi, fit_phr$r_squared),
-#   mix_m = c(fit_mmr$m, fit_mmr$s, fit_mmr$nu, fit_mmr$xi, fit_mmr$r_squared),
-#   mix_h = c(fit_mhr$m, fit_mhr$s, fit_mhr$nu, fit_mhr$xi, fit_mhr$r_squared),
-#   vm_ph = c(fit_vm_ph$m, fit_vm_ph$s, fit_vm_ph$nu, fit_vm_ph$xi, fit_vm_ph$r_squared),
-#   vh_pm = c(fit_vh_pm$m, fit_vh_pm$s, fit_vh_pm$nu, fit_vh_pm$xi, fit_vh_pm$r_squared)
-# )
-fit_summary <- as.data.frame(lapply(
-  fits,
-  function(fit) {
-     c(fit$m, fit$s, fit$nu, fit$xi, fit$r_squared)
-  }
-))
-colnames(fit_summary) <- fund_names
-rownames(fit_summary) <- c("m", "s", "nu", "xi", "R^2")
-```
+
+Skewed $t$-distribution (sstd):  
 
 ```{r}
 knitr::kable(fit_summary, digits = 3)
 ```
 
-#### Fit statistics ranking
+
+Standardized $t$-distribution (std):  
+
+```{r}
+knitr::kable(fit_summary_std, digits = 3)
+```
+
+
+Normal distribution:  
+
+```{r}
+knitr::kable(fit_summary_norm, digits = 3)
+```
+
+
+#### AIC and BIC  
+
+
+AIC
+
+```{r}
+aic_df <- data.frame(matrix(numeric(3 * length(fund_names)), ncol = length(fund_names)))
+for(i in seq_along(fits)) {
+  aic_df[1, i] <- fits[[i]]$aic
+}
+for(i in seq_along(fits_std)) {
+  aic_df[2, i] <- fits_std[[i]]$aic
+}
+for(i in seq_along(fits_norm)) {
+  aic_df[3, i] <- fits_norm[[i]]$aic
+}
+colnames(aic_df) <- fund_names
+rownames(aic_df) <- c("sstd", "std", "normal")
+```
+
+
+```{r}
+knitr::kable(aic_df, digits = 3)
+```
+
+
+BIC  
+
+```{r}
+bic_df <- data.frame(matrix(numeric(3 * length(fund_names)), ncol = length(fund_names)))
+for(i in seq_along(fits)) {
+  bic_df[1, i] <- fits[[i]]$bic
+}
+for(i in seq_along(fits_std)) {
+  bic_df[2, i] <- fits_std[[i]]$bic
+}
+for(i in seq_along(fits_norm)) {
+  bic_df[3, i] <- fits_norm[[i]]$bic
+}
+colnames(bic_df) <- fund_names
+rownames(bic_df) <- c("sstd", "std", "normal")
+```
+
+```{r}
+knitr::kable(bic_df, digits = 3)
+```
+
+
+#### Fit statistics ranking  
+
+
+Skewed $t$-distribution (sstd):  
 
 ```{r}
 knitr::kable(rank_summary(fit_summary[c(1, 2, 5), ], sorting = c("hi", "lo", "hi")), digits = 3)
+```
+
+
+Standardized $t$-distribution (std):  
+
+```{r}
+knitr::kable(rank_summary(fit_summary_std[c(1, 2, 4), ], sorting = c("hi", "lo", "hi")), digits = 3)
+```
+
+Normal distribution:  
+
+```{r}
+knitr::kable(rank_summary(fit_summary_norm[c(1, 2, 3), ], sorting = c("hi", "lo", "hi")), digits = 3)
 ```
 
 
@@ -280,20 +538,9 @@ cat("Number of paths:", mc_num_paths, "\n")
 ```
 
 
+Skewed $t$-distribution (sstd):  
+
 ```{r}
-# mc_summary <- data.frame(
-#   Vel_m = c(mc_vmr$mc_m, mc_vmr$mc_s, mc_vmr$mc_min, mc_vmr$mc_max, mc_vmr$dao_probability_percent, mc_vmr$percent_losing_paths),
-#   Vel_ml = c(mc_vmrl$mc_m, mc_vmrl$mc_s, mc_vmrl$mc_min, mc_vmrl$mc_max, mc_vmrl$dao_probability_percent, mc_vmrl$percent_losing_paths),
-#   Vel_h = c(mc_vhr$mc_m, mc_vhr$mc_s, mc_vhr$mc_min, mc_vhr$mc_max, mc_vhr$dao_probability_percent, mc_vhr$percent_losing_paths),
-#   PFA_m = c(mc_pmr$mc_m, mc_pmr$mc_s, mc_pmr$mc_min, mc_pmr$mc_max, mc_pmr$dao_probability_percent, mc_pmr$percent_losing_paths),
-#   PFA_h = c(mc_phr$mc_m, mc_phr$mc_s, mc_phr$mc_min, mc_phr$mc_max, mc_phr$dao_probability_percent, mc_phr$percent_losing_paths),
-#   mix_ma = c(mc_mmr_a$mc_m, mc_mmr_a$mc_s, mc_mmr_a$mc_min, mc_mmr_a$mc_max, mc_mmr_a$dao_probability_percent, mc_mmr_a$percent_losing_paths),
-#   mix_mb = c(mc_mmr_b$mc_m, mc_mmr_b$mc_s, mc_mmr_b$mc_min, mc_mmr_b$mc_max, mc_mmr_b$dao_probability_percent, mc_mmr_b$percent_losing_paths),
-#   mix_ha = c(mc_mhr_a$mc_m, mc_mhr_a$mc_s, mc_mhr_a$mc_min, mc_mhr_a$mc_max, mc_mhr_a$dao_probability_percent, mc_mhr_a$percent_losing_paths),
-#   mix_hb = c(mc_mhr_b$mc_m, mc_mhr_b$mc_s, mc_mhr_b$mc_min, mc_mhr_b$mc_max, mc_mhr_b$dao_probability_percent, mc_mhr_b$percent_losing_paths),
-#   vm_ph = c(mc_vm_ph$mc_m, mc_vm_ph$mc_s, mc_vm_ph$mc_min, mc_vm_ph$mc_max, mc_vm_ph$dao_probability_percent, mc_vm_ph$percent_losing_paths),
-#   vh_pm = c(mc_vh_pm$mc_m, mc_vh_pm$mc_s, mc_vh_pm$mc_min, mc_vh_pm$mc_max, mc_vh_pm$dao_probability_percent, mc_vh_pm$percent_losing_paths)
-# )
 mc_summary <- as.data.frame(lapply(
   mc_output,
   function(x) {
@@ -309,17 +556,72 @@ knitr::kable(mc_summary, digits = 2)
 ```
 
 
-#### Ranking
+Standardized $t$-distribution (std):  
+
+```{r}
+mc_summary_std <- as.data.frame(lapply(
+  mc_output_std,
+  function(x) {
+    c(x$mc_m, x$mc_s, x$mc_min, x$mc_max, x$dao_probability_percent, x$percent_losing_paths)
+  }
+))
+colnames(mc_summary_std) <- fund_names
+rownames(mc_summary_std) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_pct", "dai_pct")
+```
+
+```{r}
+knitr::kable(mc_summary_std, digits = 2)
+```
+
+
+Normal distribution:  
+
+```{r}
+mc_summary_norm <- as.data.frame(lapply(
+  mc_output_norm,
+  function(x) {
+    c(x$mc_m, x$mc_s, x$mc_min, x$mc_max, x$dao_probability_percent, x$percent_losing_paths)
+  }
+))
+colnames(mc_summary_norm) <- fund_names
+rownames(mc_summary_norm) <- c("mc_m", "mc_s", "mc_min", "mc_max", "dao_pct", "dai_pct")
+```
+
+```{r}
+knitr::kable(mc_summary_norm, digits = 2)
+```
+
+
+#### Ranking  
+
+
+Skewed $t$-distribution (sstd):  
 
 ```{r}
 knitr::kable(rank_summary(mc_summary, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 2)
 ```
 
+
+Standardized $t$-distribution (std):  
+
+```{r}
+knitr::kable(rank_summary(mc_summary_std, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 2)
+```
+
+
+Normal distribution:  
+
+```{r}
+knitr::kable(rank_summary(mc_summary_norm, sorting = c("hi", "lo", "hi", "hi", "lo", "lo")), digits = 2)
+```
+
+
+
 # Compare Gaussian and skewed t-distribution fits
 
 ## Gaussian fits
 
-```{r}
+```{r eval=FALSE}
 fits_norm <- as.data.frame(lapply(
   data_df,
   function(x) {
@@ -330,11 +632,11 @@ fits_norm <- as.data.frame(lapply(
 rownames(fits_norm) <- c("m", "s")
 ```
 
-```{r}
+```{r eval=FALSE}
 knitr::kable(fits_norm, digits = 3)
 ```
 
-```{r fig.width=9, fig.height=12}
+```{r fig.width=9, fig.height=12, eval=FALSE}
 plot_norm_cdf <- function(x, m, s, minx, maxx, i) {
   plot(seq(from = minx, to = maxx, length.out = 100), pnorm(seq(from = minx, to = maxx, length.out = 100), m, s), pch = 16, cex = 0.3, type = "l", main = names(data_df)[i], xlab = "p", ylab = "log-return")
   abline(v = c(min(x), max(x)), col = c("red", "green"))
@@ -352,7 +654,7 @@ par(mfrow = c(1, 1))
 
 ### Gaussian QQ plots
 
-```{r fig.width=9, fig.height=12}
+```{r fig.width=9, fig.height=12, eval=FALSE}
 plot_norm_qq <- function(x, m, s, i) {
   qqnorm((x - m) / s, main = names(data_df)[i])
   qqline((x - m) / s)
@@ -385,8 +687,8 @@ make_extreme_probs <- function(data_df) {
   for(i in 1:ncol(data_df)) {
     x <- data_df[, i]
     extreme_probs[, i] <- c(
-      pnorm(min(x), fits_norm["m", i], fits_norm["s", i]) * 100, 
-      (1 - pnorm(max(x), fits_norm["m", i], fits_norm["s", i])) * 100,
+      pnorm(min(x), fits_norm[[i]]$dist_params[1], fits_norm[[i]]$dist_params[1]) * 100, 
+      (1 - pnorm(max(x), fits_norm[[i]]$dist_params[1], fits_norm[[i]]$dist_params[2])) * 100,
       psstd(min(x), fit_summary["m", i], fit_summary["s", i], fit_summary["nu", i], fit_summary["xi", i]) * 100, 
       (1 - psstd(max(x), fit_summary["m", i], fit_summary["s", i], fit_summary["nu", i], fit_summary["xi", i])) * 100
     )
@@ -413,7 +715,9 @@ knitr::kable(avg_yrs_btw_events, digits = 3)
 ```
 
 
-#### Lilliefors test
+#### Lilliefors test  
+
+
 ```{r}
 library(nortest)
 ```
@@ -439,6 +743,7 @@ knitr::kable(lillie_tests, digits = 3)
 
 #### Wittgenstein's Ruler  
 
+
 For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
 
 Conditional probabilities for smallest observed log-returns:
@@ -451,8 +756,8 @@ for(i in seq_along(data_df)) {
   probs <- bayes_survival(
     p_gaussian_values, 
     min(data_df[[i]]),
-    fits_norm[[1]],
-    c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
+    fits_norm[[i]]$dist_params,
+    fits[[i]]$dist_params,
     mode = "min"
   )
   plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
@@ -476,8 +781,8 @@ wittgenstein_min <- as.data.frame(lapply(
     probs <- bayes_survival(
       1 - lillie_p, 
       min(data_df[[i]]),
-      fits_norm[[1]],
-      c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
+      fits_norm[[i]]$dist_params,
+      fits[[i]]$dist_params,
       mode = "min"
     )
     c(
@@ -508,8 +813,8 @@ for(i in seq_along(data_df)) {
   probs <- bayes_survival(
     p_gaussian_values, 
     max(data_df[[i]]),
-    fits_norm[[1]],
-    c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
+    fits_norm[[i]]$dist_params,
+    fits[[i]]$dist_params,
     mode = "max"
   )
   plot(p_gaussian_values, probs[[2]], pch = 16, cex = 0.3, 
@@ -529,8 +834,8 @@ wittgenstein_max <- as.data.frame(lapply(
     probs <- bayes_survival(
       1 - lillie_p, 
       max(data_df[[i]]),
-      fits_norm[[1]],
-      c(fits[[i]]$m, fits[[i]]$s, fits[[i]]$nu, fits[[i]]$xi),
+      fits_norm[[i]]$dist_params,
+      fits[[i]]$dist_params,
       mode = "max"
     )
     c(
