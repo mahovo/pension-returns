@@ -65,7 +65,6 @@ par(mfrow = c(1, 1))
 ## Monte Carlo
 
 
-
 ```{r}
 max_nu_test <- fund_names[i] == rank_summary(fit_summary[3, ], sorting = "hi")[1, 2] 
 
@@ -74,9 +73,13 @@ min_nu_test <- fund_names[i] == rank_summary(fit_summary[3, ], sorting = "hi")[8
 nu_test <- max_nu_test + min_nu_test
 ```
 
+
+
 `r if(max_nu_test) {paste0(fund_names[i], " has the sstd fit with thehighest sstd fit with thevalue of nu. Inspect simulations:")}`
 
 `r if(min_nu_test) {paste0(fund_names[i], " has the sstd fit with the lowest value of nu. Inspect simulations:")}`
+
+
 
 ```{r results='hide',fig.keep='all', eval=params$run_mc_plot, fig.height=6, fig.width=8}
 

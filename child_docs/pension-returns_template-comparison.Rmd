@@ -450,7 +450,8 @@ knitr::kable(fit_summary_norm, digits = 3)
 ```
 
 
-#### AIC and BIC
+#### AIC and BIC  
+
 
 AIC
 
@@ -497,7 +498,8 @@ knitr::kable(bic_df, digits = 3)
 ```
 
 
-#### Fit statistics ranking
+#### Fit statistics ranking  
+
 
 Skewed $t$-distribution (sstd):  
 
@@ -590,7 +592,8 @@ knitr::kable(mc_summary_norm, digits = 2)
 ```
 
 
-#### Ranking
+#### Ranking  
+
 
 Skewed $t$-distribution (sstd):  
 
@@ -712,7 +715,9 @@ knitr::kable(avg_yrs_btw_events, digits = 3)
 ```
 
 
-#### Lilliefors test
+#### Lilliefors test  
+
+
 ```{r}
 library(nortest)
 ```
@@ -737,6 +742,7 @@ knitr::kable(lillie_tests, digits = 3)
 
 
 #### Wittgenstein's Ruler  
+
 
 For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
 
