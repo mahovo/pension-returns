@@ -274,7 +274,7 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
   aic = 2 * optim_out$value + 2 * 4
   bic = 2 * optim_out$value + log(n) * 4
     
-  sample_mean <- mean(dist_data)
+  sample_mean <- mean(x)
   
   if(distribution == "sstd") {
     qq_subtitle <- paste0(

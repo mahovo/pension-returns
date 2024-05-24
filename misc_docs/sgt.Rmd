@@ -1511,7 +1511,7 @@ hat_stats_plot(plot_data, parameter_ID)
 
 Try convolution with `bayesmeta::convolve`.
 
-This works, but with `dsstd()` it only with one iteration. In other words, selv-convolution is not possible.
+This works, but with `dsstd()` it only with one iteration. In other words, self-convolution is not possible.
 
 ```{r eval=FALSE}
 sim_params <- c(0.08, 0.12, 3.18, 0.02)
