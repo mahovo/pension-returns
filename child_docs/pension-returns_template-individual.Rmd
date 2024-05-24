@@ -75,9 +75,9 @@ nu_test <- max_nu_test + min_nu_test
 
 
 
-`r if(max_nu_test) {paste0(fund_names[i], " has the sstd fit with thehighest sstd fit with thevalue of nu. Inspect simulations:")}`
+`r if(max_nu_test) {paste0(fund_names[i], " has the sstd fit with the highest sstd fit with thevalue of nu. Compare with other distributions:")}`
 
-`r if(min_nu_test) {paste0(fund_names[i], " has the sstd fit with the lowest value of nu. Inspect simulations:")}`
+`r if(min_nu_test) {paste0(fund_names[i], " has the sstd fit with the lowest value of nu. Compare with other distributions:")}`
 
 
 
