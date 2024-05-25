@@ -2,8 +2,7 @@
 
 ## Risk of loss
 
-Risk of loss at least as big as `x` percent for a single period (year).  
-`x` values are row names.  
+Risk of loss at least as big as row name in percent for a single period (year).
 
 Skewed $t$-distribution (sstd):  
 
@@ -526,7 +525,7 @@ knitr::kable(rank_summary(fit_summary_norm[c(1, 2, 3), ], sorting = c("hi", "lo"
 
 Monte Carlo simulations of portfolio index values (currency values).  
 Statistics are given for the final state of all paths.  
-Probability of down-and_out is calculated as the share of paths that reach 0 at
+Probability of down-and-out is calculated as the share of paths that reach 0 at
 some point. All subsequent values for a path are set to 0, if the path reaches
 at any point.  
 0 is defined as any value below a threshold.    
