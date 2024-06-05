@@ -1,0 +1,1080 @@
+---
+title: "Monthly pension returns analysis: \nVelliv June 2012 - April 2024"
+author: Martin Hoshi Vognsen
+header-includes:
+   - \usepackage[default]{sourcesanspro}
+   - \usepackage[T1]{fontenc}
+   - \usepackage[fontsize=8pt]{scrextend}
+mainfont: SourceSansPro
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    keep_md: yes
+  pdf_document:
+    toc: true
+    toc_depth: 3
+#fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
+params:
+  run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
+                ## simulations output from disk instead of running the simulations.
+  run_fits: FALSE
+  run_exploratory: TRUE ## Include exploratory report?
+  run_individual: TRUE ## Include individual reports?
+  run_comparison: TRUE ## Include comparison report? Depends on run_individual.
+  run_mc_plot: TRUE ## Depends on run_individual.
+  run_is_sim: TRUE
+  run_is_plot: TRUE
+  include_long: TRUE
+date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
+---
+
+```{r chunk1, include=FALSE}
+## ****************************** WARNING ******************************
+## 
+##             This document takes a long time to render!
+##
+## *********************************************************************
+##
+## To read previous simulation outputs from disk rather than run simulations,
+## set YAML parameter run_sim: TRUE
+##
+## NOTE:
+## When using the "Run All" command, YAML parameters will be ignored. An error
+## message "Error in eval(ele) : object 'params' not found" will be printed,
+## but the chunks will be evaluated.
+```
+
+
+```{r  chunk2, include=FALSE, eval=FALSE}
+################################################################################
+##
+##                                      SETUP
+##
+################################################################################
+```
+
+```{r chunk3, setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+
+run_individual <- (params$run_individual + params$run_comparison + params$run_mc_plot > 0)
+run_exploratory <- (params$run_exploratory + run_individual > 0)
+
+## Note: In the second line (run_exploratory <- ...), run_individual is correct that - not params$run_individual, because if we choose params$run_exploratory=TRUE and params$run_comparison=TRUE, but params$run_individual=FALSE, we still have to do the individual calculations.
+```
+
+```{r chunk4}
+library(here)
+library(tidyr)
+library(tidyjson)
+```
+
+```{r chunk5}
+source(here("src", "pension-returns_functions.R"))
+```
+
+```{r chunk6}
+################################################################################
+##
+##                          GENERATE HTML AND PDF
+##                        (DON'T USE KNIT BUTTON!)
+##
+################################################################################
+```
+
+```{r chunk6a, eval=FALSE, include=FALSE}
+## Render this document to html and pdf
+rmarkdown::render(here::here("pension-returns_monthly.Rmd"), output_format ="all")
+```
+
+
+```{r chunk6b}
+################################################################################
+##
+##              GENERATE PDF MANUALLY AFTER GENERATING HTML AND MD
+##
+################################################################################
+
+## Note: Will not produce TOC and a few other things will be different.
+```
+
+```{bash chunk7, eval=FALSE, include=FALSE}
+## Convert md to pdf
+## Run manually:
+pandoc pension-returns_monthly.md -o pension-returns_monthly.pdf
+```
+
+
+```{r chunk7b}
+################################################################################
+##
+##                             COPY TO SITES FOLDER
+##
+################################################################################
+```
+
+```{bash eval=FALSE, include=FALSE}
+## Run manually:
+cp ~/R\ work/pension-returns/pension-returns_monthly.html ~/var/site/pension-returns_monthly.html
+cp ~/R\ work/pension-returns/pension-returns_monthly.pdf ~/var/site/pension-returns_monthly.pdf
+```
+
+
+```{r chunk8}
+################################################################################
+##
+##                                      INPUTS
+##
+################################################################################
+```
+
+```{r chunk9}
+mc_num_paths <- 1e4
+mc_num_periods <- 20 * 12
+mc_dao <- TRUE
+#mc_threshold <- 0.01
+
+## Min saldo for Velliv: kr 12.300
+## Assume initial capital of 400.000.
+## 100 * 12300/400000 = 3
+mc_threshold <- 3
+```
+
+Fit log returns to F-S skew standardized Student-t distribution.  
+`m`  is the location parameter.  
+`s` is the scale parameter.  
+`nu` is the estimated shape parameter (degrees of freedom).  
+`xi` is the estimated skewness parameter.  
+
+# Returns data  
+
+The long version of Velliv medium risk data runs from January 2007 to April 2024 (incl).  
+For January 2007 to May 2012 no low risk and high risk funds existed. For this period the medium risk data is copied into the other funds.  
+
+The short version runs from June 2012 to April 2024.
+
+Velliv returns are including bonus and "DinKapital.  
+PFA returns are including "KundeKapital".  
+
+```{r}
+## The specified folder must exist in the `data` directory
+data_dir <- "monthly"
+```
+
+```{r chunk10}
+## Headlines for individual sections
+headlines <- c(
+  "Velliv medium risk (vmr), June 2012 - April 2024",
+  "Velliv high risk (vhr), June 2012 - April 2024",
+  "PFA medium risk (pmr), June 2012 - April 2024",
+  "PFA high risk (phr), June 2012 - April 2024",
+  "Mix medium risk (mmr), June 2012 - April 2024",
+  "Mix high risk (mhr), June 2012 - April 2024",
+  "Mix vmr+phr (vm_ph), June 2012 - April 2024",
+  "Mix vhr+pmr (mh_pm), June 2012 - April 2024"
+)
+```
+
+```{r}
+## For Monte Carlo
+## When mixing two funds, we are doing average of simulations, not simulation of average!
+fit_id <- list(
+  1,
+  2,
+  3,
+  4,
+  c(1, 3),
+  c(2, 4),
+  c(1, 4),
+  c(2, 3)
+)
+
+```
+
+
+```{r}
+pfa_json <- read_json(here("data", "monthly", "pfa_monthly.json"))
+```
+
+```{r eval=FALSE}
+pfa_json %>% gather_object %>% json_types %>% count(name, type)
+```
+
+```{r eval=FALSE}
+pfa_json %>% enter_object(afkast_maaned) %>% gather_object %>% json_types %>% count(name, type)
+```
+```{r}
+pfa_monthly_json <- pfa_json %>% enter_object(afkast_maaned) %>% gather_object 
+pfa_monthly_json <- pfa_monthly_json$..JSON[[2]]
+#pfa_monthly_df <- pfa_monthly_df %>% spread_all
+```
+
+```{r}
+## Input json: Percent returns
+## Output df: Logreturns
+
+pfa_monthly_df <- data.frame()
+month_id <- 1
+num_years <- length(pfa_monthly_json)
+for(i in num_years - seq_along(pfa_monthly_json) + 1) {
+  year <- pfa_monthly_json[[i]]$aar
+  months <- pfa_monthly_json[[i]]$maaneder[-1]
+  for(j in seq_along(months)) {
+    pfa_monthly_df[month_id, "year"] <- year
+    pfa_monthly_df[month_id, "month"] <- months[[j]]$maaned
+    pfa_monthly_df[month_id, "pfa_a"] <- months[[j]]$a$a30
+    pfa_monthly_df[month_id, "pfa_b"] <- months[[j]]$b$a30
+    pfa_monthly_df[month_id, "pfa_c"] <- months[[j]]$c$a30
+    pfa_monthly_df[month_id, "pfa_d"] <- months[[j]]$d$a30
+    month_id <- month_id + 1
+  }
+}
+pfa_monthly_df <- pfa_monthly_df %>% 
+  ## Start at same date as short Velliv series: 2012-06-30
+  ## Get last day of the month by taking first day of next month and subtracting 1
+  mutate(date = as.Date(
+    paste0(
+      year + ifelse(as.numeric(month) == 12, 1, 0), 
+      "-", 
+      as.numeric(month) %% 12 + 1, 
+      "-", 
+      "01"
+      )
+    ) - 1 
+  ) %>% 
+  filter(date >= as.Date("2012-07-31", format = "%Y-%m-%d"))
+pfa_monthly_df <- cbind(pfa_monthly_df$date, pfa_monthly_df[, c("pfa_a", "pfa_b", "pfa_c", "pfa_d")])
+colnames(pfa_monthly_df)[1] <- "date"
+
+## Convert percent to gross returns
+pfa_monthly_logreturns_df <- pfa_monthly_df
+pfa_monthly_logreturns_df[, 2:5] <- log((pfa_monthly_df[, 2:5] /100) + 1)
+```
+
+```{r}
+## Calculate price index with 2012-06-30 being 100
+pfa_monthly_prices_df <- pfa_monthly_logreturns_df
+for(i in 2:5) {
+  pfa_monthly_prices_df[, i] <- 100 * exp(cumsum(pfa_monthly_logreturns_df[, i]))
+}
+pfa_monthly_prices_df <- rbind(
+    list(as.Date("2012-06-30", format = "%Y-%m-%d"), 100, 100, 100, 100),
+    pfa_monthly_prices_df
+  )
+```
+
+```{r}
+## Load data
+## Velliv long term log returns
+velliv_monthly_prices_long_df <- read.csv(here("data", data_dir, "velliv_monthly_prices.csv"),
+  colClasses = c("Date", "numeric", "numeric", "numeric", "numeric")
+)
+
+velliv_monthly_prices_df <- velliv_monthly_prices_long_df %>% 
+  filter(date >= as.Date("2012-06-30", format = "%Y-%m-%d"))
+
+velliv_monthly_logreturns_long_df <- velliv_monthly_prices_long_df[-1, ]
+velliv_monthly_logreturns_long_df[, -1] <- as.data.frame(lapply(
+  velliv_monthly_prices_long_df[, -1],
+  function(x) {
+    log(tail(x, -1) / head(x, -1))
+  }
+))
+
+#velliv_monthly_logreturns_df <- velliv_monthly_logreturns_long_df[-(1:65), ]
+velliv_monthly_logreturns_df <- velliv_monthly_logreturns_long_df %>% 
+  filter(date >= as.Date("2012-07-31", format = "%Y-%m-%d"))
+rownames(velliv_monthly_logreturns_df) <- as.character(1:nrow(velliv_monthly_logreturns_df))
+```
+
+
+```{r}
+monthly_logreturns_df <- cbind(
+  velliv_monthly_logreturns_df[, c("date", "medium_risk", "high_risk")],
+  pfa_monthly_logreturns_df[, c("pfa_b", "pfa_d")]
+)
+colnames(monthly_logreturns_df)[2:5] <- c("vmr", "vhr", "pmr", "phr")
+
+data_df_l <- data.frame(vmrl = velliv_monthly_logreturns_long_df$medium_risk) ## Only medium risk data
+
+monthly_logreturns_df <- monthly_logreturns_df %>% 
+  mutate(
+    mmr = mix_of_logreturns(vmr, pmr),
+    mhr = mix_of_logreturns(vhr, phr),
+    vmr_phr = mix_of_logreturns(vmr, phr),
+    vhr_pmr = mix_of_logreturns(vhr, pmr)
+  )
+
+monthly_prices_df <- data.frame(date = pfa_monthly_prices_df$date)
+for(i in 2:ncol(monthly_logreturns_df)) {
+  monthly_prices_df[, colnames(monthly_logreturns_df)[[i]]] <- prices_from_logreturns(monthly_logreturns_df[, colnames(monthly_logreturns_df)[[i]]])
+}
+
+data_df <- monthly_logreturns_df[, -1]
+
+fund_names <- c("vmr", "vhr", "pmr", "phr", "mmr", "mhr", "vmr_phr", "vhr_pmr")
+fund_names_l <- "vmrl"
+```
+
+
+
+
+
+```{r fig.width=10}
+ggplot(
+  pfa_monthly_prices_df %>% gather(key = "fund", value = "price", -date), 
+  aes(x = date, y = price)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("PFA monthly prices"), 
+    subtitle = "", 
+    x = "date", 
+    y = "price index"
+  )
+```
+
+```{r fig.width=10}
+ggplot(
+  pfa_monthly_logreturns_df %>% 
+    gather(key = "fund", value = "gross_return", -date) %>% 
+    mutate(gross_return = exp(gross_return)), 
+  aes(x = date, y = gross_return)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("PFA monthly gross returns"), 
+    subtitle = "", 
+    x = "date", 
+    y = "gross return"
+  )
+```
+
+
+```{r chunk11, eval=FALSE}
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+cols = gg_color_hue(4)
+
+all_data <- velliv_monthly_prices_df[, -1]
+plot(
+  x = velliv_monthly_prices_df$date, 
+  y = velliv_monthly_prices_df$guarantee, 
+  type = "l",  lty = 1, lwd = 1, 
+  xlab = "year", 
+  ylab = "Gross returns", 
+  col = cols[1], 
+  ylim = c(min(all_data), max(all_data)), 
+  main = "Velliv gross returns 2007-2023"
+)
+lines(
+  x = velliv_monthly_prices_df$date, 
+  y = velliv_monthly_prices_df$low_risk, 
+  col = cols[2],  
+  lty = 1, 
+  lwd = 0.8
+)
+lines(
+  x = velliv_monthly_prices_df$date, 
+  y = velliv_monthly_prices_df$medium_risk, 
+  col = cols[3],  
+  lty = 1, 
+  lwd = 0.6
+)
+lines(
+  x = velliv_monthly_prices_df$date, 
+  y = velliv_monthly_prices_df$high_risk, 
+  col = cols[4],  
+  lty = 1, 
+  lwd = 0.5
+)
+legend(
+  "bottomright", 
+  legend = c("guarantee", "low risk", "medium risk", "high risk"), 
+  col = cols, 
+  lty = 1, 
+  lwd = 2, 
+  cex = 0.75
+)
+```
+
+```{r fig.width=10}
+ggplot(
+  velliv_monthly_prices_df %>% gather(key = "fund", value = "price", -date), 
+  aes(x = date, y = price)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("Velliv monthly prices"), 
+    subtitle = "", 
+    x = "date", 
+    y = "price index"
+  )
+```
+
+
+```{r eval=params$include_long, fig.width=10}
+ggplot(
+  velliv_monthly_prices_long_df %>% gather(key = "fund", value = "price", -date), 
+  aes(x = date, y = price)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("Velliv monthly prices - long"), 
+    subtitle = "", 
+    x = "date", 
+    y = "price index"
+  )
+```
+
+
+```{r chunk11b, eval=FALSE}
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+cols = gg_color_hue(4)
+
+all_data <- exp(velliv_monthly_logreturns_df[, -1])
+plot(
+  x = velliv_monthly_logreturns_df$date, 
+  y = exp(velliv_monthly_logreturns_df$guarantee), 
+  type = "l",  
+  lty = 1, 
+  lwd = 1, 
+  xlab = "year", 
+  ylab = "Gross returns", 
+  col = cols[1], 
+  ylim = c(min(all_data), max(all_data)), 
+  main = "Velliv gross returns 2007-2023"
+)
+lines(
+  x = velliv_monthly_logreturns_df$date, y = exp(velliv_monthly_logreturns_df$low_risk), col = cols[2],  lty = 1, lwd = 0.8)
+lines(x = velliv_monthly_logreturns_df$date, y = exp(velliv_monthly_logreturns_df$medium_risk), col = cols[3],  lty = 1, lwd = 0.6)
+lines(x = velliv_monthly_logreturns_df$date, y = exp(velliv_monthly_logreturns_df$high_risk), col = cols[4],  lty = 1, lwd = 0.5)
+legend("bottomright", legend = c("guarantee", "low risk", "medium risk", "high risk"), col = cols, lty = 1, lwd = 2, cex = 0.75)
+```
+
+```{r fig.width=10}
+ggplot(
+  velliv_monthly_logreturns_df %>% 
+    gather(key = "fund", value = "gross_return", -date) %>% 
+    mutate(gross_return = exp(gross_return)), 
+  aes(x = date, y = gross_return)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("Velliv monthly gross returns"), 
+    subtitle = "", 
+    x = "date", 
+    y = "gross return"
+  )
+```
+
+```{r eval=params$include_long, fig.width=10}
+ggplot(
+  velliv_monthly_logreturns_long_df %>% 
+    gather(key = "fund", value = "gross_return", -date) %>% 
+    mutate(gross_return = exp(gross_return)), 
+  aes(x = date, y = gross_return)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("Velliv monthly gross returns - long"), 
+    subtitle = "", 
+    x = "date", 
+    y = "gross return"
+  )
+```
+
+```{r fig.width=10}
+ggplot(
+  monthly_prices_df %>% gather(key = "fund", value = "price", -date), 
+  aes(x = date, y = price)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("Velliv and PFA monthly prices"), 
+    subtitle = "", 
+    x = "date", 
+    y = "price index"
+  )
+```
+
+```{r fig.width=10}
+ggplot(
+  monthly_logreturns_df %>% 
+    gather(key = "fund", value = "gross_return", -date) %>% 
+    mutate(gross_return = exp(gross_return)), 
+  aes(x = date, y = gross_return)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
+  labs(
+    title = paste("Velliv and PFA monthly gross returns"), 
+    subtitle = "", 
+    x = "date", 
+    y = "gross return"
+  )
+```
+```{r fig.width=10}
+ggplot(
+  monthly_logreturns_df %>% 
+    group_by(date = lubridate::year(date)) %>%
+    summarize(
+      vmr = sum(vmr),
+      vhr = sum(vhr),
+      pmr = sum(pmr),
+      phr = sum(phr),
+      mmr = sum(mmr),
+      mhr = sum(mhr),
+      vmr_phr = sum(vmr_phr),
+      vhr_pmr = sum(vhr_pmr)
+    ) %>% 
+    gather(key = "fund", value = "gross_return", -date) %>% 
+    mutate(gross_return = exp(gross_return)),
+  aes(x = date, y = gross_return)
+) +
+  geom_line(aes(color = fund), linewidth = 0.5) +
+  #scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
+  scale_x_continuous(breaks = lubridate::year(monthly_logreturns_df$date)) +
+  labs(
+    title = paste("Velliv+PFA annual gross returns"), 
+    subtitle = "Aggregated from monthly gross returns", 
+    x = "date", 
+    y = "gross return"
+  )
+```
+
+
+
+
+
+```{r chunk12}
+################################################################################
+##
+##                                   CALCULATIONS
+##
+################################################################################
+```
+
+```{r chunk13}
+##                                       FITS
+```
+
+```{r chunk14, eval=(run_individual && params$run_fits)}
+fits <- lapply(
+  seq_along(data_df),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), distribution = "sstd")
+  })}
+)
+
+fits_std <- lapply(
+  seq_along(data_df),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), method = "Nelder-Mead", distribution = "std")
+  })}
+)
+
+fits_norm <- lapply(
+  seq_along(data_df),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), method = "Nelder-Mead", distribution = "normal")
+  })}
+)
+```
+
+
+```{r eval=(run_individual && params$include_long && params$run_fits)}
+fits_l <- lapply(
+  seq_along(data_df_l),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df_l[i]), distribution = "sstd")
+  })}
+)
+
+fits_std_l <- lapply(
+  seq_along(data_df_l),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df_l[i]), method = "Nelder-Mead", distribution = "std")
+  })}
+)
+
+fits_norm_l <- lapply(
+  seq_along(data_df_l),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df_l[i]), method = "Nelder-Mead", distribution = "normal")
+  })}
+)
+```
+
+```{r chunk15, eval=run_individual && params$run_fits}
+saveRDS(fits, file = here("data", data_dir,  "fits.RData"))
+saveRDS(fits_std, file = here("data", data_dir, "fits_std.RData"))
+saveRDS(fits_norm, file = here("data", data_dir, "fits_norm.RData"))
+```
+
+```{r chunk15b, eval=(run_individual && params$include_long && params$run_fits)}
+saveRDS(fits_l, file = here("data", data_dir,  "fits_l.RData"))
+saveRDS(fits_std_l, file = here("data", data_dir, "fits_std_l.RData"))
+saveRDS(fits_norm_l, file = here("data", data_dir, "fits_norm_l.RData"))
+```
+
+```{r chunk15c, eval=(run_individual && !params$run_fits)}
+fits <- readRDS(file = here("data", data_dir,  "fits.RData"))
+fits_std <- readRDS(file = here("data", data_dir, "fits_std.RData"))
+fits_norm <- readRDS(file = here("data", data_dir, "fits_norm.RData"))
+```
+
+```{r chunk15d, eval=(run_individual && !params$run_fits && params$include_long)}
+fits_l <- readRDS(file = here("data", data_dir,  "fits_l.RData"))
+fits_std_l <- readRDS(file = here("data", data_dir, "fits_std_l.RData"))
+fits_norm_l <- readRDS(file = here("data", data_dir, "fits_norm_l.RData"))
+```
+
+
+```{r eval=run_individual}
+fit_summary <- as.data.frame(lapply(
+  fits,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary) <- fund_names
+rownames(fit_summary) <- c("m", "s", "nu", "xi", "R^2")
+```
+
+```{r eval=run_individual}
+fit_summary_std <- as.data.frame(lapply(
+  fits_std,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_std) <- fund_names
+rownames(fit_summary_std) <- c("m", "s", "nu", "R^2")
+```
+
+```{r eval=run_individual}
+fit_summary_norm <- as.data.frame(lapply(
+  fits_norm,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_norm) <- fund_names
+rownames(fit_summary_norm) <- c("m", "s", "R^2")
+```
+
+```{r eval=(run_individual && params$include_long)}
+fit_summary_l <- as.data.frame(lapply(
+  fits_l,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_l) <- fund_names_l
+rownames(fit_summary_l) <- c("m", "s", "nu", "xi", "R^2")
+```
+
+```{r eval=(run_individual && params$include_long)}
+fit_summary_std_l <- as.data.frame(lapply(
+  fits_std_l,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_std_l) <- fund_names_l
+rownames(fit_summary_std_l) <- c("m", "s", "nu", "R^2")
+```
+
+```{r eval=(run_individual && params$include_long)}
+fit_summary_norm_l <- as.data.frame(lapply(
+  fits_norm_l,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_norm_l) <- fund_names_l
+rownames(fit_summary_norm_l) <- c("m", "s", "R^2")
+```
+
+
+```{r eval=(params$run_comparison && params$run_sim)}
+kappa_df <- data.frame(matrix(numeric(length(fund_names)), ncol = length(fund_names)))
+
+for(i in seq_along(fits)) {
+  kappa_df[1, i] <- f_kappa(
+    n0 = 1, 
+    n = 30, 
+    mean = fits[[i]]$dist_params[1], 
+    sd = fits[[i]]$dist_params[2], 
+    nu = fits[[i]]$dist_params[3], 
+    xi = fits[[i]]$dist_params[4], 
+    num_sim = 1e5
+  )
+}
+
+colnames(kappa_df) <- fund_names
+```
+
+```{r eval=(params$run_comparison && params$run_sim)}
+saveRDS(kappa_df, file = here("data", data_dir,  "kappa_df.RData"))
+```
+
+```{r eval=(params$run_comparison && !params$run_sim)}
+kappa_df <- readRDS(file = here("data", data_dir,  "kappa_df.RData"))
+```
+
+```{r eval=(params$run_comparison && params$run_sim)}
+n_min_df <- data.frame(matrix(numeric(length(fund_names)), ncol = length(fund_names)))
+
+for(i in seq_along(fits)) {
+  n_min_df[1, i] <- f_n_min(
+    n_g = 30, 
+    mean = fits[[i]]$dist_params[1], 
+    sd = fits[[i]]$dist_params[2], 
+    nu = fits[[i]]$dist_params[3], 
+    xi = fits[[i]]$dist_params[4], 
+    num_sim = 1e5, 
+    approx = FALSE
+  )
+}
+
+colnames(n_min_df) <- fund_names
+```
+
+```{r eval=(params$run_comparison && params$run_sim)}
+saveRDS(n_min_df, file = here("data", data_dir,  "n_min_df.RData"))
+```
+
+```{r eval=(params$run_comparison && !params$run_sim)}
+n_min_df <- readRDS(file = here("data", data_dir,  "n_min_df.RData"))
+```
+
+
+```{r chunk16}
+##                                     MONTE CARLO
+```
+
+```{r chunk17, eval=(params$run_sim && run_individual)}
+num_fits <- length(fits)
+
+mc_output <- list()
+for(i in seq_along(fits)) {
+  message(paste0("\nsstd: ", i, " of ", num_fits, "\n"))
+  mc_output[[i]] <- mc_simulation(
+    fits[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "sstd"
+  )
+}
+
+mc_output_std <- list()
+for(i in seq_along(fits_std)) {
+  message(paste0("\nstd: ", i, " of, ", num_fits, "\n"))
+  mc_output_std[[i]] <- mc_simulation(
+    fits_std[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "std"
+  )
+}
+
+mc_output_norm <- list()
+for(i in seq_along(fits_norm)) {
+  message(paste0("\nnormal: ", i, " of, ", num_fits, "\n"))
+  mc_output_norm[[i]] <- mc_simulation(
+    fits_norm[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "normal"
+  )
+}
+```
+
+```{r chunk17a, eval=(params$run_sim && run_individual && params$include_long)}
+fit_id_l <- list(
+  1
+)
+
+num_fits_l <- length(fits_l)
+
+mc_output_l <- list()
+for(i in seq_along(fits_l)) {
+  message(paste0("\nsstd: ", i, " of ", num_fits_l, "\n"))
+  mc_output_l[[i]] <- mc_simulation(
+    fits_l[fit_id_l[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "sstd"
+  )
+}
+
+mc_output_std_l <- list()
+for(i in seq_along(fits_std_l)) {
+  message(paste0("\nstd: ", i, " of, ", num_fits, "\n"))
+  mc_output_std_l[[i]] <- mc_simulation(
+    fits_std_l[fit_id_l[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "std"
+  )
+}
+
+mc_output_norm_l <- list()
+for(i in seq_along(fits_norm_l)) {
+  message(paste0("\nnormal: ", i, " of, ", num_fits, "\n"))
+  mc_output_norm_l[[i]] <- mc_simulation(
+    fits_norm_l[fit_id_l[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "normal"
+  )
+}
+```
+
+
+```{r chunk17b, eval=(params$run_sim && run_individual)}
+saveRDS(mc_output, file = here("data", data_dir, "mc_output.RData"))
+saveRDS(mc_output_std, file = here("data", data_dir, "mc_output_std.RData"))
+saveRDS(mc_output_norm, file = here("data", data_dir, "mc_output_norm.RData"))
+```
+
+```{r chunk17c, eval=(params$run_sim && run_individual && params$include_long)}
+saveRDS(mc_output_l, file = here("data", data_dir, "mc_output_l.RData"))
+saveRDS(mc_output_std_l, file = here("data", data_dir, "mc_output_std_l.RData"))
+saveRDS(mc_output_norm_l, file = here("data", data_dir, "mc_output_norm_l.RData"))
+```
+
+```{r chunk18, eval=(run_individual && !params$run_sim)}
+mc_output <- readRDS(file = here("data", data_dir, "mc_output.RData"))
+mc_output_std <- readRDS(file = here("data", data_dir, "mc_output_std.RData"))
+mc_output_norm <- readRDS(file = here("data", data_dir, "mc_output_norm.RData"))
+```
+
+```{r chunk18b, eval=(run_individual && !params$run_sim && params$include_long)}
+mc_output_l <- readRDS(file = here("data", data_dir, "mc_output_l.RData"))
+mc_output_std_l <- readRDS(file = here("data", data_dir, "mc_output_std_l.RData"))
+mc_output_norm_l<- readRDS(file = here("data", data_dir, "mc_output_norm_l.RData"))
+```
+
+
+```{r chunk19}
+##                                     MAX SUM PLOTS
+```
+
+```{r chunk20, eval=(params$run_sim && run_individual)}
+max_sum_plots <- list()
+for(i in seq_along(fits)) {
+  max_sum_plots[[i]] <- plot_max_sum(
+    fits[fit_id[[i]]], 
+    mc_num_paths,
+    distribution = "sstd"
+  )
+}
+
+max_sum_plots_std <- list()
+for(i in seq_along(fits_std)) {
+  max_sum_plots_std[[i]] <- plot_max_sum(
+    fits_std[fit_id[[i]]], 
+    mc_num_paths, 
+    distribution = "std"
+  )
+}
+
+max_sum_plots_norm <- list()
+for(i in seq_along(fits_norm)) {
+  max_sum_plots_norm[[i]] <- plot_max_sum(
+    fits_norm[fit_id[[i]]], 
+    mc_num_paths, 
+    distribution = "norm"
+  )
+}
+```
+
+```{r chunk20a, eval=(params$run_sim && run_individual && params$include_long)}
+max_sum_plots_l <- list()
+for(i in seq_along(fits_l)) {
+  max_sum_plots_l[[i]] <- plot_max_sum(
+    fits_l[fit_id_l[[i]]], 
+    mc_num_paths,
+    distribution = "sstd"
+  )
+}
+
+max_sum_plots_std_l <- list()
+for(i in seq_along(fits_std_l)) {
+  max_sum_plots_std_l[[i]] <- plot_max_sum(
+    fits_std_l[fit_id_l[[i]]], 
+    mc_num_paths, 
+    distribution = "std"
+  )
+}
+
+max_sum_plots_norm_l <- list()
+for(i in seq_along(fits_norm_l)) {
+  max_sum_plots_norm_l[[i]] <- plot_max_sum(
+    fits_norm_l[fit_id_l[[i]]], 
+    mc_num_paths, 
+    distribution = "norm"
+  )
+}
+```
+
+```{r chunk20b, eval=(params$run_sim && run_individual)}
+saveRDS(max_sum_plots, here("data", data_dir, "max_sum_plots.RData"))
+saveRDS(max_sum_plots_std, here("data", data_dir, "max_sum_plots_std.RData"))
+saveRDS(max_sum_plots_norm, here("data", data_dir, "max_sum_plots_norm.RData"))
+```
+
+```{r chunk20c, eval=(params$run_sim && run_individual && params$include_long)}
+saveRDS(max_sum_plots_l, here("data", data_dir, "max_sum_plots_l.RData"))
+saveRDS(max_sum_plots_std_l, here("data", data_dir, "max_sum_plots_std_l.RData"))
+saveRDS(max_sum_plots_norm_l, here("data", data_dir, "max_sum_plots_norm_l.RData"))
+```
+
+
+
+```{r chunk21, eval=(run_individual && !params$run_sim)}
+max_sum_plots <- readRDS(file = here("data", data_dir, "max_sum_plots.RData"))
+max_sum_plots_std <- readRDS(file = here("data", data_dir, "max_sum_plots_std.RData"))
+max_sum_plots_norm <- readRDS(file = here("data", data_dir, "max_sum_plots_norm.RData"))
+```
+
+```{r chunk21b, eval=(run_individual && !params$run_sim)}
+max_sum_plots_l <- readRDS(file = here("data", data_dir, "max_sum_plots_l.RData"))
+max_sum_plots_std_l <- readRDS(file = here("data", data_dir, "max_sum_plots_std_l.RData"))
+max_sum_plots_norm_l <- readRDS(file = here("data", data_dir, "max_sum_plots_norm_l.RData"))
+```
+
+
+```{r chunk22}
+##                                  IMPORTANCE SAMPLING
+```
+
+```{r chunk23, eval=(params$run_sim && run_individual && params$run_is_sim)}
+is_g_fits <-  list()
+is_output <- list()
+for(i in seq_along(fits)) {
+  is_g_fits[[i]] <- is_proposal(
+    x_i_fit = fits[fit_id[[i]]],
+    x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    obj_func_plot = TRUE,
+    init_par = c(2, 0.5),
+    method = "L-BFGS-B",
+    lower = c(1, 0.1),
+    upper = c(3, 0.9)
+  )
+  
+  is_output[[i]] <- importance_sampling(
+    x_i_fit = fits[fit_id[[i]]], 
+    x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    g_n_params = is_g_fits[[i]]$par, 
+    mode = 1
+  )
+}
+```
+
+```{r chunk23b, eval=(params$run_sim && run_individual && params$run_is_sim)}
+saveRDS(is_g_fits, here("data", data_dir, "is_g_fits.RData"))
+saveRDS(is_output, here("data", data_dir, "is_output.RData"))
+```
+
+```{r chunk24, eval=(run_individual && !params$run_sim && !params$run_is_sim && params$run_is_plot)}
+is_g_fits <- readRDS(file = here("data", data_dir, "is_g_fits.RData"))
+is_output <- readRDS(file = here("data", data_dir, "is_output.RData"))
+```
+
+
+```{r chunk25}
+###########################################################################
+##
+##                            GENERATE REPORTS
+##
+###########################################################################
+```
+
+```{r chunk26, eval=params$run_exploratory, results='asis'}
+exploratory_report <- knitr::knit_child(
+    here("child_docs", "pension-returns_template-exploratory.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(exploratory_report), sep = '\n')
+```
+
+```{r chunk27, eval=params$run_comparison, results='asis'}
+comparison_report <- knitr::knit_child(
+    here("child_docs", "pension-returns_template-comparison.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(comparison_report), sep = '\n')
+```
+
+```{r chunk28, eval=params$run_individual, results='asis'}
+long <- FALSE
+individual_reports <- lapply(
+  seq_along(data_df),
+  function(i) {
+    knitr::knit_child(
+      here("child_docs", "pension-returns_template-individual.Rmd"),
+      envir = environment(), 
+      quiet = TRUE
+    )
+  }
+)
+
+cat(unlist(individual_reports), sep = '\n')
+```
+
+```{r chunk28b, eval=params$run_individual, results='asis', eval=params$include_long}
+long <- TRUE
+individual_reports <- lapply(
+  seq_along(data_df_l),
+  function(i) {
+    knitr::knit_child(
+      here("child_docs", "pension-returns_template-individual.Rmd"),
+      envir = environment(), 
+      quiet = TRUE
+    )
+  }
+)
+
+cat(unlist(individual_reports), sep = '\n')
+```
+
+
+
+
+
