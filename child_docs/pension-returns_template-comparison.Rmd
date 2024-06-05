@@ -200,35 +200,7 @@ rownames(mc_loss_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_loss_percentiles_df, digits = 3)
 ```
 
-1e6 sstd simulation paths of `mhr`:  
 
-```{r}
-# percent_vals = c(0, 5, 10, 25, 50, 90, 99)
-# mc_mhr_b_many_mc_loss_percentiles <-
-#   data.frame(
-#     percentiles = percent_vals,
-#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "loss")
-#   )
-# 
-# t(mc_mhr_b_many_mc_loss_percentiles)
-```
-
-```{r}
-# knitr::kable(t(mc_mhr_b_many_mc_loss_percentiles), digits = 3)
-```
-
-```{r}
-percent_vals = c(0, 5, 10, 25, 50, 90, 99)
-mc_mhr_b_many_mc_loss_percentiles <- 
-  data.frame(
-    prob_pct = c(0.118, 0.095, 0.076, 0.036, 8e-03, 0, 0)
-  )
-rownames(mc_mhr_b_many_mc_loss_percentiles) <- as.character(percent_vals)
-```
-
-```{r}
-knitr::kable(t(mc_mhr_b_many_mc_loss_percentiles), digits = 3)
-```
 
 
 Standardized $t$-distribution (std):  
@@ -314,31 +286,7 @@ rownames(mc_gain_percentiles_df) <- as.character(percent_vals)
 knitr::kable(mc_gain_percentiles_df, digits = 3)
 ```
 
-1e6 sstd simulation paths of `mhr`: 
 
-```{r}
-# percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
-# mc_mhr_b_many_mc_loss_percentiles <-
-#   data.frame(
-#     percentiles = percent_vals,
-#     prob=risk_percentiles(log(unlist(mc_mhr_b_many$mc_df[20, ])/100), percent_vals, "gain")
-#   )
-# t(mc_mhr_b_many_mc_loss_percentiles)
-```
-
-```{r}
-percent_vals = c(0, 5, 10, 25, 50, 100, 200, 300, 400, 500, 1000)
-mc_mhr_b_many_mc_gains_percentiles <- 
-  data.frame(
-    prob = c(99.8819, 99.8536, 99.824, 99.6861, 99.3009, 97.5134, 86.9115, 65.992, 41.486, 21.6928, 8.65e-02)
-  )
-
-rownames(mc_mhr_b_many_mc_gains_percentiles) <- as.character(percent_vals)
-```
-
-```{r}
-knitr::kable(t(mc_mhr_b_many_mc_gains_percentiles), digits = 3)
-```
 
 
 Standardized $t$-distribution (std):  
@@ -495,6 +443,42 @@ rownames(bic_df) <- c("sstd", "std", "normal")
 ```{r}
 knitr::kable(bic_df, digits = 3)
 ```
+
+#### Kappa  
+
+Let $\{X_{g,i}\}$ be Gaussian distributed with mean $\mu$ and scale $\sigma$.
+
+Let $\{X_{\nu,i}\}$ be $t$-distributed, scaled such that $\mathbb{M}^{\nu}(1) = \mathbb{M}^{g}(1) = \sqrt{\frac{2}{\pi}} \sigma$.
+
+Given $n_g$, we want to determine  and $n_{\nu}^{*}$ such that
+
+$$\text{Var}\left[\sum_i^{n_g} X_{g,i}\right] = \text{Var}\left[\sum_i^{n_{\nu}^{*}} X_{\nu,i}\right]$$
+
+For iid. r.v $\{X_i\}$:
+
+$$S_n = X_1 + X_2 + \dots + X_n$$
+$$\mathbb{M}(n) = \mathbb{E}(\lvert S_n - \mathbb{E}(S_n)\rvert)$$
+Taleb's convergence metric ($\kappa$):
+
+The "rate" of convergence for $n$ summands vs $n_0$, i.e. the improved convergence achieved by $n - n_0$ additional terms, is given by $\kappa(n_0, n)$:
+
+$$\kappa(n_0, n) = 2 - \dfrac{\log(n) - \log(n_0)}{\log\left(\frac{\mathbb{M}(n)}{\mathbb{M}(n_0)}\right)}$$
+
+$\kappa$    
+
+```{r}
+knitr::kable(kappa_df, digits = 2)
+```
+
+
+$n_{min}$  
+
+What is the minimum value of $n_{\nu}$, the number of observations from a given skewed $t$-distribution, we need to achieve the same degree of convergence as with $n_g=30$ observations from a Gaussian distribution with the same mean and standard deviation?
+
+```{r}
+knitr::kable(n_min_df, digits = 0)
+```
+
 
 
 #### Fit statistics ranking  

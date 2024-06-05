@@ -613,7 +613,7 @@ mc_simulation <- function(
 ## We get x_n_fit from a MC simulation. So we always need to run an MC first.
 is_proposal <- function(
     x_i_fit, 
-    x_n_vect = NA,
+    x_n_vect = NULL,
     num_paths, 
     num_periods, 
     obj_func_plot = FALSE,
@@ -629,7 +629,7 @@ is_proposal <- function(
   #set.seed(2304)
   #x_n_vect <- replicate(num_paths, sum(rsstd(num_periods - 1, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
  
-  if(is.na(x_n_vect)) {
+  if(is.null(x_n_vect)) {
     num_fits <- length(x_i_fit)
     x_n_vect <- numeric(num_paths)
     set.seed(2304)
@@ -749,12 +749,12 @@ is_proposal <- function(
   ## is calculated.)
 importance_sampling <- function(
     x_i_fit, 
-    x_n_vect = NA, 
+    x_n_vect = NULL, 
     num_paths, 
     num_periods, 
     g_n_params, 
     mode = 1, 
-    p_vect = NA, 
+    p_vect = NULL, 
     plot_mode = "index", ## "index" or "log"
     rnd_seed_x = 2304, 
     rnd_seed_p = 1411
@@ -764,7 +764,7 @@ importance_sampling <- function(
   #   set.seed(rnd_seed_x)
   #   x_n_vect <- replicate(num_paths, sum(rsstd(num_periods, x_i_fit$m, x_i_fit$s, x_i_fit$nu, x_i_fit$xi)))
   # }
-  if(is.na(x_n_vect)) {
+  if(is.null(x_n_vect)) {
     num_fits <- length(x_i_fit)
     x_n_vect <- numeric(num_paths)
     set.seed(rnd_seed_x)
@@ -778,7 +778,8 @@ importance_sampling <- function(
   fit_x_n <- optim(start, loglik_sstd, x = x_n_vect)
   f_n_params <- fit_x_n$par
 
-  if(is.na(p_vect)) {
+
+  if(is.null(p_vect)) {
     set.seed(rnd_seed_p)
     p_vect <- runif(num_paths, 0.0, 1.0)
   }
@@ -898,5 +899,66 @@ bayes_survival <- function(p_gaussian, x, norm_params, sstd_params, mode = "min"
   )
 }
 
+prices_from_logreturns <- function(logreturns) {
+  c(100, 100 * exp(cumsum(logreturns)))
+}
 
+logreturns_of_prices <- function(prices) {
+  log(tail(prices, -1)/head(prices, -1))
+}
+
+mix_of_logreturns <- function(logreturns1, logreturns2) {
+  prices1 <- prices_from_logreturns(logreturns1)
+  prices2 <- prices_from_logreturns(logreturns2)
+  avg_prices <- (prices1 + prices2) / 2
+  logreturns_of_prices(avg_prices)
+}
+
+## Mean Absolute Deviation
+f_mad <- function(x) {
+  sum(abs(x - mean(x))) / length(x)
+}
+
+## MAD of S_n, given the mean of X
+f_mad_n <- function(Sn, mean_X) {
+  diff <- numeric(length(Sn))
+  for(i in seq_along(Sn)) {
+    diff[i] <- abs(Sn[i] - mean_X)
+  }
+  sum(diff) / length(Sn)
+}
+
+## mean is the mean of a single Gaussian r.v. (same for t-distribution)
+## sd is the sd of a single Gaussian r.v. (same for t-distribution)
+f_kappa <- function(n0, n, mean, sd = 1, nu = 3, xi = 1, num_sim = 1e4) {
+  Sn_sim <- replicate(
+    num_sim, 
+    rsstd(n = n, mean = mean, sd = nu/(nu - 2) * sd, nu = nu, xi = xi)
+  )
+  mad_n0 <- f_mad_n(
+    unlist(lapply(1:num_sim, function(i) sum(Sn_sim[1:n0, i]))),  
+    n0 * mean
+  )
+  mad_n <- f_mad_n(
+    unlist(lapply(1:num_sim, function(i) sum(Sn_sim[1:n, i]))),  
+    n * mean
+  ) 
+  nominator <- log(n) - log(n0)
+  denominator <- log(mad_n / mad_n0)
+  2 - (nominator / denominator)
+}
+
+## Use approximation if approx = TRUE
+f_n_min <- function(n_g, mean, sd_g = 1, nu = 3, xi = 1, num_sim = 1e4, approx = FALSE) {
+  ifelse(
+    approx,
+    exponent <- - 1 / (f_kappa(
+      1, 2, mean, sd = sd_g * (nu / (nu - 2)), nu = nu, xi = xi, num_sim = num_sim
+    ) - 1),
+    exponent <- - 1 / (f_kappa(
+      1, n_g, mean, sd = sd_g * (nu / (nu - 2)), nu = nu, xi = xi, num_sim = num_sim
+    ) - 1)
+  )
+  n_g^exponent
+}
 
