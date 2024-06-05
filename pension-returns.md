@@ -23,7 +23,7 @@ params:
   run_comments: TRUE
   run_appendix: TRUE ## Depends on run_individual
   run_mc_plot: TRUE
-date: "19:03 25 May 2024"
+date: "07:13 29 May 2024"
 ---
 
 
@@ -66,6 +66,9 @@ Fit log returns to F-S skew standardized Student-t distribution.
 
 For 2011, medium risk data is used in the high risk data set, as no high risk fund data is available prior to 2012.  
 `vmrl` is a long version of Velliv medium risk data, from 2007 to 2023. For 2007 to 2011 (both included) no high risk data is available.
+
+PFA medium risk is risk profile B.  
+PFA high risk is risk profile D.  
 
 
 
@@ -129,14 +132,14 @@ The summary statistics are transformed back to the scale of gross returns by tak
 
 
 
-|         |   vmr|   vhr|  vmrl|   pmr|   phr|   mmr|   mhr| vmr_phr| vhr_pmr|
-|:--------|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-------:|-------:|
-|Min.   : | 0.868| 0.849| 0.801| 0.904| 0.878| 0.988| 0.977|   0.979|   0.967|
-|1st Qu.: | 1.044| 1.039| 1.013| 1.042| 1.068| 1.013| 1.013|   1.021|   1.011|
-|Median : | 1.097| 1.099| 1.085| 1.084| 1.128| 1.085| 1.113|   1.102|   1.094|
-|Mean   : | 1.067| 1.080| 1.057| 1.063| 1.089| 1.064| 1.085|   1.079|   1.072|
-|3rd Qu.: | 1.136| 1.160| 1.128| 1.107| 1.182| 1.101| 1.128|   1.121|   1.107|
-|Max.   : | 1.168| 1.214| 1.193| 1.141| 1.208| 1.133| 1.207|   1.178|   1.163|
+|         |   vmr|   vhr|   pmr|   phr|   mmr|   mhr| vmr_phr| vhr_pmr|
+|:--------|-----:|-----:|-----:|-----:|-----:|-----:|-------:|-------:|
+|Min.   : | 0.868| 0.849| 0.904| 0.878| 0.988| 0.977|   0.979|   0.967|
+|1st Qu.: | 1.044| 1.039| 1.042| 1.068| 1.013| 1.013|   1.021|   1.011|
+|Median : | 1.097| 1.099| 1.084| 1.128| 1.085| 1.113|   1.102|   1.094|
+|Mean   : | 1.067| 1.080| 1.063| 1.089| 1.064| 1.085|   1.079|   1.072|
+|3rd Qu.: | 1.136| 1.160| 1.107| 1.182| 1.101| 1.128|   1.121|   1.107|
+|Max.   : | 1.168| 1.214| 1.141| 1.208| 1.133| 1.207|   1.178|   1.163|
 
 
 ## Ranking
@@ -146,12 +149,11 @@ The summary statistics are transformed back to the scale of gross returns by tak
 |    0.988|mmr     |    1.068|phr     |    1.128|phr     |    1.089|phr     |    1.182|phr     |    1.214|vhr     |
 |    0.979|vmr_phr |    1.044|vmr     |    1.113|mhr     |    1.085|mhr     |    1.160|vhr     |    1.208|phr     |
 |    0.977|mhr     |    1.042|pmr     |    1.102|vmr_phr |    1.080|vhr     |    1.136|vmr     |    1.207|mhr     |
-|    0.967|vhr_pmr |    1.039|vhr     |    1.099|vhr     |    1.079|vmr_phr |    1.128|vmrl    |    1.193|vmrl    |
-|    0.904|pmr     |    1.021|vmr_phr |    1.097|vmr     |    1.072|vhr_pmr |    1.128|mhr     |    1.178|vmr_phr |
-|    0.878|phr     |    1.013|vmrl    |    1.094|vhr_pmr |    1.067|vmr     |    1.121|vmr_phr |    1.168|vmr     |
-|    0.868|vmr     |    1.013|mmr     |    1.085|vmrl    |    1.064|mmr     |    1.107|pmr     |    1.163|vhr_pmr |
-|    0.849|vhr     |    1.013|mhr     |    1.085|mmr     |    1.063|pmr     |    1.107|vhr_pmr |    1.141|pmr     |
-|    0.801|vmrl    |    1.011|vhr_pmr |    1.084|pmr     |    1.057|vmrl    |    1.101|mmr     |    1.133|mmr     |
+|    0.967|vhr_pmr |    1.039|vhr     |    1.099|vhr     |    1.079|vmr_phr |    1.128|mhr     |    1.178|vmr_phr |
+|    0.904|pmr     |    1.021|vmr_phr |    1.097|vmr     |    1.072|vhr_pmr |    1.121|vmr_phr |    1.168|vmr     |
+|    0.878|phr     |    1.013|mmr     |    1.094|vhr_pmr |    1.067|vmr     |    1.107|pmr     |    1.163|vhr_pmr |
+|    0.868|vmr     |    1.013|mhr     |    1.085|mmr     |    1.064|mmr     |    1.107|vhr_pmr |    1.141|pmr     |
+|    0.849|vhr     |    1.011|vhr_pmr |    1.084|pmr     |    1.063|pmr     |    1.101|mmr     |    1.133|mmr     |
 
 
 ## Correlations and covariance
@@ -1772,7 +1774,7 @@ $$\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} +
 
 $$(x_{t-1} + y_{t-1}) x_t y_{t-1} + (x_{t-1} + y_{t-1}) x_{t-1} y_t = 2 (x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
 
-$$(x_{t-1}x_1y_{t-1} + y_{t-1}x_ty_{t-1}) + (x_{t-1}x_{t-1}y_t + x_{t-1}y_{t-1}y_t) = 2(x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+$$(x_{t-1}x_ty_{t-1} + y_{t-1}x_ty_{t-1}) + (x_{t-1}x_{t-1}y_t + x_{t-1}y_{t-1}y_t) = 2(x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
 This is not generally true, but true if for instance
 $x_{t-1} = y_{t-1}$.
 
@@ -1852,13 +1854,13 @@ Test if a simulation of a mix (average) of two returns series has the
 same distribution as a mix of two simulated returns series.
 
 ```
-## m(data_x): 0.004571526 
-## s(data_x): 0.3121485 
-## m(data_y): 9.708343 
-## s(data_y): 3.750817 
+## m(data_x): 0.07835937 
+## s(data_x): 0.4045342 
+## m(data_y): 10.07878 
+## s(data_y): 3.296439 
 ## 
-## m(data_x + data_y): 4.856457 
-## s(data_x + data_y): 1.915542
+## m(data_x + data_y): 5.078572 
+## s(data_x + data_y): 1.651354
 ```
 
 m and s of final state of all paths.\
@@ -1866,27 +1868,27 @@ m and s of final state of all paths.\
 `_b` is simulated mixed returns.
 
 
-|    m_a|    m_b|   s_a|   s_b|
-|------:|------:|-----:|-----:|
-| 96.651| 97.156| 8.841| 8.566|
-| 97.483| 96.975| 8.447| 8.428|
-| 97.201| 97.387| 8.546| 8.334|
-| 97.203| 96.924| 8.224| 8.387|
-| 96.547| 97.011| 8.598| 8.531|
-| 96.934| 96.717| 8.604| 8.643|
-| 96.941| 97.129| 8.449| 8.182|
-| 96.970| 96.734| 8.032| 8.169|
-| 96.729| 97.186| 8.820| 8.708|
-| 97.022| 97.063| 8.457| 8.718|
+|     m_a|     m_b|   s_a|   s_b|
+|-------:|-------:|-----:|-----:|
+| 101.752| 101.779| 7.589| 7.501|
+| 101.867| 101.641| 7.468| 7.430|
+| 101.468| 101.598| 7.427| 7.479|
+| 101.430| 101.726| 7.331| 7.369|
+| 101.336| 101.922| 7.321| 7.532|
+| 101.306| 101.529| 7.348| 7.647|
+| 101.597| 101.263| 7.477| 7.415|
+| 101.697| 101.697| 7.247| 7.451|
+| 101.537| 101.859| 7.645| 7.412|
+| 101.574| 101.682| 7.723| 7.490|
 
 ```
 ##       m_a             m_b             s_a             s_b       
-##  Min.   :96.55   Min.   :96.72   Min.   :8.032   Min.   :8.169  
-##  1st Qu.:96.78   1st Qu.:96.94   1st Qu.:8.447   1st Qu.:8.347  
-##  Median :96.96   Median :97.04   Median :8.501   Median :8.480  
-##  Mean   :96.97   Mean   :97.03   Mean   :8.502   Mean   :8.467  
-##  3rd Qu.:97.16   3rd Qu.:97.15   3rd Qu.:8.602   3rd Qu.:8.624  
-##  Max.   :97.48   Max.   :97.39   Max.   :8.841   Max.   :8.718
+##  Min.   :101.3   Min.   :101.3   Min.   :7.247   Min.   :7.369  
+##  1st Qu.:101.4   1st Qu.:101.6   1st Qu.:7.335   1st Qu.:7.419  
+##  Median :101.6   Median :101.7   Median :7.447   Median :7.465  
+##  Mean   :101.6   Mean   :101.7   Mean   :7.457   Mean   :7.473  
+##  3rd Qu.:101.7   3rd Qu.:101.8   3rd Qu.:7.561   3rd Qu.:7.498  
+##  Max.   :101.9   Max.   :101.9   Max.   :7.723   Max.   :7.647
 ```
 
 `_a` and `_b` are very close to equal.\
@@ -1937,12 +1939,12 @@ We do this by sampling 13 observations from `vmrl`.
 
 ```
 ##        m                 s          
-##  Min.   :0.06102   Min.   :0.05019  
-##  1st Qu.:0.06578   1st Qu.:0.06022  
-##  Median :0.06823   Median :0.06828  
-##  Mean   :0.07025   Mean   :0.06875  
-##  3rd Qu.:0.07273   3rd Qu.:0.07507  
-##  Max.   :0.08403   Max.   :0.09132
+##  Min.   :0.05947   Min.   :0.03798  
+##  1st Qu.:0.06631   1st Qu.:0.05963  
+##  Median :0.07057   Median :0.06564  
+##  Mean   :0.07086   Mean   :0.06590  
+##  3rd Qu.:0.07614   3rd Qu.:0.07166  
+##  Max.   :0.08109   Max.   :0.08840
 ```
 
 ## The meaning of `xi`
