@@ -1,5 +1,6 @@
 ---
-title: "A study of the skewed generalized t-distribution"
+title: "An informal study of the skewed generalized t-distribution"
+author: Martin Hoshi Vognsen
 output: 
   html_document:
     toc: true

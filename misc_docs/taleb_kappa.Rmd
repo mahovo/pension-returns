@@ -1,5 +1,6 @@
 ---
-title: "Taleb's kappa"
+title: "Notes on Taleb's kappa"
+author: Martin Hoshi Vognsen
 output: 
   pdf_document:
     toc: true
