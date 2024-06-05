@@ -1,0 +1,1032 @@
+---
+title: "Annual pension returns analysis"
+author: Martin Hoshi Vognsen
+header-includes:
+   - \usepackage[default]{sourcesanspro}
+   - \usepackage[T1]{fontenc}
+   - \usepackage[fontsize=8pt]{scrextend}
+mainfont: SourceSansPro
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    keep_md: yes
+  pdf_document:
+    toc: true
+    toc_depth: 3
+#fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
+params:
+  run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
+                ## simulations output from disk instead of running the simulations.
+  run_fits: FALSE
+  run_exploratory: TRUE ## Include exploratory report?
+  run_individual: TRUE ## Include individual reports? Depends on run_individual.
+  run_comparison: TRUE ## Include comparison report? Depends on run_individual.
+  run_comments: FALSE ## !!! OBS! Comments in separarte child doc deprecated
+  run_appendix: FALSE ## !!! OBS! Appendix in separarte child doc deprecated
+  run_mc_plot: TRUE
+  run_is_sim: TRUE
+  run_is_plot: TRUE
+  include_long: TRUE
+date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
+---
+
+```{r chunk1, include=FALSE}
+## ****************************** WARNING ******************************
+## 
+##             This document takes a long time to render!
+##
+## *********************************************************************
+##
+## To read previous simulation outputs from disk rather than run simulations,
+## set YAML parameter run_sim: TRUE
+##
+## NOTE:
+## When using the "Run All" command, YAML parameters will be ignored. An error
+## message "Error in eval(ele) : object 'params' not found" will be printed,
+## but the chunks will be evaluated.
+```
+
+
+
+```{r  chunk2, include=FALSE, eval=FALSE}
+################################################################################
+##
+##                                      SETUP
+##
+################################################################################
+```
+
+```{r chunk3, setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message=FALSE)
+
+run_individual <- (params$run_individual + params$run_comparison + params$run_appendix + params$run_mc_plot > 0)
+run_exploratory <- (params$run_exploratory + run_individual > 0)
+
+## Note: In the second line (run_exploratory <- ...), run_individual is correct that - not params$run_individual, because if we choose params$run_exploratory=TRUE and params$run_comparison=TRUE, but params$run_individual=FALSE, we still have to do the individual calculations.
+```
+
+```{r chunk4}
+library(here)
+```
+
+```{r chunk5}
+source(here("src", "pension-returns_functions.R"))
+```
+
+```{r chunk6}
+################################################################################
+##
+##                          GENERATE HTML AND PDF
+##                        (DON'T USE KNIT BUTTON!)
+##
+################################################################################
+```
+
+```{r chunk6a, eval=FALSE, include=FALSE}
+## Render this document to html and pdf
+rmarkdown::render(here::here("pension-returns_annual.Rmd"), output_format ="all")
+```
+
+
+```{r chunk6b}
+################################################################################
+##
+##              GENERATE PDF MANUALLY AFTER GENERATING HTML AND MD
+##
+################################################################################
+
+## Note: Will not produce TOC and a few other things will be different.
+```
+
+```{bash chunk7, eval=FALSE, include=FALSE}
+## Convert md to pdf
+## Run manually:
+pandoc pension-returns_annual.md -o pension-returns_annual.pdf
+```
+
+
+```{r chunk7b}
+################################################################################
+##
+##                             COPY TO SITES FOLDER
+##
+################################################################################
+```
+
+```{bash eval=FALSE, include=FALSE}
+## Run manually:
+cp ~/R\ work/pension-returns/pension-returns_annual.html ~/var/site/pension-returns_annual.html
+cp ~/R\ work/pension-returns/pension-returns_annual.pdf ~/var/site/pension-returns_annual.pdf
+```
+
+
+```{r chunk8}
+################################################################################
+##
+##                                      INPUTS
+##
+################################################################################
+```
+
+```{r chunk9}
+mc_num_paths <- 1e4
+mc_num_periods <- 20
+mc_dao <- TRUE
+#mc_threshold <- 0.01
+
+## Min saldo for Velliv: kr 12.300
+## Assume initial capital of 400.000.
+## 100 * 12300/400000 = 3
+mc_threshold <- 3
+```
+
+Fit log returns to F-S skew standardized Student-t distribution.  
+`m`  is the location parameter.  
+`s` is the scale parameter.  
+`nu` is the estimated shape parameter (degrees of freedom).  
+`xi` is the estimated skewness parameter.  
+
+# Returns data 2011-2023.  
+
+For 2011, medium risk data is used in the high risk data set, as no high risk fund data is available prior to 2012.  
+`vmrl` is a long version of Velliv medium risk data, from 2007 to 2023. For 2007 to 2011 (both included) no high risk data is available.
+
+PFA medium risk is risk profile B.  
+PFA high risk is risk profile D.  
+
+```{r chunk10}
+## Headlines for individual sections
+headlines <- c(
+  "Velliv medium risk (vmr), 2011 - 2023",
+  "Velliv high risk (vhr), 2011 - 2023",
+  "PFA medium risk (pmr), 2011 - 2023",
+  "PFA high risk (phr), 2011 - 2023",
+  "Mix medium risk (mmr), 2011 - 2023",
+  "Mix high risk (mhr), 2011 - 2023",
+  "Mix vmr+phr (vm_ph), 2011 - 2023",
+  "Mix vhr+pmr (mh_pm), 2011 - 2023"
+)
+
+## Log returns data 2011-2023.
+## Velliv medium risk returns
+vmr <- log(c(0.986, 1.098, 1.157, 1.136, 1.058, 1.044, 1.100, 0.963, 1.168, 1.097, 1.141, 0.868, 1.094))
+
+## Velliv medium risk return, long period: 2007-2023
+vmrl <- log(c(1.058, 0.801, 1.193, 1.129, 1.035, 0.996, 1.133, 1.092, 1.085, 1.013, 1.095, 1.011, 1.129, 1.101, 1.128, 0.988, 1.048))
+
+## Velliv high risk returns
+vhr <- log(c(0.986, 1.093, 1.214, 1.160, 1.075, 1.039, 1.118, 0.952, 1.205, 1.099, 1.194, 0.849, 1.122))
+
+## PFA medium risk returns
+pmr <- log(c(1.004, 1.141, 1.111, 1.107, 1.084, 1.073, 1.089, 0.976, 1.119, 1.042, 1.107, 0.904, 1.084))
+
+## PFA high risk return
+phr <- log(c(0.934, 1.182, 1.208, 1.128, 1.123, 1.082, 1.135, 0.943, 1.190, 1.068, 1.200, 0.878, 1.159))
+
+
+## Mix Velliv medium risk + PFA high risk
+# vmr_phr <- (c(100, 100 * cumprod(exp(vmr))) + c(100, 100 * cumprod(exp(phr))))/2
+# vmr_phr <- log(tail(vmr_phr, -1)/head(vmr_phr, -1))
+
+## Mix Velliv high risk + PFA medium risk
+# vhr_pmr <- (c(100, 100 * cumprod(exp(vhr))) + c(100, 100 * cumprod(exp(pmr))))/2
+# vhr_pmr <- log(tail(vhr_pmr, -1)/head(vhr_pmr, -1))
+
+data_df <- data.frame(
+  vmr = vmr,
+  vhr = vhr,
+  pmr = pmr,
+  phr = phr
+)
+
+data_df <- data_df %>% 
+  mutate(
+    mmr = mix_of_logreturns(vmr, pmr),
+    mhr = mix_of_logreturns(vhr, phr),
+    vmr_phr = mix_of_logreturns(vmr, phr),
+    vhr_pmr = mix_of_logreturns(vhr, pmr)
+  )
+
+
+data_df_l <- data.frame(
+  vmrl = vmrl
+)
+
+fund_names <- colnames(data_df)
+```
+
+```{r}
+## The specified folder must exist in the `data` directory
+data_dir <- "annual"
+```
+
+
+```{r chunk11, eval=FALSE}
+all_data <- exp(c(data_df$vmr, data_df$vhr, data_df$pmr, data_df$phr, data_df$mmr, data_df$mhr))
+plot(x = 2011:2023, y = exp(data_df$vmr), type = "l",  lty = 1, lwd = 2, xlab = "year", ylab = "Gross returns", col = "#76EEC6", ylim = c(min(all_data), max(all_data)), main = "Gross returns 2011-2023")
+lines(x = 2011:2023, y = exp(data_df$vhr), col = "#76EEC6",  lty = 2, lwd = 1.5)
+lines(x = 2011:2023, y = exp(data_df$pmr), col = "#CD6600",  lty = 1, lwd = 2)
+lines(x = 2011:2023, y = exp(data_df$phr), col = "#CD6600",  lty = 2, lwd = 1.5)
+lines(x = 2011:2023, y = exp(data_df$mmr), col = "#FF00FF",  lty = 1, lwd = 2)
+lines(x = 2011:2023, y = exp(data_df$mhr), col = "#FF00FF",  lty = 2, lwd = 1.5)
+legend("bottom", legend = c("vmr", "vhr", "pmr", "phr", "mmr", "mhr"), col = c("#76EEC6", "#76EEC6", "#CD6600", "#CD6600", "#FF00FF", "#FF00FF"), lty = c(1, 2, 1, 2, 1, 2), lwd = 2, ncol = 3 )
+```
+
+```{r}
+ggplot(
+  data_df[, 1:6] %>% 
+    mutate(date = 2011:2023) %>% 
+    gather(key = "fund", value = "gross_return", -date),
+  aes(x = date, y = gross_return)
+) +
+  geom_line(aes(color = fund)) +
+  scale_x_continuous(breaks = 2011:2023) +
+  labs(
+    title = paste("Gross returns 2011-2023"), 
+    subtitle = "", 
+    x = "date", 
+    y = "gross return"
+  )
+```
+
+
+
+
+```{r chunk12}
+################################################################################
+##
+##                                   CALCULATIONS
+##
+################################################################################
+```
+
+```{r chunk13}
+##                                       FITS
+```
+
+```{r chunk14, eval=(params$run_fits && run_individual)}
+fits <- lapply(
+  seq_along(data_df),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), method = "Nelder-Mead", distribution = "sstd")
+  })}
+)
+
+fits_std <- lapply(
+  seq_along(data_df),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), method = "Nelder-Mead", distribution = "std")
+  })}
+)
+
+fits_norm <- lapply(
+  seq_along(data_df),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df[i]), method = "Nelder-Mead", distribution = "normal")
+  })}
+)
+```
+
+```{r chunk15, eval=(params$run_fits && run_individual)}
+saveRDS(fits, file = here("data", data_dir, "fits.RData"))
+saveRDS(fits_std, file = here("data", data_dir, "fits_std.RData"))
+saveRDS(fits_norm, file = here("data", data_dir, "fits_norm.RData"))
+```
+
+```{r chunk15c, eval=(run_individual && !params$run_fits)}
+fits <- readRDS(file = here("data", data_dir,  "fits.RData"))
+fits_std <- readRDS(file = here("data", data_dir, "fits_std.RData"))
+fits_norm <- readRDS(file = here("data", data_dir, "fits_norm.RData"))
+```
+
+```{r eval=(params$run_fits && run_individual && params$include_long)}
+fits_l <- lapply(
+  seq_along(data_df_l),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df_l[i]), distribution = "sstd")
+  })}
+)
+
+fits_std_l <- lapply(
+  seq_along(data_df_l),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df_l[i]), method = "Nelder-Mead", distribution = "std")
+  })}
+)
+
+fits_norm_l <- lapply(
+  seq_along(data_df_l),
+  function(i) {suppressWarnings({
+    fit_distribution(unlist(data_df_l[i]), method = "Nelder-Mead", distribution = "normal")
+  })}
+)
+```
+
+```{r chunk15b, eval=(params$run_fits && run_individual && params$include_long)}
+saveRDS(fits_l, file = here("data", data_dir,  "fits_l.RData"))
+saveRDS(fits_std_l, file = here("data", data_dir, "fits_std_l.RData"))
+saveRDS(fits_norm_l, file = here("data", data_dir, "fits_norm_l.RData"))
+```
+
+```{r chunk15d, eval=(run_individual && !params$run_fits && params$include_long)}
+fits_l <- readRDS(file = here("data", data_dir,  "fits_l.RData"))
+fits_std_l <- readRDS(file = here("data", data_dir, "fits_std_l.RData"))
+fits_norm_l <- readRDS(file = here("data", data_dir, "fits_norm_l.RData"))
+```
+
+
+```{r eval=run_individual}
+fit_summary <- as.data.frame(lapply(
+  fits,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary) <- fund_names
+rownames(fit_summary) <- c("m", "s", "nu", "xi", "R^2")
+```
+
+```{r eval=run_individual}
+fit_summary_std <- as.data.frame(lapply(
+  fits_std,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_std) <- fund_names
+rownames(fit_summary_std) <- c("m", "s", "nu", "R^2")
+```
+
+```{r eval=run_individual}
+fit_summary_norm <- as.data.frame(lapply(
+  fits_norm,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_norm) <- fund_names
+rownames(fit_summary_norm) <- c("m", "s", "R^2")
+```
+
+```{r eval=(run_individual && params$include_long)}
+fit_summary_l <- as.data.frame(lapply(
+  fits_l,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_l) <- fund_names_l
+rownames(fit_summary_l) <- c("m", "s", "nu", "xi", "R^2")
+```
+
+```{r eval=(run_individual && params$include_long)}
+fit_summary_std_l <- as.data.frame(lapply(
+  fits_std_l,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_std_l) <- fund_names_l
+rownames(fit_summary_std_l) <- c("m", "s", "nu", "R^2")
+```
+
+```{r eval=(run_individual && params$include_long)}
+fit_summary_norm_l <- as.data.frame(lapply(
+  fits_norm_l,
+  function(fit) {
+     c(fit$dist_params, fit$r_squared)
+  }
+))
+colnames(fit_summary_norm_l) <- fund_names_l
+rownames(fit_summary_norm_l) <- c("m", "s", "R^2")
+```
+
+```{r eval=(params$run_comparison && params$run_sim)}
+kappa_df <- data.frame(matrix(numeric(length(fund_names)), ncol = length(fund_names)))
+
+for(i in seq_along(fits)) {
+  kappa_df[1, i] <- f_kappa(
+    n0 = 1, 
+    n = 30, 
+    mean = fits[[i]]$dist_params[1], 
+    sd = fits[[i]]$dist_params[2], 
+    nu = fits[[i]]$dist_params[3], 
+    xi = fits[[i]]$dist_params[4], 
+    num_sim = 1e5
+  )
+}
+
+colnames(kappa_df) <- fund_names
+```
+
+```{r eval=(params$run_comparison && params$run_sim)}
+saveRDS(kappa_df, file = here("data", data_dir,  "kappa_df.RData"))
+```
+
+```{r eval=(params$run_comparison && !params$run_sim)}
+kappa_df <- readRDS(file = here("data", data_dir,  "kappa_df.RData"))
+```
+
+```{r eval=(params$run_comparison && params$run_sim)}
+n_min_df <- data.frame(matrix(numeric(length(fund_names)), ncol = length(fund_names)))
+
+for(i in seq_along(fits)) {
+  n_min_df[1, i] <- f_n_min(
+    n_g = 30, 
+    mean = fits[[i]]$dist_params[1], 
+    sd = fits[[i]]$dist_params[2], 
+    nu = fits[[i]]$dist_params[3], 
+    xi = fits[[i]]$dist_params[4], 
+    num_sim = 1e5, 
+    approx = FALSE
+  )
+}
+
+colnames(n_min_df) <- fund_names
+```
+
+```{r eval=(params$run_comparison && params$run_sim)}
+saveRDS(n_min_df, file = here("data", data_dir,  "n_min_df.RData"))
+```
+
+```{r eval=(params$run_comparison && !params$run_sim)}
+n_min_df <- readRDS(file = here("data", data_dir,  "n_min_df.RData"))
+```
+
+
+
+```{r chunk16}
+##                                     MONTE CARLO
+```
+
+```{r chunk17, eval=(params$run_sim && run_individual)}
+fit_id <- list(
+  1,
+  2,
+  3,
+  4,
+  c(1, 3),
+  c(2, 4),
+  c(1, 4),
+  c(2, 3)
+)
+
+num_fits <- length(fits)
+
+mc_output <- list()
+for(i in seq_along(fits)) {
+  message(paste0("\nsstd: ", i, " of ", num_fits, "\n"))
+  mc_output[[i]] <- mc_simulation(
+    fits[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "sstd"
+  )
+}
+
+mc_output_std <- list()
+for(i in seq_along(fits_std)) {
+  message(paste0("\nstd: ", i, " of, ", num_fits, "\n"))
+  mc_output_std[[i]] <- mc_simulation(
+    fits_std[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "std"
+  )
+}
+
+mc_output_norm <- list()
+for(i in seq_along(fits_norm)) {
+  message(paste0("\nnormal: ", i, " of, ", num_fits, "\n"))
+  mc_output_norm[[i]] <- mc_simulation(
+    fits_norm[fit_id[[i]]], 
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    dao = mc_dao, 
+    threshold = mc_threshold,
+    distribution = "normal"
+  )
+}
+```
+
+
+```{r chunk17b, eval=(params$run_sim && run_individual)}
+saveRDS(mc_output, file = here("data", data_dir, "mc_output.RData"))
+saveRDS(mc_output_std, file = here("data", data_dir, "mc_output_std.RData"))
+saveRDS(mc_output_norm, file = here("data", data_dir, "mc_output_norm.RData"))
+```
+
+```{r chunk18, eval=(run_individual && !params$run_sim)}
+mc_output <- readRDS(file = here("data", data_dir, "mc_output.RData"))
+mc_output_std <- readRDS(file = here("data", data_dir, "mc_output_std.RData"))
+mc_output_norm <- readRDS(file = here("data", data_dir, "mc_output_norm.RData"))
+```
+
+```{r chunk19}
+##                                     MAX SUM PLOTS
+```
+
+```{r chunk20, eval=(params$run_sim && run_individual)}
+max_sum_plots <- list()
+for(i in seq_along(fits)) {
+  max_sum_plots[[i]] <- plot_max_sum(
+    fits[fit_id[[i]]], 
+    mc_num_paths,
+    distribution = "sstd"
+  )
+}
+
+max_sum_plots_std <- list()
+for(i in seq_along(fits_std)) {
+  max_sum_plots_std[[i]] <- plot_max_sum(
+    fits_std[fit_id[[i]]], 
+    mc_num_paths, 
+    distribution = "std"
+  )
+}
+
+max_sum_plots_norm <- list()
+for(i in seq_along(fits_norm)) {
+  max_sum_plots_norm[[i]] <- plot_max_sum(
+    fits_norm[fit_id[[i]]], 
+    mc_num_paths, 
+    distribution = "norm"
+  )
+}
+```
+
+```{r chunk20b, eval=(params$run_sim && run_individual)}
+saveRDS(max_sum_plots, here("data", data_dir, "max_sum_plots.RData"))
+saveRDS(max_sum_plots_std, here("data", data_dir, "max_sum_plots_std.RData"))
+saveRDS(max_sum_plots_norm, here("data", data_dir, "max_sum_plots_norm.RData"))
+```
+
+
+
+```{r chunk21, eval=(run_individual && !params$run_sim)}
+max_sum_plots <- readRDS(file = here("data", data_dir, "max_sum_plots.RData"))
+max_sum_plots_std <- readRDS(file = here("data", data_dir, "max_sum_plots_std.RData"))
+max_sum_plots_norm <- readRDS(file = here("data", data_dir, "max_sum_plots_norm.RData"))
+```
+
+```{r chunk22}
+##                                  IMPORTANCE SAMPLING
+```
+
+```{r chunk23, eval=(params$run_sim && run_individual && params$run_is_sim)}
+is_g_fits <-  list()
+is_output <- list()
+for(i in seq_along(fits)) {
+  is_g_fits[[i]] <- is_proposal(
+    x_i_fit = fits[fit_id[[i]]],
+    x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    obj_func_plot = TRUE,
+    init_par = c(2, 0.5),
+    method = "L-BFGS-B",
+    lower = c(1, 0.1),
+    upper = c(3, 0.9)
+  )
+  
+  is_output[[i]] <- importance_sampling(
+    x_i_fit = fits[fit_id[[i]]], 
+    x_n_vect = x_n_vect_from_mc_df(mc_output[[i]]$mc_df),
+    num_paths = mc_num_paths, 
+    num_periods = mc_num_periods, 
+    g_n_params = is_g_fits[[i]]$par, 
+    mode = 1
+  )
+}
+```
+
+```{r chunk23b, eval=(params$run_sim && run_individual && params$run_is_sim)}
+saveRDS(is_g_fits, here("data", data_dir, "is_g_fits.RData"))
+saveRDS(is_output, here("data", data_dir, "is_output.RData"))
+```
+
+```{r chunk24, eval=(run_individual && !params$run_sim && !params$run_is_sim && params$run_is_plot)}
+is_g_fits <- readRDS(file = here("data", data_dir, "is_g_fits.RData"))
+is_output <- readRDS(file = here("data", data_dir, "is_output.RData"))
+```
+
+
+```{r chunk25}
+###########################################################################
+##
+##                            GENERATE REPORTS
+##
+###########################################################################
+```
+
+```{r chunk26, eval=params$run_exploratory, results='asis'}
+exploratory_report <- knitr::knit_child(
+    here("child_docs", "pension-returns_template-exploratory.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(exploratory_report), sep = '\n')
+```
+
+```{r chunk27, eval=params$run_comparison, results='asis'}
+comparison_report <- knitr::knit_child(
+    here("child_docs", "pension-returns_template-comparison.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(comparison_report), sep = '\n')
+```
+
+```{r chunk28, eval=params$run_individual, results='asis'}
+long <- FALSE
+individual_reports <- lapply(
+  seq_along(data_df),
+  function(i) {
+    knitr::knit_child(
+      here("child_docs", "pension-returns_template-individual.Rmd"),
+      envir = environment(), 
+      quiet = TRUE
+    )
+  }
+)
+
+cat(unlist(individual_reports), sep = '\n')
+```
+
+```{r chunk28b, eval=params$run_individual, results='asis', eval=params$include_long}
+long <- TRUE
+individual_reports <- lapply(
+  seq_along(data_df_l),
+  function(i) {
+    knitr::knit_child(
+      here("child_docs", "pension-returns_template-individual.Rmd"),
+      envir = environment(), 
+      quiet = TRUE
+    )
+  }
+)
+
+cat(unlist(individual_reports), sep = '\n')
+```
+
+
+```{r chunk29, eval=params$run_comments, results='asis'}
+comments_report <- knitr::knit_child(
+    here("child_docs", "pension-returns_template-comments.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(comments_report), sep = '\n')
+```
+
+
+
+
+
+```{r chunk30, eval=params$run_appendix, results='asis'}
+appendix_report <- knitr::knit_child(
+    here("child_docs", "pension-returns_template-appendix.Rmd"),
+    envir = environment(), 
+    quiet = TRUE
+  )
+
+cat(unlist(appendix_report), sep = '\n')
+```
+
+
+
+# Appendix
+
+## Infinite variance
+
+Taleb, Statistical Consequences Of Fat Tails, p. 97:  
+"the variance of a finite variance random variable with tail exponent $< 4$ will be infinite".
+
+And p. 363:  
+"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, under a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
+
+
+## QQ lines  
+
+Note: QQ lines by design pass through 1st and 3rd quantiles. They are not trendlines in the sense of linear regression.  
+
+## Arithmetic vs geometric mean
+Let $m$ be the number of steps in each path and $n$ be the number of paths.
+$a$ is the initial capital.
+Use arithmetic mean for mean of all paths at time $t$:
+$$\dfrac{a (e^{z_1} + e^{z_2} + \dots + e^{z_n})}{n}$$
+where
+$$z_i := x_{i, 1} + x_{i, 2} + \dots + x_{i, m}$$
+Use geometric mean for mean of all steps in a single path $i$:
+$$a e^{\frac{x_{i, 1} + x_{i, 2} + \dots + x_{i, m}}{m}} = a \sqrt[m]{e^{x_{i, 1} + x_{i, 2} + \dots + x_{i, m}}}$$
+
+So for **Monte Carlo** of returns after $m$ periods, we 
+
++ fit a skewed t-distribution to log-returns and use that distribution to simulate $\{x_{i, j}\}_j^m$,
++ for each path $i$, calculate $100\cdot e^{z_i}$,
++ calculate the mean of $\{z_i\}_i^n$:
+    + $$\bar{z} = 100\dfrac{e^{z_1} + e^{z_2} + \dots + e^{z_n}}{n}$$
+
+For **Importance Sampling**, we
+
++ model log-returns on a skewed t-distribution,
++ for each path $i$, calculate $100\cdot e^{z_i}$,
++ fit a skewed t-distribution to $\{z_i\}_i^n$ and use it as our $f$ density function from which we simulate $\{h_i\}_i^n$,
+    + In our case $h$ and $z$ are identical, because we have an idea for a distribution to simulate $z$, but in general for IS $h$ could be a function of $z$.
++ calculate $w* = \frac{f}{g^*}$, where $g*$ is our proposal distribution, which minimizes the variance of $h\cdot w$.
++ calculate the arithmetic mean of $\{h_i w_i^{*}\}_i^n$: 
+    + $$100 \dfrac{e^{h_1 w_1^{*}} +  e^{h_2 w_2^{*}} + \dots +  e^{h_n w_n^{*}}}{n}$$
+
+
+## Average of returns vs returns of average
+
+### Math
+
+$$\text{Avg. of returns} := \dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2}$$
+$$\text{Returns of avg.} := \left(\dfrac{ x_t + y_t }{2}\right) \Big/ \left(\dfrac{ x_{t-1} + y_{t-1} }{2}\right) \equiv \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+For which $x_1$ and $y_1$ are
+$\text{Avg. of returns} = \text{Returns of avg.}$?
+
+$$\dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2} = \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$(x_{t-1} + y_{t-1}) x_t y_{t-1} + (x_{t-1} + y_{t-1}) x_{t-1} y_t = 2 (x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+
+$$(x_{t-1}x_ty_{t-1} + y_{t-1}x_ty_{t-1}) + (x_{t-1}x_{t-1}y_t + x_{t-1}y_{t-1}y_t) = 2(x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+This is not generally true, but true if for instance
+$x_{t-1} = y_{t-1}$.
+
+### Example
+
+```{r}
+x0 <- 100
+y0 <- 200
+Rx <- 0.5
+Ry <- 1.5
+```
+
+Definition: `R = 1+r`
+
+```{r}
+cat(paste0("Let x_0 be ", x0, ".\n"))
+cat(paste0("Let y_0 be ", y0, ".\n"))
+cat("So the initial value of the pf is", x0 + y0, ".\n")
+cat("\n")
+cat(paste0("Let R_x be ", Rx, ".\n"))
+cat(paste0("Let R_y be ", Ry, ".\n"))
+```
+
+Then,
+
+```{r}
+cat(paste0("x_1 is R_x * x_0 = ", Rx * x0, ".\n"))
+cat(paste0("y_1 is R_y * y_0 = ", Ry * y0, ".\n"))
+```
+
+Average of returns:
+
+```{r}
+cat("0.5 * (R_x + R_y) =", 0.5 * (Rx + Ry), "\n")
+```
+
+So here the value of the pf at t=1 should be unchanged from t=0:
+
+```{r}
+cat("(x_0 + y_0) * 0.5 * (R_x + R_y) =", (x0 + y0) * 0.5 * (Rx + Ry), "\n")
+```
+
+But this is clearly not the case:
+
+```{r}
+cat("0.5 * (x_1 + y_1) = 0.5 * (R_x * x_0 + R_y * y_0) =", 0.5 * (Rx * x0 + Ry * y0), "\n")
+```
+
+Therefore we should take returns of average, not average of returns!
+
+Let's take the average of log returns instead:
+
+```{r}
+cat("0.5 * (log(R_x) + log(R_y)) =", 0.5 * (log(Rx) + log(Ry)), "\n")
+```
+
+We now get:
+
+```{r}
+cat("(x_0 + y_0) * exp(0.5 * (log(Rx) + log(Ry))) =", (x0 + y0) * exp(0.5 * (log(Rx) + log(Ry))), "\n")
+```
+
+So taking the average of log returns doesn't work either.
+
+## Simulation of mix vs mix of simulations
+
+Test if a simulation of a mix (average) of two returns series has the
+same distribution as a mix of two simulated returns series.
+
+```{r}
+mc_sim <- function(
+    num_runs = 1, 
+    num_paths = 1000, 
+    num_periods = 20,
+    m_a = 0,
+    s_a = 0.4,
+    m_b = 10,
+    s_b = 3
+    ) {
+  
+  data_x <- rnorm(num_periods, m_a, s_a)
+  data_y <- rnorm(num_periods, m_b, s_b)
+  
+  m_data_x <- mean(data_x)
+  s_data_x <- sd(data_x)
+  m_data_y <- mean(data_y)
+  s_data_y <- sd(data_y)
+  
+  cat("m(data_x):", m_data_x, "\n")
+  cat("s(data_x):", s_data_x, "\n")
+  cat("m(data_y):", m_data_y, "\n")
+  cat("s(data_y):", s_data_y, "\n")
+  cat("\n")
+  
+  m_data_xy <- mean(0.5 * data_x + 0.5 * data_y)
+  s_data_xy <- sd(0.5 * data_x + 0.5 * data_y)
+  
+  cat("m(data_x + data_y):", m_data_xy, "\n")
+  cat("s(data_x + data_y):", s_data_xy, "\n")
+  cat("\n")
+  
+  run_sim <- function(num_runs) {
+    df <- data.frame(
+      m_a = rep(0, num_runs), m_b = rep(0, num_runs), 
+      s_a = rep(0, num_runs), s_b = rep(0, num_runs)
+    )
+    for(j in 1:num_runs) {
+      sim_x <- rep(0, num_paths)
+      sim_y <- rep(0, num_paths)
+      sim_xy <- rep(0, num_paths)
+      for(i in 1:num_paths) {
+        sim_x[i] <- sum(rnorm(num_periods, m_data_x, s_data_x))
+        sim_y[i] <- sum(rnorm(num_periods, m_data_y, s_data_y))
+        sim_xy[i] <- sum(rnorm(num_periods, m_data_xy, s_data_xy))
+      }
+
+      df$m_a[j] <-  mean(0.5 * sim_x + 0.5 * sim_y)
+      df$m_b[j] <-  mean(sim_xy)
+      df$s_a[j] <-  sd(0.5 * sim_x + 0.5 * sim_y)
+      df$s_b[j] <-  sd(sim_xy)
+    }
+    df
+  }
+  
+  run_sim(num_runs)
+}
+```
+
+```{r}
+mc_sim_df <- mc_sim(
+  num_runs = 10, 
+  num_paths = 1000, 
+  num_periods = 20,
+  m_a = 0,
+  s_a = 0.4,
+  m_b = 10,
+  s_b = 3
+)
+```
+
+m and s of final state of all paths.\
+`_a` is mix of simulated returns.\
+`_b` is simulated mixed returns.
+
+```{r}
+knitr::kable(mc_sim_df, digits = 3)
+```
+
+```{r}
+summary(mc_sim_df)
+```
+
+`_a` and `_b` are very close to equal.\
+We attribute the differences to differences in estimating the
+distributions in version a and b.
+
+The final state is independent of the order of the preceding steps:
+
+```{r}
+vect1 <- c(rnorm(100))
+vect2 <- c(sample(vect1, 100))
+vect3 <- c(sample(vect1, 100))
+path1 <- c(0, cumsum(vect1))
+path2 <- c(0, cumsum(vect2))
+path3 <- c(0, cumsum(vect3))
+plot(path1, type = "l", col = "blue", 
+     ylim = c(
+       min(c(path1, path2, path3)), 
+       max(c(path1, path2, path3))
+     )
+)
+lines(path2, col = "red")
+lines(path3, col = "green")
+```
+
+So does the order of the steps in the two processes matter, when mixing
+simulated returns?
+
+```{r}
+vect1a <- c(rnorm(100, 0.05, 0.06))
+vect1b <- c(sample(vect1a, 100))
+vect2a <- c(rnorm(100, 0.05, 0.06))
+vect2b <- c(sample(vect2a, 100))
+
+path1a <- 100 * c(1, cumprod(1 + vect1a))
+path1b <- 100 * c(1, cumprod(1 + vect1b))
+path2a <- 100 * c(1, cumprod(1 + vect2a))
+path2b <- 100 * c(1, cumprod(1 + vect2b))
+
+mix_path_a <- 0.5 * path1a + 0.5 * path2a
+mix_path_b <- 0.5 * path1b + 0.5 * path2b
+
+plot(path1a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(path1a, path1b, path2a, path2b)), 
+       max(c(path1a, path1b, path2a, path2b))
+     )
+)
+lines(path1b, lty = 2, col = "blue")
+lines(path2a, lty = 1, col = "red")
+lines(path2b, lty = 2, col = "red")
+```
+
+```{r}
+plot(mix_path_a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(mix_path_a, mix_path_b)), 
+       max(c(mix_path_a, mix_path_b))
+     )
+)
+lines(mix_path_b, lty = 2, col = "blue")
+```
+
+The order of steps in the individual paths do not matter, because the
+mix of simulated paths is a sum of a sum, so the order of terms doesn't
+affect the sum. If there is variation it is because the sets preceding
+steps are not the same. For instance, the steps between step 1 and 60 in
+the plot above are not the same for the two lines.
+
+Recall,
+$$\text{Var}(aX+bY) = a^2 \text{Var}(X) + b^2 \text{Var}(Y) + 2ab \text{Cov}(a, b)$$
+
+```{r include=TRUE, echo=TRUE}
+var(0.5 * vhr + 0.5 * phr)
+0.5^2 * var(vhr) + 0.5^2 * var(phr) + 2 * 0.5 * 0.5 * cov(vhr, phr)
+```
+
+Our distribution estimate is based on 13 observations. Is that enough
+for a robust estimate? What if we suddenly hit a year like 2008? How
+would that affect our estimate?\
+Let's try to include the Velliv data from 2007-2010.\
+We do this by sampling 13 observations from `vmrl`.
+
+```{r}
+n <- 50
+test_df <- data.frame(m = rep(0, n), s = rep(0, n))
+for(i in 1:n) {
+  vmrl_smp <- sample(vmrl, 13)
+  test_df$m[i] <- mean(0.5 * vmrl_smp + 0.5 * phr)
+  test_df$s[i] <- sd(0.5 * vmrl_smp + 0.5 * phr)
+}
+summary(test_df)
+```
+
+## The meaning of `xi`
+
+The fit for `mhr` has the highest `xi` value of all. This suggests
+right-skew:
+
+```{r}
+plot((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 1), xlim = c(-20, 20), ylim = c(0, 0.1), type = "l", xlab = "value", ylab = "likelihood", main = "Skew t-distribution density")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 0.5), col="red")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 2), col="blue")
+legend("topright", c("xi=1", "xi=0.5", "xi=2"), col = c("black", "red", "blue"), lty = 1)
+```
+
+## Max vs sum plot
+
+If the Law Of Large Numbers holds true,
+$$\dfrac{\max (X_1^p, ..., X^p)}{\sum_{i=1}^n X_i^p} \rightarrow 0$$ for
+$n \rightarrow \infty$.
+
+If not, $X$ doesn't have a $p$'th moment.
+
+See Taleb: The Statistical Consequences Of Fat Tails, p. 192
+
+
