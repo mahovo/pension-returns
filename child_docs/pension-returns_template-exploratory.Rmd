@@ -7,7 +7,7 @@ df_summary <- exp(df_summary_to_df(summary(data_df)))
 ```
 
 
-```{r}
+```{r eval=params$include_long}
 df_l_summary <- exp(df_summary_to_df(summary(data_df_l)))
 ```
 
