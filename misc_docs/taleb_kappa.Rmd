@@ -50,6 +50,9 @@ $$\kappa(n_0, n) = 2 - \dfrac{\log(n) - \log(n_0)}{\log\left(\frac{\mathbb{M}(n)
 
 ## Calculating $n_{\text{min}}$
 
+NOTE  
+See also *Rupert & Matteson: Statistics and Data Analysis for Financial Engineering*, p. 606, for calculation of $N_\text{eff}$.
+
 The minimum number of summands needed to achieve same variance as the sum of $n_g$ Gaussian summands:
 
 $$n_{\min} := n_{\nu}^{*}$$
