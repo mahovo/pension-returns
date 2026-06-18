@@ -67,6 +67,7 @@ run_exploratory <- (params$run_exploratory + run_individual > 0)
 library(here)
 library(tidyr)
 library(tidyjson)
+library(lubridate)   # year() used below; attach explicitly for non-interactive render
 ```
 
 ```{r chunk5}
@@ -140,13 +141,63 @@ mc_dao <- TRUE
 mc_threshold <- 3
 ```
 
+# Summary
+
+A comparison of returns from pension plans provided by PFA and Velliv respectively:  
+- Velliv medium risk (vmr), June 2012 - April 2024  
+- Velliv high risk (vhr), June 2012 - April 2024  
+- PFA medium risk (pmr), June 2012 - April 2024  
+- PFA high risk (phr), June 2012 - April 2024  
+
+The combinations of low and high risk funds for each PFA plan can be found here:  
+https://www.pfa.dk/privat/opsparing/aktivsammensaetning/
+
+The Velliv website only provides a list of funds.  
+
+The analysis also looks at these mixes of plans:  
+- Mix medium risk (mmr), June 2012 - April 2024  
+- Mix high risk (mhr), June 2012 - April 2024  
+- Mix vmr+phr (vm_ph), June 2012 - April 2024  
+- Mix vhr+pmr (mh_pm), June 2012 - April 2024
+
+
+
+
+
+We observe that  
+1. **The plans are weighted blends of the same two underlying funds.** Within
+each provider the high-risk plan is almost exactly a scalar multiple of the medium-risk plan
+($\beta \approx 1.2$ for Velliv, $\approx 1.5$ for PFA, intercept $\approx 0$), and a single
+common factor dominates the variation across all four plans. PFA's own product description
+confirms it: profiles B and D are fixed weighted blends of the *same two* underlying funds.
+
+2. **"Risk" here means deeper drawdowns and start-date-dependent path ordering, not a
+different kind of bet.** The high-risk plan amplifies the same factor in both directions: it
+draws down more (worst peak-to-trough $-17\%$ vs $-15\%$ for Velliv, $-16\%$ vs $-12\%$ for
+PFA), and its cumulative path drops below the medium plan's whenever the index is started
+just before a drawdown -- as it does around the COVID crash.
+
+3. **The sample still spans only about one market cycle.** Monthly data (142 observations) is
+firmer than the annual report's 13, and -- unlike the annual figures -- it *does* capture the
+COVID-2020 and 2022 drawdowns. But it contains no 2008-scale event; for that the long Velliv
+series is needed. The qualitative structure -- fat tails, leverage, asymmetric drawdowns -- is
+robust, while precise tail numbers should be read with Taleb's "better stay home" in mind.
+
+The Discussion at the end develops these points.
+
+# Returns data
+
+The returns data for PFA can be seen here:  
+https://www.pfa.dk/privat/opsparing/pfa-afkast/  
+
+The data for Velliv can be seen here:  
+https://www.velliv.dk/opsparing/vaekstpension/vaekstpension-aktiv/afkast  
+
 Fit log returns to F-S skew standardized Student-t distribution.  
 `m`  is the location parameter.  
 `s` is the scale parameter.  
 `nu` is the estimated shape parameter (degrees of freedom).  
 `xi` is the estimated skewness parameter.  
-
-# Returns data  
 
 The long version of Velliv medium risk data runs from January 2007 to April 2024 (incl).  
 For January 2007 to May 2012 no low risk and high risk funds existed. For this period the medium risk data is copied into the other funds.  
@@ -176,18 +227,14 @@ headlines <- c(
 ```
 
 ```{r}
-## For Monte Carlo
-## When mixing two funds, we are doing average of simulations, not simulation of average!
-fit_id <- list(
-  1,
-  2,
-  3,
-  4,
-  c(1, 3),
-  c(2, 4),
-  c(1, 4),
-  c(2, 3)
-)
+## For Monte Carlo -- PURE BLACK BOX.
+## Each fund (mixes included) is simulated from its OWN single fit to its observed
+## total-value series: "simulation of the average", NOT "average of simulations".
+## The former component-recombination (e.g. c(1, 3) for a mix) drew the two
+## components independently, assuming zero correlation between near-collinear funds,
+## and is abandoned. fits[[5..8]] are the single fits to the realised mix series
+## (mmr, mhr, vmr_phr, vhr_pmr) built via mix_of_logreturns().
+fit_id <- list(1, 2, 3, 4, 5, 6, 7, 8)
 
 ```
 
@@ -503,12 +550,95 @@ ggplot(
   geom_line(aes(color = fund), linewidth = 0.5) +
   scale_x_date(breaks=date_breaks("2 years"), labels=date_format("%Y")) +
   labs(
-    title = paste("Velliv and PFA monthly prices"), 
-    subtitle = "", 
-    x = "date", 
+    title = paste("Velliv and PFA monthly prices"),
+    subtitle = "",
+    x = "date",
     y = "price index"
   )
 ```
+
+## Path crossing and the starting point
+
+In the "Velliv and PFA monthly prices" plot above every plan starts at index 100 in
+June 2012, and the riskier plans' paths never fall below the less-risky ones. It is
+tempting to read this as *more risk always pays*. It could look like the different risk plans for each provider are simply different weighted shares of returns from a single portfolio. What is actually going on here?
+
+The observation does not generalise: It is an artefact of **where the index starts**. Each high-risk plan is, in effect, a leveraged exposure to one common return factor. The high-risk profile is, to a good approximation, a *scaled* version of the medium-risk one -- a slope above 1, essentially zero intercept, and a high $R^2$:
+
+```{r}
+.cor_v <- cor(data_df$vmr, data_df$vhr); .cor_p <- cor(data_df$pmr, data_df$phr)
+.fv <- lm(vhr ~ vmr, data = data_df);    .fp <- lm(phr ~ pmr, data = data_df)
+cat(sprintf("Velliv  corr(medium, high) = %.3f ;  high = %.2f * medium + %.4f ,  R^2 = %.3f\n",
+            .cor_v, coef(.fv)[2], coef(.fv)[1], summary(.fv)$r.squared))
+cat(sprintf("PFA     corr(medium, high) = %.3f ;  high = %.2f * medium + %.4f ,  R^2 = %.3f\n",
+            .cor_p, coef(.fp)[2], coef(.fp)[1], summary(.fp)$r.squared))
+```
+
+"Approximately" matters: The $R^2$ is below 1, and that residual is where the paths
+separate. The profiles are not one stream scaled, but blends of two genuinely different funds -- a low-risk and a high-risk building block. Backing PFA's two funds out of the medium and high profiles (high fund $H = D$, low fund $L = 2B - D$, exact for simple returns):
+
+```{r}
+.simp <- function(lr) exp(lr) - 1
+.H <- .simp(data_df$phr); .L <- 2 * .simp(data_df$pmr) - .simp(data_df$phr)
+cat(sprintf("PFA building blocks (simple returns): corr(low fund, high fund) = %.2f ; volatility ratio high/low = %.1f\n",
+            cor(.L, .H), sd(.H) / sd(.L)))
+```
+
+The two underlying funds are only moderately correlated and differ several-fold in
+volatility -- far from interchangeable -- even though the *profiles* built from them are nearly collinear. That collinearity is not surprising: It is what two equity-dominated portfolios must produce. A "low-risk *plan*" is not a low-risk *fund*. By PFA's published strategic allocation, even the low-risk plan is roughly 76% equity-like (global, emerging, private equity, real estate) and only ~24% bonds. To see how little bond content it takes, treat a plan as a weight $w$ in equities and $(1-w)$ in bonds and ask which $w$ reproduces a given correlation with a 100%-equity plan (illustrative capital-market assumptions, not estimated from the data):
+
+```{r}
+.corr_mix <- function(w, sE, sB, rho)
+  (w*sE^2 + (1-w)*rho*sE*sB) /
+  (sE * sqrt(w^2*sE^2 + (1-w)^2*sB^2 + 2*w*(1-w)*rho*sE*sB))
+.solve_w  <- function(target, sE, sB, rho)
+  uniroot(function(w) .corr_mix(w, sE, sB, rho) - target, c(1e-3, 1))$root
+.scen <- data.frame(
+  `equity vol` = c("15%", "12%", "18%"),
+  `bond vol`   = c("4%",  "5%",  "4%"),
+  `equity weight for corr 0.986` =
+    sprintf("%.0f%%", 100*c(.solve_w(.986,.15,.04,0), .solve_w(.986,.12,.05,0), .solve_w(.986,.18,.04,0))),
+  `equity weight for corr 0.84`  =
+    sprintf("%.0f%%", 100*c(.solve_w(.84,.15,.04,0),  .solve_w(.84,.12,.05,0),  .solve_w(.84,.18,.04,0))),
+  check.names = FALSE)
+knitr::kable(.scen)
+```
+
+An equity weight of only about two-thirds already yields a ~0.986 correlation with a pure-equity plan. The observed correlations are therefore unremarkable -- exactly what equity-heavy "low-risk" plans produce -- and not evidence of anything hidden.  
+  
+The implication for the choice is the point of this section. High correlation means the plans rise and fall together, so over a benign, rising sample the higher-risk plan simply ends up higher and the choice looks free. But correlation describes co-movement, not magnitude and not the tails. The lower-risk plan holds a real bond sleeve and a distinct, lower-volatility fund, and -- as the crossings above show -- that cushion is exactly what bites in a drawdown. The plans look alike because both are mostly equities; they are not alike when equities fall.  
+  
+In cumulative log terms $\log(W_\text{high}/100) \approx \beta\,\log(W_\text{med}/100)$ with slope $\beta > 1$ and intercept $\approx 0$. With $\beta > 1$ this gives $W_\text{high} > W_\text{med}$ **exactly when** $W_\text{med} > 100$. So the two paths can only cross while the *safer* plan is itself below its starting value -- equivalently, the high-risk plan sits below the medium-risk plan precisely over any window in which the cumulative return *since the start date* is negative.  
+  
+June 2012 was a low point just before a long bull market, so the safer plans never
+revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
+
+```{r fig.width=10}
+## Rebase the cumulative index to 100 at a chosen start month, then plot medium vs high.
+crossing_start <- as.Date("2020-02-01")
+.cs <- monthly_logreturns_df %>% filter(date >= crossing_start)
+.idx <- function(lr) 100 * exp(cumsum(c(0, lr)))     # 100 at the start month
+crossing_df <- data.frame(
+  date = c(crossing_start, .cs$date),
+  `Velliv medium` = .idx(.cs$vmr),
+  `Velliv high`   = .idx(.cs$vhr),
+  `PFA medium`    = .idx(.cs$pmr),
+  `PFA high`      = .idx(.cs$phr),
+  check.names = FALSE
+) %>% gather(key = "plan", value = "price", -date)
+
+ggplot(crossing_df, aes(x = date, y = price, color = plan)) +
+  geom_line(linewidth = 0.6) +
+  geom_hline(yintercept = 100, linetype = 2, colour = "grey50") +
+  scale_x_date(breaks = date_breaks("6 months"), labels = date_format("%b %Y")) +
+  labs(
+    title = "Same plans, index started just before the COVID crash (end-Feb 2020 = 100)",
+    subtitle = "High-risk paths fall below medium-risk through the drawdown, then recover",
+    x = "date", y = "price index"
+  )
+```
+
+The high-risk plans regain and overtake the medium-risk plans only once the cumulative return since the start date turns positive again. Whether the realised paths cross is therefore not a property of the plans but of the chosen starting point relative to the market cycle. (A deeper or more prolonged regime -- e.g. one in which the index spends years below its start, as in 2008-2009 -- would keep the high-risk plan below for correspondingly longer.)
 
 ```{r fig.width=10}
 ggplot(
@@ -554,6 +684,9 @@ ggplot(
     y = "gross return"
   )
 ```
+
+
+
 
 
 
@@ -1076,5 +1209,392 @@ cat(unlist(individual_reports), sep = '\n')
 
 
 
+
+
+
+
+# Discussion
+
+## The plans are one portfolio at different leverage
+
+The most consequential finding is structural. The four plans are not four different
+stock/bond mixes; they are weighted blends of the same two underlying funds (a low-risk and a
+high-risk building block), so the high-risk plan behaves like a *leveraged* version of the
+medium-risk plan -- a near-scalar multiple with intercept $\approx 0$, and a single common
+factor dominates the joint variation across all four plans. Practically, the choice between
+risk profiles within a provider is a choice of **how much** of one portfolio to hold, not
+**which** portfolio: higher profiles buy a higher expected growth rate at the price of
+proportionally larger swings, with essentially no diversification difference between them.
+
+## What "risk" looks like in the data
+
+Because $\beta>1$ with near-zero intercept, the high-risk plan amplifies the common factor
+symmetrically: higher average growth, but deeper drawdowns (worst peak-to-trough $-17.3\%$ vs
+$-15.2\%$ for Velliv, $-15.9\%$ vs $-11.9\%$ for PFA) and underperformance over any window in
+which the cumulative return since the start is negative. The much-noted property that the
+cumulative high-risk path never dips below the medium-risk path is, as the "Path crossing"
+section shows, an artefact of starting the index in June 2012 at a low point before a long
+bull market -- rebasing to just before the COVID crash, the high-risk paths fall below the
+medium-risk paths for about nine months before recovering.
+
+## What the data can and cannot tell us
+
+Monthly resolution helps: 142 observations identify the fits better than the annual report's
+13, and the series captures real drawdowns (COVID-2020, 2022) rather than averaging them away
+as the annual figures do. But 142 months is still roughly one market cycle, monthly returns
+carry serial dependence, and there is no 2008-scale event in the short series. Taleb's
+$\kappa$ / $n_{min}$ machinery (appendix) still implies that a Student-$t$ with $\nu\approx 3$
+needs far more data than a Gaussian to pin down, so quantitative tail estimates remain
+fragile -- even if less so than annually. The long Velliv series (`vmrl`, back to 2007) is the
+one place a 2008-type left-tail event enters the estimate, which is the strongest reason to
+keep it.
+
+## The mix and the fat-tail reading
+
+The Monte-Carlo results are now produced as a single "black box" fit to each realised series
+rather than by combining independent simulations, which removes a spurious diversification
+effect that previously made the Velliv+PFA mixes look artificially safe. What remains -- and
+what correlation alone misses -- is a genuine *tail* benefit from mixing two fat-tailed
+providers: one provider's idiosyncratic crash is softened because the mix always lies between
+the two. Quantifying that benefit against its cost is the subject of a separate analysis. On
+the distributional side, the fitted $\nu\approx 3$ implies (near-)infinite variance; the
+symmetric-$t$ Monte Carlo for the high-risk PFA profile diverges to absurd values, which is
+not a numerical error but the fit telling us its variance does not exist.
+
+## Bottom line
+
+Even with monthly data spanning about one cycle, we can say a great deal *qualitatively* --
+the plans are leverage on one portfolio, the tails are fat, drawdowns are asymmetric, and
+apparent path-dominance is a starting-point artefact -- while being honest that *quantitative*
+tail estimates are still fragile at this sample size. The next step is to turn the qualitative
+structure into the two decisions an investor actually faces: which risk level, and whether to
+split across providers.
+
+# Appendix
+
+## Infinite variance
+
+Taleb, Statistical Consequences Of Fat Tails, p. 97:  
+"the variance of a finite variance random variable with tail exponent $< 4$ will be infinite".
+
+And p. 363:  
+"The hedging errors for an option portfolio (under a daily revision regime) over 3000 days, under a constant volatility Student T with tail exponent $\alpha = 3$. Technically the errors should not converge in finite time as their distribution has infinite variance."
+
+
+## QQ lines  
+
+Note: QQ lines by design pass through 1st and 3rd quantiles. They are not trendlines in the sense of linear regression.  
+
+## Arithmetic vs geometric mean
+Let $m$ be the number of steps in each path and $n$ be the number of paths.
+$a$ is the initial capital.
+Use arithmetic mean for mean of all paths at time $t$:
+$$\dfrac{a (e^{z_1} + e^{z_2} + \dots + e^{z_n})}{n}$$
+where
+$$z_i := x_{i, 1} + x_{i, 2} + \dots + x_{i, m}$$
+Use geometric mean for mean of all steps in a single path $i$:
+$$a e^{\frac{x_{i, 1} + x_{i, 2} + \dots + x_{i, m}}{m}} = a \sqrt[m]{e^{x_{i, 1} + x_{i, 2} + \dots + x_{i, m}}}$$
+
+So for **Monte Carlo** of returns after $m$ periods, we 
+
++ fit a skewed t-distribution to log-returns and use that distribution to simulate $\{x_{i, j}\}_j^m$,
++ for each path $i$, calculate $100\cdot e^{z_i}$,
++ calculate the mean of $\{z_i\}_i^n$:
+    + $$\bar{z} = 100\dfrac{e^{z_1} + e^{z_2} + \dots + e^{z_n}}{n}$$
+
+For **Importance Sampling**, we
+
++ model log-returns on a skewed t-distribution,
++ for each path $i$, calculate $100\cdot e^{z_i}$,
++ fit a skewed t-distribution to $\{z_i\}_i^n$ and use it as our $f$ density function from which we simulate $\{h_i\}_i^n$,
+    + In our case $h$ and $z$ are identical, because we have an idea for a distribution to simulate $z$, but in general for IS $h$ could be a function of $z$.
++ calculate $w* = \frac{f}{g^*}$, where $g*$ is our proposal distribution, which minimizes the variance of $h\cdot w$.
++ calculate the arithmetic mean of $\{h_i w_i^{*}\}_i^n$: 
+    + $$100 \dfrac{e^{h_1 w_1^{*}} +  e^{h_2 w_2^{*}} + \dots +  e^{h_n w_n^{*}}}{n}$$
+
+
+## Average of returns vs returns of average
+
+### Math
+
+$$\text{Avg. of returns} := \dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2}$$
+$$\text{Returns of avg.} := \left(\dfrac{ x_t + y_t }{2}\right) \Big/ \left(\dfrac{ x_{t-1} + y_{t-1} }{2}\right) \equiv \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+For which $x_1$ and $y_1$ are
+$\text{Avg. of returns} = \text{Returns of avg.}$?
+
+$$\dfrac{ \left(\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} \right) }{2} = \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$\dfrac{x_t}{x_{t-1}} + \dfrac{y_t}{y_{t-1}} = 2 \dfrac{ x_t + y_t }{ x_{t-1} + y_{t-1}}$$
+
+$$(x_{t-1} + y_{t-1}) x_t y_{t-1} + (x_{t-1} + y_{t-1}) x_{t-1} y_t = 2 (x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+
+$$(x_{t-1}x_ty_{t-1} + y_{t-1}x_ty_{t-1}) + (x_{t-1}x_{t-1}y_t + x_{t-1}y_{t-1}y_t) = 2(x_{t-1}y_{t-1}x_t + x_{t-1}y_{t-1}y_t)$$
+This is not generally true, but true if for instance
+$x_{t-1} = y_{t-1}$.
+
+### Example
+
+```{r}
+x0 <- 100
+y0 <- 200
+Rx <- 0.5
+Ry <- 1.5
+```
+
+Definition: `R = 1+r`
+
+```{r}
+cat(paste0("Let x_0 be ", x0, ".\n"))
+cat(paste0("Let y_0 be ", y0, ".\n"))
+cat("So the initial value of the pf is", x0 + y0, ".\n")
+cat("\n")
+cat(paste0("Let R_x be ", Rx, ".\n"))
+cat(paste0("Let R_y be ", Ry, ".\n"))
+```
+
+Then,
+
+```{r}
+cat(paste0("x_1 is R_x * x_0 = ", Rx * x0, ".\n"))
+cat(paste0("y_1 is R_y * y_0 = ", Ry * y0, ".\n"))
+```
+
+Average of returns:
+
+```{r}
+cat("0.5 * (R_x + R_y) =", 0.5 * (Rx + Ry), "\n")
+```
+
+So here the value of the pf at t=1 should be unchanged from t=0:
+
+```{r}
+cat("(x_0 + y_0) * 0.5 * (R_x + R_y) =", (x0 + y0) * 0.5 * (Rx + Ry), "\n")
+```
+
+But this is clearly not the case:
+
+```{r}
+cat("0.5 * (x_1 + y_1) = 0.5 * (R_x * x_0 + R_y * y_0) =", 0.5 * (Rx * x0 + Ry * y0), "\n")
+```
+
+Therefore we should take returns of average, not average of returns!
+
+Let's take the average of log returns instead:
+
+```{r}
+cat("0.5 * (log(R_x) + log(R_y)) =", 0.5 * (log(Rx) + log(Ry)), "\n")
+```
+
+We now get:
+
+```{r}
+cat("(x_0 + y_0) * exp(0.5 * (log(Rx) + log(Ry))) =", (x0 + y0) * exp(0.5 * (log(Rx) + log(Ry))), "\n")
+```
+
+So taking the average of log returns doesn't work either.
+
+## Simulation of mix vs mix of simulations
+
+Test if a simulation of a mix (average) of two returns series has the
+same distribution as a mix of two simulated returns series.
+
+```{r}
+mc_sim <- function(
+    num_runs = 1, 
+    num_paths = 1000, 
+    num_periods = 20,
+    m_a = 0,
+    s_a = 0.4,
+    m_b = 10,
+    s_b = 3
+    ) {
+  
+  data_x <- rnorm(num_periods, m_a, s_a)
+  data_y <- rnorm(num_periods, m_b, s_b)
+  
+  m_data_x <- mean(data_x)
+  s_data_x <- sd(data_x)
+  m_data_y <- mean(data_y)
+  s_data_y <- sd(data_y)
+  
+  cat("m(data_x):", m_data_x, "\n")
+  cat("s(data_x):", s_data_x, "\n")
+  cat("m(data_y):", m_data_y, "\n")
+  cat("s(data_y):", s_data_y, "\n")
+  cat("\n")
+  
+  m_data_xy <- mean(0.5 * data_x + 0.5 * data_y)
+  s_data_xy <- sd(0.5 * data_x + 0.5 * data_y)
+  
+  cat("m(data_x + data_y):", m_data_xy, "\n")
+  cat("s(data_x + data_y):", s_data_xy, "\n")
+  cat("\n")
+  
+  run_sim <- function(num_runs) {
+    df <- data.frame(
+      m_a = rep(0, num_runs), m_b = rep(0, num_runs), 
+      s_a = rep(0, num_runs), s_b = rep(0, num_runs)
+    )
+    for(j in 1:num_runs) {
+      sim_x <- rep(0, num_paths)
+      sim_y <- rep(0, num_paths)
+      sim_xy <- rep(0, num_paths)
+      for(i in 1:num_paths) {
+        sim_x[i] <- sum(rnorm(num_periods, m_data_x, s_data_x))
+        sim_y[i] <- sum(rnorm(num_periods, m_data_y, s_data_y))
+        sim_xy[i] <- sum(rnorm(num_periods, m_data_xy, s_data_xy))
+      }
+
+      df$m_a[j] <-  mean(0.5 * sim_x + 0.5 * sim_y)
+      df$m_b[j] <-  mean(sim_xy)
+      df$s_a[j] <-  sd(0.5 * sim_x + 0.5 * sim_y)
+      df$s_b[j] <-  sd(sim_xy)
+    }
+    df
+  }
+  
+  run_sim(num_runs)
+}
+```
+
+```{r}
+mc_sim_df <- mc_sim(
+  num_runs = 10, 
+  num_paths = 1000, 
+  num_periods = 20,
+  m_a = 0,
+  s_a = 0.4,
+  m_b = 10,
+  s_b = 3
+)
+```
+
+m and s of final state of all paths.\
+`_a` is mix of simulated returns.\
+`_b` is simulated mixed returns.
+
+```{r}
+knitr::kable(mc_sim_df, digits = 3)
+```
+
+```{r}
+summary(mc_sim_df)
+```
+
+`_a` and `_b` are very close to equal.\
+We attribute the differences to differences in estimating the
+distributions in version a and b.
+
+The final state is independent of the order of the preceding steps:
+
+```{r}
+vect1 <- c(rnorm(100))
+vect2 <- c(sample(vect1, 100))
+vect3 <- c(sample(vect1, 100))
+path1 <- c(0, cumsum(vect1))
+path2 <- c(0, cumsum(vect2))
+path3 <- c(0, cumsum(vect3))
+plot(path1, type = "l", col = "blue", 
+     ylim = c(
+       min(c(path1, path2, path3)), 
+       max(c(path1, path2, path3))
+     )
+)
+lines(path2, col = "red")
+lines(path3, col = "green")
+```
+
+So does the order of the steps in the two processes matter, when mixing
+simulated returns?
+
+```{r}
+vect1a <- c(rnorm(100, 0.05, 0.06))
+vect1b <- c(sample(vect1a, 100))
+vect2a <- c(rnorm(100, 0.05, 0.06))
+vect2b <- c(sample(vect2a, 100))
+
+path1a <- 100 * c(1, cumprod(1 + vect1a))
+path1b <- 100 * c(1, cumprod(1 + vect1b))
+path2a <- 100 * c(1, cumprod(1 + vect2a))
+path2b <- 100 * c(1, cumprod(1 + vect2b))
+
+mix_path_a <- 0.5 * path1a + 0.5 * path2a
+mix_path_b <- 0.5 * path1b + 0.5 * path2b
+
+plot(path1a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(path1a, path1b, path2a, path2b)), 
+       max(c(path1a, path1b, path2a, path2b))
+     )
+)
+lines(path1b, lty = 2, col = "blue")
+lines(path2a, lty = 1, col = "red")
+lines(path2b, lty = 2, col = "red")
+```
+
+```{r}
+plot(mix_path_a, type = "l", lty = 1, col = "blue", 
+     ylim = c(
+       min(c(mix_path_a, mix_path_b)), 
+       max(c(mix_path_a, mix_path_b))
+     )
+)
+lines(mix_path_b, lty = 2, col = "blue")
+```
+
+The order of steps in the individual paths do not matter, because the
+mix of simulated paths is a sum of a sum, so the order of terms doesn't
+affect the sum. If there is variation it is because the sets preceding
+steps are not the same. For instance, the steps between step 1 and 60 in
+the plot above are not the same for the two lines.
+
+Recall,
+$$\text{Var}(aX+bY) = a^2 \text{Var}(X) + b^2 \text{Var}(Y) + 2ab \text{Cov}(a, b)$$
+
+```{r include=TRUE, echo=TRUE}
+var(0.5 * data_df$vhr + 0.5 * data_df$phr)
+0.5^2 * var(data_df$vhr) + 0.5^2 * var(data_df$phr) + 2 * 0.5 * 0.5 * cov(data_df$vhr, data_df$phr)
+```
+
+Our distribution estimate is based on 142 monthly observations. Is that
+enough for a robust estimate? What if we suddenly hit a month like the
+2008 crash? How would that affect our estimate?\
+Let's try to include the Velliv data going back to 2007, which spans the GFC.\
+We do this by sampling 142 observations from the long series `vmrl`
+(`data_df_l$vmrl`, 207 monthly observations incl. 2007-2012).
+
+```{r}
+n <- 50
+test_df <- data.frame(m = rep(0, n), s = rep(0, n))
+for(i in 1:n) {
+  vmrl_smp <- sample(data_df_l$vmrl, 142)
+  test_df$m[i] <- mean(0.5 * vmrl_smp + 0.5 * data_df$phr)
+  test_df$s[i] <- sd(0.5 * vmrl_smp + 0.5 * data_df$phr)
+}
+summary(test_df)
+```
+
+## The meaning of `xi`
+
+The fit for `mhr` has the highest `xi` value of all. This suggests
+right-skew:
+
+```{r}
+plot((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 1), xlim = c(-20, 20), ylim = c(0, 0.1), type = "l", xlab = "value", ylab = "likelihood", main = "Skew t-distribution density")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 0.5), col="red")
+lines((-20000:20000)/1000, dsstd((-20000:20000)/1000, 0, 7, 5, 2), col="blue")
+legend("topright", c("xi=1", "xi=0.5", "xi=2"), col = c("black", "red", "blue"), lty = 1)
+```
+
+## Max vs sum plot
+
+If the Law Of Large Numbers holds true,
+$$\dfrac{\max (X_1^p, ..., X^p)}{\sum_{i=1}^n X_i^p} \rightarrow 0$$ for
+$n \rightarrow \infty$.
+
+If not, $X$ doesn't have a $p$'th moment.
+
+See Taleb: The Statistical Consequences Of Fat Tails, p. 192
 
 

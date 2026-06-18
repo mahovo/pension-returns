@@ -228,6 +228,22 @@ fit_gauss <- function(x, method = "Nelder-Mead") {
 
 
 
+## MLE of the F-S skewed-t with Hessian-based standard errors.
+## Uses the same starting values and method as fit_distribution()'s "sstd" branch,
+## so the point estimates coincide with those reported in the fit summary. Standard
+## errors are taken from the observed Fisher information (the inverse Hessian of the
+## negative log-likelihood at the optimum): an entry is NaN where that variance is
+## non-positive and all NA where the information matrix is singular -- in either case
+## the parameter is not locally identified at the given sample size.
+sstd_se <- function(x) {
+  nll <- function(b) sum(- dsstd(x, mean = b[1], sd = b[2], nu = b[3], xi = b[4], log = TRUE))
+  opt <- optim(c(mean(x), sd(x), 3, 1), nll, method = "BFGS", hessian = TRUE)
+  cov <- tryCatch(solve(opt$hessian), error = function(e) matrix(NA_real_, 4, 4))
+  se  <- suppressWarnings(sqrt(diag(cov)))
+  names(opt$par) <- names(se) <- c("m", "s", "nu", "xi")
+  list(par = opt$par, se = se, n = length(x))
+}
+
 ## Fit data to a skewed t, standardized t or normal distribution
 ## distribution = "sstd", "std" or "normal"
 ## If "normal", method="Nelder-Mead" is recommended, else method="BFGS"
@@ -237,7 +253,7 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
     loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], xi = beta[4], log = TRUE))
     start = c(mean(x), sd(x), 3, 1)
   } else if(distribution == "std") {
-    loglik_sstd = function(beta) sum(- dsstd(x, mean = beta[1], sd = beta[2], nu = beta[3], log = TRUE))
+    loglik_sstd = function(beta) sum(- dstd(x, mean = beta[1], sd = beta[2], nu = beta[3], log = TRUE))
     start = c(mean(x), sd(x), 3)
   } else {
     loglik_sstd = function(beta) sum(- dnorm(x, mean = beta[1], sd = beta[2], log = TRUE))
@@ -265,14 +281,17 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
     quantile_data <- qnorm(seq(0.005, 0.995, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
     dist_data <- pnorm(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
     dens_data <- dnorm(seq(-0.3, 0.3, length.out = 600), mean = optim_out$par[1], sd = optim_out$par[2])
-    theoretical_quantiles <- qstd(ppoints(n), mean = optim_out$par[1], sd = optim_out$par[2])
+    theoretical_quantiles <- qnorm(ppoints(n), mean = optim_out$par[1], sd = optim_out$par[2])
   }
-  
-  r_squared <- cor(sort(fit), sort(x))
+
+  ## PPCC squared = coefficient of determination of the QQ points (genuine R^2).
+  r_squared <- cor(sort(fit), sort(x))^2
   r_squared_round <- round(r_squared, 3)
-  
-  aic = 2 * optim_out$value + 2 * 4
-  bic = 2 * optim_out$value + log(n) * 4
+
+  ## Penalty must match the number of free parameters of each distribution.
+  k <- if(distribution == "sstd") 4 else if(distribution == "std") 3 else 2
+  aic = 2 * optim_out$value + 2 * k
+  bic = 2 * optim_out$value + log(n) * k
     
   sample_mean <- mean(x)
   
@@ -525,9 +544,10 @@ mc_simulation <- function(
   for(i in 1:num_paths) {
     sigma_hat[i] <- sd(x_n[1:i]) ## sd for paths 1 thru i
     dev[i] <- 1.96 * sigma_hat[i] / sqrt(i)
-    ci_l <- mu_hat - dev[i]
-    ci_u <- mu_hat + dev[i]
   }
+  ## Vectorised: each ci_l[i]/ci_u[i] uses its own dev[i] (the band shrinks ~1/sqrt(i)).
+  ci_l <- mu_hat - dev
+  ci_u <- mu_hat + dev
   
   percent_losing_paths <- 100 * count_num_dao(mc_df, threshold = 100)/num_paths
 
@@ -788,7 +808,9 @@ importance_sampling <- function(
   g_n_vect <- dnorm(h_vect, g_n_params[1], g_n_params[2])
   f_n_vect <- dsstd(h_vect, f_n_params[1], f_n_params[2], f_n_params[3], f_n_params[4])
   w_star <- f_n_vect / g_n_vect
-  h_weighted <- 100 * exp(h_vect * w_star)
+  ## Importance-sampling estimator of E_f[100 * exp(X)]: the weight multiplies the
+  ## integrand exp(h), it does NOT go inside the exponent. (Was 100 * exp(h_vect * w_star).)
+  h_weighted <- 100 * exp(h_vect) * w_star
   
   is_m <- mean(h_weighted)
   is_s <- sd(h_weighted)
@@ -836,7 +858,9 @@ importance_sampling <- function(
     }
   } else {
     mu_hat <- sum(h_weighted) / num_paths
-    sigma_hat <- sd(h_vect[1:num_paths] * w_star[1:num_paths]) ## sd for paths 1 thru i
+    ## sd of the actual estimand h_weighted = 100*exp(h)*w (so is_proposal minimises
+    ## the variance of the quantity it estimates). Was sd(h_vect * w_star).
+    sigma_hat <- sd(h_weighted[1:num_paths]) ## sd for paths 1 thru i
     dev <- 1.96 * sigma_hat / sqrt(num_paths)
     ci_l <- mu_hat - dev
     ci_u <- mu_hat + dev
@@ -931,9 +955,12 @@ f_mad_n <- function(Sn, mean_X) {
 ## mean is the mean of a single Gaussian r.v. (same for t-distribution)
 ## sd is the sd of a single Gaussian r.v. (same for t-distribution)
 f_kappa <- function(n0, n, mean, sd = 1, nu = 3, xi = 1, num_sim = 1e4) {
+  ## NOTE: kappa is scale-invariant (the MAD ratio MAD_n / MAD_n0 cancels any
+  ## common scaling of the summands), so no nu/(nu-2) variance rescaling of `sd`
+  ## is applied here -- it would have no effect on the returned value.
   Sn_sim <- replicate(
-    num_sim, 
-    rsstd(n = n, mean = mean, sd = nu/(nu - 2) * sd, nu = nu, xi = xi)
+    num_sim,
+    rsstd(n = n, mean = mean, sd = sd, nu = nu, xi = xi)
   )
   mad_n0 <- f_mad_n(
     unlist(lapply(1:num_sim, function(i) sum(Sn_sim[1:n0, i]))),  
@@ -950,13 +977,14 @@ f_kappa <- function(n0, n, mean, sd = 1, nu = 3, xi = 1, num_sim = 1e4) {
 
 ## Use approximation if approx = TRUE
 f_n_min <- function(n_g, mean, sd_g = 1, nu = 3, xi = 1, num_sim = 1e4, approx = FALSE) {
+  ## kappa is scale-invariant, so sd_g is passed through unscaled (see f_kappa).
   ifelse(
     approx,
     exponent <- - 1 / (f_kappa(
-      1, 2, mean, sd = sd_g * (nu / (nu - 2)), nu = nu, xi = xi, num_sim = num_sim
+      1, 2, mean, sd = sd_g, nu = nu, xi = xi, num_sim = num_sim
     ) - 1),
     exponent <- - 1 / (f_kappa(
-      1, n_g, mean, sd = sd_g * (nu / (nu - 2)), nu = nu, xi = xi, num_sim = num_sim
+      1, n_g, mean, sd = sd_g, nu = nu, xi = xi, num_sim = num_sim
     ) - 1)
   )
   n_g^exponent

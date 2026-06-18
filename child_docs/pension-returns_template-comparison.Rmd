@@ -376,14 +376,58 @@ Summary for fit of log returns to an F-S skew standardized Student-t distributio
 `xi` is the estimated skewness parameter.  
 
 
-Skewed $t$-distribution (sstd):  
+Skewed $t$-distribution (sstd):
 
 ```{r}
 knitr::kable(fit_summary, digits = 3)
 ```
 
+The fits in this section are based on **n = `r length(fits[[1]]$data)`** observations.
 
-Standardized $t$-distribution (std):  
+##### Standard errors
+
+Standard errors for the skewed-$t$ parameters, from the observed Fisher information (the
+inverse Hessian of the log-likelihood at the maximum). An entry of `NaN`/`NA` flags a
+non-positive or singular information matrix: the parameter is then not locally identified
+at this sample size.
+
+```{r}
+fit_se_summary <- sapply(fits, function(f) sstd_se(f$data)$se)
+colnames(fit_se_summary) <- fund_names
+knitr::kable(fit_se_summary, digits = 4)
+```
+
+```{r}
+## Quantities for the paragraph below; kept correct for any sample size / fund set.
+.n_obs    <- length(fits[[1]]$data)
+.est      <- fit_summary[c("m", "s", "nu", "xi"), , drop = FALSE]
+.nu_relse <- 100 * fit_se_summary["nu", ] / as.numeric(.est["nu", ])
+.nu_relse <- .nu_relse[is.finite(.nu_relse)]
+.n_sing   <- sum(!is.finite(fit_se_summary["nu", ]))
+.fin      <- which(is.finite(fit_se_summary["nu", ]))[1]   # a fund whose nu is identified
+.rf       <- fund_names[.fin]
+.rf_nu    <- as.numeric(.est["nu", .fin]); .rf_nu_se <- fit_se_summary["nu", .fin]
+.rf_nu_lo <- .rf_nu - 1.96 * .rf_nu_se;    .rf_nu_hi <- .rf_nu + 1.96 * .rf_nu_se
+.rf_xi    <- as.numeric(.est["xi", .fin]); .rf_xi_se <- fit_se_summary["xi", .fin]
+.rf_xi_lo <- .rf_xi - 1.96 * .rf_xi_se;    .rf_xi_hi <- .rf_xi + 1.96 * .rf_xi_se
+```
+
+The four parameters split sharply by how much data they require. The location `m` and
+scale `s` are pinned down even here -- their standard errors are a small fraction of the
+estimates, on the order of what a Gaussian of the same mean and variance would give. The
+tail index `nu` and skew `xi` are another matter. `r if (.n_sing > 0) paste0("For ", .n_sing, " of the ", length(fits), " funds the information matrix is singular, so nu and xi are not even locally identified. ")`Where `nu` is identified its relative standard error
+ranges from `r round(min(.nu_relse))`% to `r round(max(.nu_relse))`%; for `` `r .rf` `` the
+95% interval is approximately [`r round(.rf_nu_lo, 1)`, `r round(.rf_nu_hi, 1)`], which
+straddles both `nu = 2` (below which the variance ceases to exist) and `nu = 4` (below
+which the kurtosis is infinite). At this sample size, then, the data cannot settle whether
+the return variance is even finite. The skew for `` `r .rf` `` is `xi` = `r round(.rf_xi, 2)`
+with 95% interval [`r round(.rf_xi_lo, 2)`, `r round(.rf_xi_hi, 2)`]`r if (is.finite(.rf_xi_hi) && .rf_xi_hi < 1) ", which lies entirely below 1, so the left skew is statistically established"`.
+Because it is the tail parameters that carry the risk, this imprecision -- not the
+well-determined mean -- is the binding constraint on what the fit can tell us (cf. the
+$\kappa$ and $n_{\min}$ results below).
+
+
+Standardized $t$-distribution (std):
 
 ```{r}
 knitr::kable(fit_summary_std, digits = 3)
@@ -670,7 +714,7 @@ make_extreme_probs <- function(data_df) {
   for(i in 1:ncol(data_df)) {
     x <- data_df[, i]
     extreme_probs[, i] <- c(
-      pnorm(min(x), fits_norm[[i]]$dist_params[1], fits_norm[[i]]$dist_params[1]) * 100, 
+      pnorm(min(x), fits_norm[[i]]$dist_params[1], fits_norm[[i]]$dist_params[2]) * 100,
       (1 - pnorm(max(x), fits_norm[[i]]$dist_params[1], fits_norm[[i]]$dist_params[2])) * 100,
       psstd(min(x), fit_summary["m", i], fit_summary["s", i], fit_summary["nu", i], fit_summary["xi", i]) * 100, 
       (1 - psstd(max(x), fit_summary["m", i], fit_summary["s", i], fit_summary["nu", i], fit_summary["xi", i])) * 100

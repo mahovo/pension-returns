@@ -12,14 +12,20 @@ df_l_summary <- exp(df_summary_to_df(summary(data_df_l)))
 ```
 
 ```{r}
-df_summary_all <- cbind(
+## Insert the long series column only when it is included (df_l_summary is defined
+## under eval=params$include_long above); otherwise the summary stands on its own.
+df_summary_all <- if (isTRUE(params$include_long)) {
+  cbind(
     df_summary[, 1:2],
     df_l_summary,
     df_summary[, 3:ncol(df_summary)]
   )
+} else {
+  df_summary
+}
 
 knitr::kable(
-  df_summary_all, 
+  df_summary_all,
   digits = 3
 )
 ```

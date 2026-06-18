@@ -47,3 +47,14 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# --- pension-returns build artifacts ---
+# (the repo intentionally tracks the rendered reports and data/*.RData; the items
+#  below are regenerable intermediates / a project-local pinned library and should not)
+.Rlib_pin/
+/pension-returns_annual_files/
+/pension-returns_monthly_files/
+_validate_*
+/Rplots.pdf
+pension-returns_*.log
+/pension-returns_investor_files/

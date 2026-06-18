@@ -68,6 +68,7 @@ run_exploratory <- (params$run_exploratory + run_individual > 0)
 
 ```{r chunk4}
 library(here)
+library(tidyr)   # gather() used below; attach explicitly for non-interactive render
 ```
 
 ```{r chunk5}
@@ -141,13 +142,40 @@ mc_dao <- TRUE
 mc_threshold <- 3
 ```
 
-Fit log returns to F-S skew standardized Student-t distribution.  
-`m`  is the location parameter.  
-`s` is the scale parameter.  
-`nu` is the estimated shape parameter (degrees of freedom).  
-`xi` is the estimated skewness parameter.  
+# Summary
 
-# Returns data 2011-2023.  
+This is a **case study on a deliberately frozen data set** (annual returns 2011-2023),
+not an up-to-date monitor. Fixing the data is what lets us interpret a specific set of
+numbers and graphs. Three findings stand out.
+
+1. **The "plans" are leverage levels on one portfolio, not distinct asset mixes.** Within
+each provider the high-risk plan is almost exactly a scalar multiple of the medium-risk
+plan ($\beta \approx 1.2$ for Velliv, $\approx 1.6$ for PFA, intercept $\approx 0$), and a
+single common factor explains about 96% of the variation across all four plans. PFA's own
+product description confirms it: profiles B and D are fixed weighted blends of the *same
+two* underlying funds.
+
+2. **"Risk" here means deeper drawdowns and start-date-dependent path ordering, not a
+different kind of bet.** The high-risk plan amplifies the same factor in both directions:
+it loses more in bad years (it underperformed the medium plan in 3-4 of 13 years), and its
+cumulative path drops below the medium plan's whenever the index is started just before a
+drawdown.
+
+3. **The sample is far too short to estimate the tail, and -- at annual resolution -- it
+contains no crash**, so every risk number is both barely identified and optimistically
+biased. For *precise* tail estimates the honest verdict is close to Taleb's "better stay
+home"; what survives is the *qualitative* structure -- fat tails, leverage, and asymmetric
+drawdowns.
+
+The Discussion at the end develops these points.
+
+# Returns data 2011-2023.
+
+Fit log returns to F-S skew standardized Student-t distribution.
+`m`  is the location parameter.
+`s` is the scale parameter.
+`nu` is the estimated shape parameter (degrees of freedom).
+`xi` is the estimated skewness parameter.
 
 For 2011, medium risk data is used in the high risk data set, as no high risk fund data is available prior to 2012.  
 `vmrl` is a long version of Velliv medium risk data, from 2007 to 2023. For 2007 to 2011 (both included) no high risk data is available.
@@ -214,6 +242,7 @@ data_df_l <- data.frame(
 )
 
 fund_names <- colnames(data_df)
+fund_names_l <- colnames(data_df_l)   # long (vmrl) series; was relied on from global env
 ```
 
 ```{r}
@@ -243,12 +272,64 @@ ggplot(
   geom_line(aes(color = fund)) +
   scale_x_continuous(breaks = 2011:2023) +
   labs(
-    title = paste("Gross returns 2011-2023"), 
-    subtitle = "", 
-    x = "date", 
+    title = paste("Gross returns 2011-2023"),
+    subtitle = "",
+    x = "date",
     y = "gross return"
   )
 ```
+
+## Path crossing and the starting point
+
+Plotting the *cumulative* value of each plan from a common starting index makes the
+riskier plans appear to dominate -- their paths sit above the less-risky ones and rarely
+fall below. It is tempting to read this as *more risk always pays*. It does not
+generalise: it depends on **where the index starts**.
+
+Each high-risk plan is, in effect, a leveraged exposure to one common return factor: in
+cumulative log terms $\log(W_\text{high}/100) \approx \beta\,\log(W_\text{med}/100)$ with
+slope $\beta > 1$ and intercept $\approx 0$. With $\beta > 1$ this gives
+$W_\text{high} > W_\text{med}$ **exactly when** $W_\text{med} > 100$, so the high-risk plan
+can only fall below the medium-risk plan over a window in which the cumulative return
+*since the start date* is negative.
+
+Two realised illustrations. First, no rebasing is even needed for PFA: started in 2011,
+the high-risk plan (`phr`, $-6.6\%$ in 2011) begins **below** the medium-risk plan (`pmr`,
+$+0.4\%$) and only overtakes it in 2013. Second, rebasing every plan to 100 at the end of
+2021 -- just before the 2022 drawdown -- the high-risk plans fall below the medium-risk
+plans in 2022 and recross above only in 2023:
+
+```{r fig.width=10}
+## Annual cumulative index, rebased to 100 just before the 2022 drawdown.
+.yrs <- 2011:2023
+.rebase_year <- 2021
+.sel <- .yrs > .rebase_year                            # 2022, 2023
+.idx <- function(lr) 100 * cumprod(c(1, exp(lr[.sel]))) # 100 at 2021, then 2022, 2023
+crossing_df <- data.frame(
+  year = c(.rebase_year, .yrs[.sel]),
+  `Velliv medium` = .idx(data_df$vmr),
+  `Velliv high`   = .idx(data_df$vhr),
+  `PFA medium`    = .idx(data_df$pmr),
+  `PFA high`      = .idx(data_df$phr),
+  check.names = FALSE
+) %>% gather(key = "plan", value = "price", -year)
+
+ggplot(crossing_df, aes(x = year, y = price, color = plan)) +
+  geom_line(linewidth = 0.6) +
+  geom_point() +
+  geom_hline(yintercept = 100, linetype = 2, colour = "grey50") +
+  scale_x_continuous(breaks = c(.rebase_year, .yrs[.sel])) +
+  labs(
+    title = "Annual index started just before the 2022 drawdown (end-2021 = 100)",
+    subtitle = "High-risk plans fall below medium-risk in 2022, then recross above by 2023",
+    x = "year", y = "price index"
+  )
+```
+
+Whether the realised paths cross is therefore a property of the starting point relative
+to the market cycle, not of the plans themselves. A deeper or longer regime (e.g. a
+2008-2009-type drawdown, present in the long Velliv series `vmrl`) would hold the
+high-risk plan below for correspondingly longer.
 
 
 
@@ -461,16 +542,13 @@ n_min_df <- readRDS(file = here("data", data_dir,  "n_min_df.RData"))
 ```
 
 ```{r chunk17, eval=(params$run_sim && run_individual)}
-fit_id <- list(
-  1,
-  2,
-  3,
-  4,
-  c(1, 3),
-  c(2, 4),
-  c(1, 4),
-  c(2, 3)
-)
+## PURE BLACK BOX: each fund (mixes included) is simulated from its OWN single fit
+## to its observed total-value series -- i.e. "simulation of the average", NOT
+## "average of simulations". The former component-recombination (e.g. c(1, 3) for a
+## mix) drew the two components independently, assuming zero correlation between
+## near-collinear funds, and is abandoned. fits[[5..8]] are the single fits to the
+## realised mix series (mmr, mhr, vmr_phr, vhr_pmr) built via mix_of_logreturns().
+fit_id <- list(1, 2, 3, 4, 5, 6, 7, 8)
 
 num_fits <- length(fits)
 
@@ -515,16 +593,75 @@ for(i in seq_along(fits_norm)) {
 ```
 
 
+```{r chunk17a, eval=(params$run_sim && run_individual && params$include_long)}
+## Long-series MC (single fund vmrl). Ported from the monthly report so the annual
+## report is self-contained for the long series (it previously relied on these
+## objects lingering in a shared session).
+fit_id_l <- list(
+  1
+)
+
+num_fits_l <- length(fits_l)
+
+mc_output_l <- list()
+for(i in seq_along(fits_l)) {
+  mc_output_l[[i]] <- mc_simulation(
+    fits_l[fit_id_l[[i]]],
+    num_paths = mc_num_paths,
+    num_periods = mc_num_periods,
+    dao = mc_dao,
+    threshold = mc_threshold,
+    distribution = "sstd"
+  )
+}
+
+mc_output_std_l <- list()
+for(i in seq_along(fits_std_l)) {
+  mc_output_std_l[[i]] <- mc_simulation(
+    fits_std_l[fit_id_l[[i]]],
+    num_paths = mc_num_paths,
+    num_periods = mc_num_periods,
+    dao = mc_dao,
+    threshold = mc_threshold,
+    distribution = "std"
+  )
+}
+
+mc_output_norm_l <- list()
+for(i in seq_along(fits_norm_l)) {
+  mc_output_norm_l[[i]] <- mc_simulation(
+    fits_norm_l[fit_id_l[[i]]],
+    num_paths = mc_num_paths,
+    num_periods = mc_num_periods,
+    dao = mc_dao,
+    threshold = mc_threshold,
+    distribution = "normal"
+  )
+}
+```
+
 ```{r chunk17b, eval=(params$run_sim && run_individual)}
 saveRDS(mc_output, file = here("data", data_dir, "mc_output.RData"))
 saveRDS(mc_output_std, file = here("data", data_dir, "mc_output_std.RData"))
 saveRDS(mc_output_norm, file = here("data", data_dir, "mc_output_norm.RData"))
 ```
 
+```{r chunk17c, eval=(params$run_sim && run_individual && params$include_long)}
+saveRDS(mc_output_l, file = here("data", data_dir, "mc_output_l.RData"))
+saveRDS(mc_output_std_l, file = here("data", data_dir, "mc_output_std_l.RData"))
+saveRDS(mc_output_norm_l, file = here("data", data_dir, "mc_output_norm_l.RData"))
+```
+
 ```{r chunk18, eval=(run_individual && !params$run_sim)}
 mc_output <- readRDS(file = here("data", data_dir, "mc_output.RData"))
 mc_output_std <- readRDS(file = here("data", data_dir, "mc_output_std.RData"))
 mc_output_norm <- readRDS(file = here("data", data_dir, "mc_output_norm.RData"))
+```
+
+```{r chunk18b, eval=(run_individual && !params$run_sim && params$include_long)}
+mc_output_l <- readRDS(file = here("data", data_dir, "mc_output_l.RData"))
+mc_output_std_l <- readRDS(file = here("data", data_dir, "mc_output_std_l.RData"))
+mc_output_norm_l <- readRDS(file = here("data", data_dir, "mc_output_norm_l.RData"))
 ```
 
 ```{r chunk19}
@@ -560,10 +697,45 @@ for(i in seq_along(fits_norm)) {
 }
 ```
 
+```{r chunk20a, eval=(params$run_sim && run_individual && params$include_long)}
+max_sum_plots_l <- list()
+for(i in seq_along(fits_l)) {
+  max_sum_plots_l[[i]] <- plot_max_sum(
+    fits_l[fit_id_l[[i]]],
+    mc_num_paths,
+    distribution = "sstd"
+  )
+}
+
+max_sum_plots_std_l <- list()
+for(i in seq_along(fits_std_l)) {
+  max_sum_plots_std_l[[i]] <- plot_max_sum(
+    fits_std_l[fit_id_l[[i]]],
+    mc_num_paths,
+    distribution = "std"
+  )
+}
+
+max_sum_plots_norm_l <- list()
+for(i in seq_along(fits_norm_l)) {
+  max_sum_plots_norm_l[[i]] <- plot_max_sum(
+    fits_norm_l[fit_id_l[[i]]],
+    mc_num_paths,
+    distribution = "norm"
+  )
+}
+```
+
 ```{r chunk20b, eval=(params$run_sim && run_individual)}
 saveRDS(max_sum_plots, here("data", data_dir, "max_sum_plots.RData"))
 saveRDS(max_sum_plots_std, here("data", data_dir, "max_sum_plots_std.RData"))
 saveRDS(max_sum_plots_norm, here("data", data_dir, "max_sum_plots_norm.RData"))
+```
+
+```{r chunk20c, eval=(params$run_sim && run_individual && params$include_long)}
+saveRDS(max_sum_plots_l, here("data", data_dir, "max_sum_plots_l.RData"))
+saveRDS(max_sum_plots_std_l, here("data", data_dir, "max_sum_plots_std_l.RData"))
+saveRDS(max_sum_plots_norm_l, here("data", data_dir, "max_sum_plots_norm_l.RData"))
 ```
 
 
@@ -572,6 +744,12 @@ saveRDS(max_sum_plots_norm, here("data", data_dir, "max_sum_plots_norm.RData"))
 max_sum_plots <- readRDS(file = here("data", data_dir, "max_sum_plots.RData"))
 max_sum_plots_std <- readRDS(file = here("data", data_dir, "max_sum_plots_std.RData"))
 max_sum_plots_norm <- readRDS(file = here("data", data_dir, "max_sum_plots_norm.RData"))
+```
+
+```{r chunk21b, eval=(run_individual && !params$run_sim && params$include_long)}
+max_sum_plots_l <- readRDS(file = here("data", data_dir, "max_sum_plots_l.RData"))
+max_sum_plots_std_l <- readRDS(file = here("data", data_dir, "max_sum_plots_std_l.RData"))
+max_sum_plots_norm_l <- readRDS(file = here("data", data_dir, "max_sum_plots_norm_l.RData"))
 ```
 
 ```{r chunk22}
@@ -702,6 +880,74 @@ cat(unlist(appendix_report), sep = '\n')
 ```
 
 
+
+# Discussion
+
+With the data frozen we can step back and ask what these numbers and graphs actually tell
+us.
+
+## The plans are one portfolio at different leverage
+
+The most consequential finding is structural. The four plans are not four different
+stock/bond mixes; they are weighted blends of the same two underlying funds (a low-risk and
+a high-risk building block), so the high-risk plan behaves like a *leveraged* version of the
+medium-risk plan. Empirically the high-risk series is a near-scalar multiple of the
+medium-risk series ($R^2$ of 0.91-0.98 with intercept $\approx 0$), and the first principal
+component explains about 96% of the joint variation across all four plans. Practically, the
+choice between risk profiles within a provider is a choice of **how much** of one portfolio
+to hold, not **which** portfolio -- higher profiles buy a higher expected growth rate at the
+price of proportionally larger swings, with essentially no diversification difference between
+them.
+
+## What "risk" looks like in the data
+
+Because $\beta>1$ with near-zero intercept, the high-risk plan amplifies the common factor
+symmetrically. Over 2011-2023 that meant higher average returns (Velliv 8.5% vs 7.0%, PFA
+9.5% vs 6.5%) but deeper drawdowns (worst year $-15.1\%$ vs $-13.2\%$ for Velliv, $-12.2\%$
+vs $-9.6\%$ for PFA) and outright underperformance in flat or down years. The much-noted
+property that the cumulative high-risk path never dips below the medium-risk path is, as the
+"Path crossing" section shows, an artefact of starting the index in 2012 at a low point
+before a long bull market -- not evidence that more risk is free.
+
+## What the data can and cannot tell us
+
+This is the heart of the case study. The annual fits rest on **13 observations** for up to
+four parameters. The skewness parameter `xi` is driven to its boundary in every fit -- a
+direct symptom that the shape simply is not identifiable from so few points. Taleb's
+$\kappa$ / $n_{min}$ machinery (appendix) quantifies the gap: matching the convergence of 30
+Gaussian observations would take far more than 30 observations from a Student-$t$ with
+$\nu\approx 3$. So for *point estimates of tail risk*, the honest answer is close to "stay
+home."
+
+Two things sharpen this. First, at annual resolution the 2011-2023 window contains **no
+crash** -- even 2020 nets to $+9.7\%$ because the COVID drawdown recovered within the year.
+The realised maximum gains actually exceed the maximum losses in this sample, although the
+fitted distributions are left-skewed: the benign window has not yet delivered the large
+drawdown the fit predicts. Second, the long Velliv series (`vmrl`, back to 2007) *does*
+contain the 2008 crash, and is the one place in the data where a real left-tail event enters
+the estimate. That is the strongest reason to keep it: it is our only empirical anchor for
+the very tail the whole study is about.
+
+## The mix and the fat-tail reading
+
+The Monte-Carlo results are now produced as a single "black box" fit to each realised series
+rather than by combining independent simulations, which removes a spurious diversification
+effect that previously made the Velliv+PFA mixes look artificially safe. What remains -- and
+what correlation alone misses -- is a genuine *tail* benefit from mixing two fat-tailed
+providers: one provider's idiosyncratic crash is softened because the mix always lies between
+the two. Quantifying that benefit against its cost is the subject of a separate analysis. On
+the distributional side, the fitted $\nu\approx 3$ implies (near-)infinite variance; the
+symmetric-$t$ Monte Carlo for the high-risk PFA profile diverges to absurd values, which is
+not a numerical error but the fit telling us its variance does not exist.
+
+## Bottom line
+
+For a fixed, crash-free, 13-point sample we can say a great deal *qualitatively* -- the plans
+are leverage on one portfolio, the tails are fat, drawdowns are asymmetric, and apparent
+path-dominance is a starting-point artefact -- while being honest that *quantitative* tail
+estimates are not trustworthy at this sample size. The next step is to turn the qualitative
+structure into the two decisions an investor actually faces: which risk level, and whether to
+split across providers.
 
 # Appendix
 
