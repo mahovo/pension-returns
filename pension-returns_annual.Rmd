@@ -3,9 +3,7 @@ title: "Annual pension returns analysis"
 author: Martin Hoshi Vognsen
 header-includes:
    - \usepackage[default]{sourcesanspro}
-   - \usepackage[T1]{fontenc}
    - \usepackage[fontsize=8pt]{scrextend}
-mainfont: SourceSansPro
 output: 
   html_document:
     toc: true
@@ -14,6 +12,7 @@ output:
   pdf_document:
     toc: true
     toc_depth: 3
+    latex_engine: xelatex
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
 params:
   run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
