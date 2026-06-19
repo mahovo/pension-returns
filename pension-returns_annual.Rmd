@@ -334,6 +334,45 @@ high-risk plan below for correspondingly longer.
 
 
 
+## The Sharpe ratio: leverage ray or curve?
+
+If the high-risk plan were **pure leverage** of the medium-risk one -- the same portfolio
+scaled up -- the two would share a reward-to-risk ratio (the same annualised Sharpe), and the
+risk level would be a pure risk-appetite dial with no effect on return *per unit of risk*.
+With only thirteen annual observations the Sharpe estimates are themselves noisy, so what
+matters below is the *pattern*, not the decimals. (Danish short rates over the sample are near
+zero, so we treat the return as the excess return.)
+
+```{r sharpe-ray-curve}
+.sharpe <- function(x) mean(x) / sd(x)   # annual data: already annualised; rates ~ 0
+.yrs    <- 2011:2023
+.from   <- c(2011, 2014, 2017)
+.plans  <- c(vmr = "Velliv medium", vhr = "Velliv high",
+             pmr = "PFA medium",    phr = "PFA high")
+.tab <- t(sapply(.from, function(f) {
+  .s <- data_df[.yrs >= f, ]
+  round(sapply(names(.plans), function(p) .sharpe(.s[[p]])), 2)
+}))
+rownames(.tab) <- paste0("from ", .from, "  (n=", sapply(.from, function(f) sum(.yrs >= f)), ")")
+colnames(.tab) <- .plans
+knitr::kable(.tab, caption = "Annualised Sharpe ratio by plan and start year (annual returns).")
+```
+
+**Velliv behaves like a leverage ray.** Its medium and high plans have all but identical
+Sharpe ratios in every window -- the gap never exceeds about one-hundredth -- exactly what one
+portfolio held at two exposure levels looks like. Choosing the Velliv risk level is a pure
+risk-appetite decision, with nothing to "optimise".
+
+**PFA's two profiles do not share a Sharpe -- and which is better is not identifiable.** PFA's
+menu bends rather than running straight, but *which* end looks better flips with the start
+year: the medium profile has the clearly higher Sharpe measured from 2011, the high profile
+from 2017, with the two essentially tied in between. At $n = 13$ those differences sit well
+inside the sampling noise this report is about, so there is no reliably "better" PFA blend to
+chase -- in added risk or in fees.
+
+The monthly report repeats this test on 142 observations and reaches the same verdict, and the
+companion investor tool extends it to the full Velliv low/medium/high and PFA A--D menus.
+
 ```{r chunk12}
 ################################################################################
 ##
@@ -417,70 +456,95 @@ fits_norm_l <- readRDS(file = here("data", data_dir, "fits_norm_l.RData"))
 ```
 
 
+```{r chunk15e-ad, eval=(run_individual && params$run_fits)}
+## Anderson-Darling A^2 and parametric-bootstrap p-value per fund x distribution.
+## Heavy (refits inside the bootstrap), so gated on run_fits and cached like the fits.
+ad_B    <- 499
+ad_df   <- data.frame(matrix(numeric(3 * length(fund_names)), ncol = length(fund_names)))
+ad_p_df <- data.frame(matrix(numeric(3 * length(fund_names)), ncol = length(fund_names)))
+for(i in seq_along(fits)) {
+  rk <- ad_gof(fits[[i]],      "sstd",   B = ad_B)
+  rs <- ad_gof(fits_std[[i]],  "std",    B = ad_B)
+  rn <- ad_gof(fits_norm[[i]], "normal", B = ad_B)
+  ad_df[, i]   <- c(rk$A2, rs$A2, rn$A2)
+  ad_p_df[, i] <- c(rk$p,  rs$p,  rn$p)
+}
+colnames(ad_df) <- colnames(ad_p_df) <- fund_names
+rownames(ad_df) <- rownames(ad_p_df) <- c("sstd", "std", "normal")
+saveRDS(ad_df,   file = here("data", data_dir, "ad_df.RData"))
+saveRDS(ad_p_df, file = here("data", data_dir, "ad_p_df.RData"))
+```
+
+```{r chunk15f-ad, eval=(run_individual && !params$run_fits)}
+ad_df   <- readRDS(file = here("data", data_dir, "ad_df.RData"))
+ad_p_df <- readRDS(file = here("data", data_dir, "ad_p_df.RData"))
+```
+
+
 ```{r eval=run_individual}
 fit_summary <- as.data.frame(lapply(
   fits,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary) <- fund_names
-rownames(fit_summary) <- c("m", "s", "nu", "xi", "R^2")
+rownames(fit_summary) <- c("m", "s", "nu", "xi", "PPCC")
 ```
 
 ```{r eval=run_individual}
 fit_summary_std <- as.data.frame(lapply(
   fits_std,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_std) <- fund_names
-rownames(fit_summary_std) <- c("m", "s", "nu", "R^2")
+rownames(fit_summary_std) <- c("m", "s", "nu", "PPCC")
 ```
 
 ```{r eval=run_individual}
 fit_summary_norm <- as.data.frame(lapply(
   fits_norm,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_norm) <- fund_names
-rownames(fit_summary_norm) <- c("m", "s", "R^2")
+rownames(fit_summary_norm) <- c("m", "s", "PPCC")
 ```
 
 ```{r eval=(run_individual && params$include_long)}
 fit_summary_l <- as.data.frame(lapply(
   fits_l,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_l) <- fund_names_l
-rownames(fit_summary_l) <- c("m", "s", "nu", "xi", "R^2")
+rownames(fit_summary_l) <- c("m", "s", "nu", "xi", "PPCC")
 ```
 
 ```{r eval=(run_individual && params$include_long)}
 fit_summary_std_l <- as.data.frame(lapply(
   fits_std_l,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_std_l) <- fund_names_l
-rownames(fit_summary_std_l) <- c("m", "s", "nu", "R^2")
+rownames(fit_summary_std_l) <- c("m", "s", "nu", "PPCC")
 ```
 
 ```{r eval=(run_individual && params$include_long)}
 fit_summary_norm_l <- as.data.frame(lapply(
   fits_norm_l,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_norm_l) <- fund_names_l
-rownames(fit_summary_norm_l) <- c("m", "s", "R^2")
+rownames(fit_summary_norm_l) <- c("m", "s", "PPCC")
 ```
 
 ```{r eval=(params$run_comparison && params$run_sim)}

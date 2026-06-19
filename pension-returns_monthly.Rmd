@@ -692,6 +692,51 @@ ggplot(
 
 
 
+## The Sharpe ratio: leverage ray or curve?
+
+The crossing argument established that, within a provider, the high-risk plan is to a good
+approximation a *scaled* version of the medium-risk one. If that scaling were **pure
+leverage**, the two plans would share the same reward-to-risk ratio -- the same annualised
+Sharpe -- and the risk level would carry no consequence for return *per unit of risk*. The
+test is whether the Sharpe ratios coincide, and whether that holds across sub-periods rather
+than being an artefact of one window. (Danish short rates over the sample are near zero, so
+we treat the return as the excess return.)
+
+```{r sharpe-ray-curve}
+.sharpe <- function(x) mean(x) / sd(x) * sqrt(12)   # annualised; rates ~ 0 over the sample
+.wins   <- c("2012-06-01", "2016-01-01", "2019-01-01")
+.plans  <- c(vmr = "Velliv medium", vhr = "Velliv high",
+             pmr = "PFA medium",    phr = "PFA high")
+.tab <- t(sapply(.wins, function(w) {
+  .s <- monthly_logreturns_df %>% filter(date >= as.Date(w))
+  round(sapply(names(.plans), function(p) .sharpe(.s[[p]])), 2)
+}))
+rownames(.tab) <- paste0("from ", substr(.wins, 1, 7), "  (n=",
+  sapply(.wins, function(w) sum(monthly_logreturns_df$date >= as.Date(w))), ")")
+colnames(.tab) <- .plans
+knitr::kable(.tab, caption = "Annualised Sharpe ratio by plan and start date.")
+```
+
+**Velliv behaves like a leverage ray.** Its medium and high plans have nearly the same Sharpe
+in every sub-period -- the gap stays within a few hundredths and all but vanishes in the most
+recent window -- the signature of one portfolio held at two levels of exposure. Choosing the
+Velliv risk level is therefore a pure risk-appetite decision: more risk buys proportionally
+more expected return, with no change in reward per unit of risk and nothing to "optimise".
+
+**PFA's two profiles curve -- but which one is better is not identifiable.** PFA's medium and
+high profiles do *not* share a Sharpe, so the menu bends rather than running straight; yet
+*which* end looks better flips with the start date -- the medium profile has the higher Sharpe
+measured from 2012, the high profile from 2019, with the two essentially tied in between. The
+differences sit well inside the sampling noise documented elsewhere in this report. The
+textbook response to a curved menu is to locate the higher-Sharpe blend; here you cannot
+reliably tell which blend that is, so it is not worth paying -- in added risk or in fees -- to
+chase one.
+
+These are only two profiles per provider. The companion investor tool runs the same test on
+the full Velliv low/medium/high and PFA A--D menus and reaches the same verdict -- Velliv a
+ray, PFA an unidentifiable curve -- which it then uses to weigh the choice of provider against
+the choice of risk level.
+
 ```{r chunk12}
 ################################################################################
 ##
@@ -776,70 +821,95 @@ fits_norm_l <- readRDS(file = here("data", data_dir, "fits_norm_l.RData"))
 ```
 
 
+```{r chunk15e-ad, eval=(run_individual && params$run_fits)}
+## Anderson-Darling A^2 and parametric-bootstrap p-value per fund x distribution.
+## Heavy (refits inside the bootstrap), so gated on run_fits and cached like the fits.
+ad_B    <- 499
+ad_df   <- data.frame(matrix(numeric(3 * length(fund_names)), ncol = length(fund_names)))
+ad_p_df <- data.frame(matrix(numeric(3 * length(fund_names)), ncol = length(fund_names)))
+for(i in seq_along(fits)) {
+  rk <- ad_gof(fits[[i]],      "sstd",   B = ad_B)
+  rs <- ad_gof(fits_std[[i]],  "std",    B = ad_B)
+  rn <- ad_gof(fits_norm[[i]], "normal", B = ad_B)
+  ad_df[, i]   <- c(rk$A2, rs$A2, rn$A2)
+  ad_p_df[, i] <- c(rk$p,  rs$p,  rn$p)
+}
+colnames(ad_df) <- colnames(ad_p_df) <- fund_names
+rownames(ad_df) <- rownames(ad_p_df) <- c("sstd", "std", "normal")
+saveRDS(ad_df,   file = here("data", data_dir, "ad_df.RData"))
+saveRDS(ad_p_df, file = here("data", data_dir, "ad_p_df.RData"))
+```
+
+```{r chunk15f-ad, eval=(run_individual && !params$run_fits)}
+ad_df   <- readRDS(file = here("data", data_dir, "ad_df.RData"))
+ad_p_df <- readRDS(file = here("data", data_dir, "ad_p_df.RData"))
+```
+
+
 ```{r eval=run_individual}
 fit_summary <- as.data.frame(lapply(
   fits,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary) <- fund_names
-rownames(fit_summary) <- c("m", "s", "nu", "xi", "R^2")
+rownames(fit_summary) <- c("m", "s", "nu", "xi", "PPCC")
 ```
 
 ```{r eval=run_individual}
 fit_summary_std <- as.data.frame(lapply(
   fits_std,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_std) <- fund_names
-rownames(fit_summary_std) <- c("m", "s", "nu", "R^2")
+rownames(fit_summary_std) <- c("m", "s", "nu", "PPCC")
 ```
 
 ```{r eval=run_individual}
 fit_summary_norm <- as.data.frame(lapply(
   fits_norm,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_norm) <- fund_names
-rownames(fit_summary_norm) <- c("m", "s", "R^2")
+rownames(fit_summary_norm) <- c("m", "s", "PPCC")
 ```
 
 ```{r eval=(run_individual && params$include_long)}
 fit_summary_l <- as.data.frame(lapply(
   fits_l,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_l) <- fund_names_l
-rownames(fit_summary_l) <- c("m", "s", "nu", "xi", "R^2")
+rownames(fit_summary_l) <- c("m", "s", "nu", "xi", "PPCC")
 ```
 
 ```{r eval=(run_individual && params$include_long)}
 fit_summary_std_l <- as.data.frame(lapply(
   fits_std_l,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_std_l) <- fund_names_l
-rownames(fit_summary_std_l) <- c("m", "s", "nu", "R^2")
+rownames(fit_summary_std_l) <- c("m", "s", "nu", "PPCC")
 ```
 
 ```{r eval=(run_individual && params$include_long)}
 fit_summary_norm_l <- as.data.frame(lapply(
   fits_norm_l,
   function(fit) {
-     c(fit$dist_params, fit$r_squared)
+     c(fit$dist_params, fit$ppcc)
   }
 ))
 colnames(fit_summary_norm_l) <- fund_names_l
-rownames(fit_summary_norm_l) <- c("m", "s", "R^2")
+rownames(fit_summary_norm_l) <- c("m", "s", "PPCC")
 ```
 
 
@@ -1208,67 +1278,147 @@ cat(unlist(individual_reports), sep = '\n')
 ```
 
 
+# Findings
 
+With the data deliberately frozen, we can interpret a fixed set of estimates rather
+than chase a moving target. We present the salient results, analyse them against the
+theory that motivates the study, and draw out the implications.
 
+## 1. The plans are one portfolio held at different leverage
 
+*Result.* Within each provider the high-risk plan is, to a close approximation, a scalar
+multiple of the medium-risk plan: regressing one cumulative log-path on the other gives a
+slope of about 1.2 (Velliv) and 1.5 (PFA) with intercept indistinguishable from zero and
+R^2 between 0.91 and 0.98. Across all four plans the first principal component accounts for
+roughly 96% of the variation. The implied low-risk building block (2*B - D for PFA)
+reconstructs a coherent, lower-volatility series, confirming a two-fund structure.
 
+*Analysis.* This is not a statistical accident but the product design: PFA states that
+profile B is approximately a 50/50 blend of its high- and low-risk funds and profile D is
+100% the high-risk fund, so the profiles are fixed affine combinations of the same two
+underlying funds. The choice of "risk profile" within a provider is therefore a choice of
+exposure (leverage) to one portfolio, not a choice between different portfolios.
 
-# Discussion
+*Implication.* Comparisons that treat the profiles (or their mixes) as distinct assets
+overstate the dimensionality of the problem. The investor's first decision reduces to *how
+much* of one factor to hold.
 
-## The plans are one portfolio at different leverage
+## 2. "Risk" is amplified drawdown, and apparent path-dominance is a starting-point artefact
 
-The most consequential finding is structural. The four plans are not four different
-stock/bond mixes; they are weighted blends of the same two underlying funds (a low-risk and a
-high-risk building block), so the high-risk plan behaves like a *leveraged* version of the
-medium-risk plan -- a near-scalar multiple with intercept $\approx 0$, and a single common
-factor dominates the joint variation across all four plans. Practically, the choice between
-risk profiles within a provider is a choice of **how much** of one portfolio to hold, not
-**which** portfolio: higher profiles buy a higher expected growth rate at the price of
-proportionally larger swings, with essentially no diversification difference between them.
+*Result.* Because the slope exceeds 1 with zero intercept, the high-risk plan amplifies the
+common factor symmetrically: higher average growth, but deeper drawdowns (worst monthly
+peak-to-trough -17.3% vs -15.2% for Velliv, -15.9% vs -11.9% for PFA) and underperformance
+in flat or falling markets. The much-noted fact that the cumulative high-risk path never
+dips below the medium-risk path holds only for an index started in 2012; rebased to just
+before the COVID drawdown it falls below for about nine months (see "Path crossing").
 
-## What "risk" looks like in the data
+*Analysis.* With W_high ≈ W_med^β and β>1, the high path lies below the medium path exactly
+when the cumulative return since the start is negative. Non-crossing is thus a property of
+the start date relative to the cycle, not of the plans.
 
-Because $\beta>1$ with near-zero intercept, the high-risk plan amplifies the common factor
-symmetrically: higher average growth, but deeper drawdowns (worst peak-to-trough $-17.3\%$ vs
-$-15.2\%$ for Velliv, $-15.9\%$ vs $-11.9\%$ for PFA) and underperformance over any window in
-which the cumulative return since the start is negative. The much-noted property that the
-cumulative high-risk path never dips below the medium-risk path is, as the "Path crossing"
-section shows, an artefact of starting the index in June 2012 at a low point before a long
-bull market -- rebasing to just before the COVID crash, the high-risk paths fall below the
-medium-risk paths for about nine months before recovering.
+## 3. How much can a fixed sample tell us? Parameter precision
 
-## What the data can and cannot tell us
+This is the methodological core. We fit a four-parameter Fernández–Steel skewed Student-t
+(location m, scale s, tail index nu, skew xi). The parameters split sharply by how much
+data they need.
 
-Monthly resolution helps: 142 observations identify the fits better than the annual report's
-13, and the series captures real drawdowns (COVID-2020, 2022) rather than averaging them away
-as the annual figures do. But 142 months is still roughly one market cycle, monthly returns
-carry serial dependence, and there is no 2008-scale event in the short series. Taleb's
-$\kappa$ / $n_{min}$ machinery (appendix) still implies that a Student-$t$ with $\nu\approx 3$
-needs far more data than a Gaussian to pin down, so quantitative tail estimates remain
-fragile -- even if less so than annually. The long Velliv series (`vmrl`, back to 2007) is the
-one place a 2008-type left-tail event enters the estimate, which is the strongest reason to
-keep it.
+*The location and scale are estimable.* Monthly, m̂(vmr) = 0.0054 with standard error
+0.0021 (t ≈ 2.6); the MLE is about as efficient as the Gaussian sample mean (naive σ/√n =
+0.00225). Under a null of Gaussian(0, 0.02) the chance of observing a mean this large is
+~0.02%, so the positive drift is real. The scale is similarly well determined.
 
-## The mix and the fat-tail reading
+*The tail and skew are the hard parameters — and they carry the risk.*
+- Annual (n = 13): the observed Fisher information is singular for vmr, vhr and phr — the
+  optimiser drives xi to ≈ 0 (vmr xî = 0.004), a degenerate extreme-left-skew corner, and
+  standard errors are undefined. For the one non-degenerate fit, pmr, nu^ = 2.27 with
+  SE = 2.68 (118% relative): nu is not identified.
+- Monthly (n = 142): the fits are non-degenerate. nu^ = 3.4–4.3 with SE = 1.2–1.8 (35–43%
+  relative); the 95% CI on nu for vmr is ≈ [1.1, 5.8], spanning infinite variance (nu < 2),
+  infinite kurtosis (nu < 4) and near-Gaussian tails. xî = 0.70–0.77 with SE ≈ 0.085
+  (10–12%); the CI [0.53, 0.87] lies wholly below 1 (≈ 3.5 SE from symmetry). The left skew
+  is statistically established; the tail index is not pinned down.
 
-The Monte-Carlo results are now produced as a single "black box" fit to each realised series
-rather than by combining independent simulations, which removes a spurious diversification
-effect that previously made the Velliv+PFA mixes look artificially safe. What remains -- and
-what correlation alone misses -- is a genuine *tail* benefit from mixing two fat-tailed
-providers: one provider's idiosyncratic crash is softened because the mix always lies between
-the two. Quantifying that benefit against its cost is the subject of a separate analysis. On
-the distributional side, the fitted $\nu\approx 3$ implies (near-)infinite variance; the
-symmetric-$t$ Monte Carlo for the high-risk PFA profile diverges to absurd values, which is
-not a numerical error but the fit telling us its variance does not exist.
+In short: the *direction* (heavy left skew, fat tails) is robust where we have power; the
+*magnitude* of the tail is not estimable annually and only loosely estimable monthly. (A
+Monte-Carlo replication of this, simulated at pmr's parameters, is in `misc/sgt.Rmd`, where
+the nu and xi estimators show very wide dispersion at small n.)
 
-## Bottom line
+*Analysis — why nu and xi are hard while m is easy.*
+- The Gaussian has only m and s; the t adds nu and xi, which govern the tail and have no
+  Gaussian counterpart. The data burden lives entirely in these extra parameters.
+- Taleb's recommended workflow (SCoFT, "Consequence 7", and the plug-in discussion) is to
+  estimate the tail exponent by MLE — which "can work well… inverse-gamma distributed, low
+  variance" — and then *derive* the mean analytically ("plug-in"), because the tail
+  exponent "captures by extrapolation the low-probability deviations" better than the
+  sample mean does. The analytical moment maps (Li & Nadarajah; Fernández–Steel,
+  implemented in `misc/sgt.Rmd`) are precisely this plug-in. The catch is that plug-in
+  presupposes an estimable nu; at n = 13 we have shown it is not, so the route Taleb
+  recommends is unavailable annually and only partly available monthly.
+- The κ metric (Taleb, Def. 8.1; Table 8.1) measures the preasymptotic deficit in the
+  convergence of the *average*: κ = 0 for the Gaussian, and for Student-T(3) the table
+  gives κ₁ = 0.29, κ₁,₃₀ = 0.19, κ₁,₁₀₀ = 0.16 (reproduced by our `f_kappa`). With
+  n_min = n_g^(1/(1−κ)), matching 30 Gaussian observations takes about 120 Student-T(3)
+  observations using κ₁ (Taleb), or ~67 using κ₁,₃₀; the figure is range-dependent because
+  κ itself drifts with n — a symptom of the preasymptotics, not an inconsistency. Crucially,
+  κ concerns the *mean*; the *tail* parameters are harder still, so n_min for the mean is a
+  floor on what the tail would need.
+- A caution on goodness-of-fit: Taleb notes that under thick tails the in-sample R² is
+  *inflated* and, when variance is infinite, meaningless. We therefore report the
+  probability-plot correlation as **PPCC** (the correlation itself, not its square) and read
+  it, like AIC/BIC, as a statement about the *body* of the distribution -- a high PPCC does
+  **not** validate the tail. For the tail we rely on the tail-weighted Anderson-Darling test
+  (with a parametric-bootstrap p-value, since the parameters are estimated) and, more
+  fundamentally, the max-sum plots, which ask whether the relevant moments exist at all.
 
-Even with monthly data spanning about one cycle, we can say a great deal *qualitatively* --
-the plans are leverage on one portfolio, the tails are fat, drawdowns are asymmetric, and
-apparent path-dominance is a starting-point artefact -- while being honest that *quantitative*
-tail estimates are still fragile at this sample size. The next step is to turn the qualitative
-structure into the two decisions an investor actually faces: which risk level, and whether to
-split across providers.
+## 4. Finite vs. infinite variance
+
+*Result.* Some fits return nu ≈ 2.0–2.3 (pmr, phr), at or below the threshold where the
+variance ceases to exist; the symmetric-t Monte Carlo for phr diverges to absurd values
+(mean ~10^7). Monthly, the nu confidence interval still includes nu < 2.
+
+*Analysis.* This is not a numerical error: for nu ≤ 2 the sample standard deviation does
+not converge and E[100·e^X] is undefined ("the variance of a finite-variance variable with
+tail exponent < 4 will be infinite"). We therefore cannot reject infinite variance even
+with 142 monthly observations.
+
+## 5. A precautionary reading
+
+*The asymmetry of the inference.* The fits are heavy-left-skewed with a small positive
+mean. Such a distribution predicts losses worse than any yet observed; the benign,
+low-interest, bull-market sample has simply not delivered them. One could object that more
+data might instead reveal large upside, symmetrising the fit and thinning the tail. Two
+considerations weigh against relying on that hope:
+
+- Taleb's escape — "better stay home" when no reliable estimator exists — is unavailable
+  here: participation in a mandatory pension is compulsory. His own qualifier is that one
+  "can still take risky decisions if bounded for maximum losses"; a pension is *not* bounded
+  that way, which strengthens, rather than weakens, the case for caution.
+- The data were collected in a single low-rate, bull-market regime, so the sample is more
+  likely to understate than overstate tail losses.
+
+*A speculative but coherent mechanism.* The observed shape — left skew with a positive mean
+— is what a return-*capping* design would produce. Capping the upside is self-evidently
+unappealing, yet it is a coherent way to engineer a positive *expected* return: trimming
+large gains while leaving the occasional large loss to be booked as "chance" pushes the mean
+up. We cannot establish design from the data, but the shape is consistent with it, and
+prudence argues for taking the heavy left skew at face value until evidence says otherwise.
+
+*The cost of this precaution.* Assuming a heavier left tail also *raises* the apparent value
+of diversifying across the two providers (the tail-softening from holding both is larger the
+fatter the assumed idiosyncratic tail). So precaution here is not free: it may lead us to
+over-value diversification. That trade-off is properly weighed in the investor-facing
+analysis, not in this report.
+
+## 6. Bottom line
+
+Qualitatively the conclusions are firm: the plans are leverage on one portfolio, the tails
+are fat, drawdowns are asymmetric, and path-dominance is a starting-point artefact.
+Quantitatively, the mean and scale are estimable (firmly monthly, loosely annually) and the
+left-skew direction is established monthly, but the tail index nu is not pinned down even at
+n = 142 and is unidentified at n = 13. Under a precautionary principle — and because
+"staying home" is not an option — we treat the distribution as heavily left-skewed, while
+flagging that this stance may over-state the benefit of diversifying across providers, a
+question we take up separately.
 
 # Appendix
 

@@ -237,7 +237,16 @@ fit_gauss <- function(x, method = "Nelder-Mead") {
 ## the parameter is not locally identified at the given sample size.
 sstd_se <- function(x) {
   nll <- function(b) sum(- dsstd(x, mean = b[1], sd = b[2], nu = b[3], xi = b[4], log = TRUE))
-  opt <- optim(c(mean(x), sd(x), 3, 1), nll, method = "BFGS", hessian = TRUE)
+  start <- c(mean(x), sd(x), 3, 1)
+  ## BFGS returns the observed-information Hessian directly, but its finite-difference
+  ## gradient can go non-finite on tiny samples (n = 13). Fall back to a derivative-free
+  ## optimum with a post-hoc Hessian, then to NA. A singular/NA result is the correct
+  ## "not locally identified" signal, which the SE table and the paragraph below handle.
+  opt <- tryCatch(
+    optim(start, nll, method = "BFGS", hessian = TRUE),
+    error = function(e) tryCatch(
+      optim(start, nll, method = "Nelder-Mead", hessian = TRUE),
+      error = function(e2) list(par = rep(NA_real_, 4), hessian = matrix(NA_real_, 4, 4))))
   cov <- tryCatch(solve(opt$hessian), error = function(e) matrix(NA_real_, 4, 4))
   se  <- suppressWarnings(sqrt(diag(cov)))
   names(opt$par) <- names(se) <- c("m", "s", "nu", "xi")
@@ -284,9 +293,11 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
     theoretical_quantiles <- qnorm(ppoints(n), mean = optim_out$par[1], sd = optim_out$par[2])
   }
 
-  ## PPCC squared = coefficient of determination of the QQ points (genuine R^2).
-  r_squared <- cor(sort(fit), sort(x))^2
-  r_squared_round <- round(r_squared, 3)
+  ## PPCC: probability-plot correlation coefficient (Filliben) -- the correlation of
+  ## the QQ points themselves, not its square. A tail-sensitive complement to AIC/BIC;
+  ## under thick tails the squared version (an in-sample R^2) is inflated, so we report r.
+  ppcc <- cor(sort(fit), sort(x))
+  ppcc_round <- round(ppcc, 3)
 
   ## Penalty must match the number of free parameters of each distribution.
   k <- if(distribution == "sstd") 4 else if(distribution == "std") 3 else 2
@@ -301,20 +312,20 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
       ", s=", round(optim_out$par[2], 4),
       ", nu=", round(optim_out$par[3], 4),
       ", xi=", round(optim_out$par[4], 4),
-      ", R^2=", r_squared_round
+      ", PPCC=", ppcc_round
     )
   } else if(distribution == "std") {
     qq_subtitle <- paste0(
       "m=", round(optim_out$par[1], 4), 
       ", s=", round(optim_out$par[2], 4),
       ", nu=", round(optim_out$par[3], 4),
-      ", R^2=", r_squared_round
+      ", PPCC=", ppcc_round
     )
   } else {
     qq_subtitle <- paste0(
       "m=", round(optim_out$par[1], 4), 
       ", s=", round(optim_out$par[2], 4),
-      ", R^2=", r_squared_round
+      ", PPCC=", ppcc_round
     )
   }
 
@@ -447,7 +458,7 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
     dens_data = dens_data,
     quantile_data = quantile_data,
     theoretical_quantiles = theoretical_quantiles,
-    r_squared = r_squared,
+    ppcc = ppcc,
     aic = aic,
     bic = bic
   )
@@ -458,8 +469,59 @@ fit_distribution <- function(x, method = "BFGS", distribution = "sstd") {
 
 
 
+## Anderson-Darling goodness-of-fit.
+## A^2 weights the squared CDF discrepancy by 1/(F(1-F)), i.e. most heavily in the
+## tails -- the right emphasis for fat-tailed return data, where the in-sample R^2/PPCC
+## and even AIC/BIC are insensitive to tail misfit. Larger A^2 = worse fit.
+ad_cdf <- function(x, distribution, par) {
+  if(distribution == "sstd")      psstd(x, par[1], par[2], par[3], par[4])
+  else if(distribution == "std")  pstd(x,  par[1], par[2], par[3])
+  else                            pnorm(x, par[1], par[2])
+}
+
+ad_rgen <- function(n, distribution, par) {
+  if(distribution == "sstd")      rsstd(n, par[1], par[2], par[3], par[4])
+  else if(distribution == "std")  rstd(n,  par[1], par[2], par[3])
+  else                            rnorm(n, par[1], par[2])
+}
+
+ad_statistic <- function(x, distribution, par) {
+  x <- sort(x)
+  n <- length(x)
+  u <- ad_cdf(x, distribution, par)
+  eps <- 1e-12                          # keep the logs finite when F hits 0 or 1
+  u <- pmin(pmax(u, eps), 1 - eps)
+  i <- 1:n
+  -n - sum((2 * i - 1) * (log(u) + log(1 - rev(u)))) / n
+}
+
+## Parametric-bootstrap p-value: because the parameters are estimated from the same
+## sample, the null distribution of A^2 is not the standard table. We simulate from the
+## fitted model, refit, and recompute A^2 each time. Returns the observed A^2 and the
+## fraction of bootstrap replicates at least as large (the p-value).
+ad_gof <- function(fit, distribution, B = 499, seed = 1) {
+  x   <- fit$data
+  n   <- length(x)
+  par <- fit$dist_params
+  A2_obs <- ad_statistic(x, distribution, par)
+
+  set.seed(seed)
+  A2_boot <- numeric(B)
+  for(b in 1:B) {
+    xb <- ad_rgen(n, distribution, par)
+    fb <- tryCatch(
+      suppressWarnings(fit_distribution(xb, method = "Nelder-Mead", distribution = distribution)),
+      error = function(e) NULL)
+    A2_boot[b] <- if(is.null(fb)) NA_real_ else ad_statistic(xb, distribution, fb$dist_params)
+  }
+  list(A2 = A2_obs,
+       p  = mean(A2_boot >= A2_obs, na.rm = TRUE),
+       B  = sum(!is.na(A2_boot)))
+}
+
+
 ## Monte Carlo simulation
-## Creates a data frame where each column is a simulated series, and the number 
+## Creates a data frame where each column is a simulated series, and the number
 ## of rows is the number of periods in each series.
 ## The fit parameter can be a single output from fit_skewed_t(), or a list of 
 ## outputs from fit_skewed_t().
@@ -487,40 +549,48 @@ mc_simulation <- function(
   init_capital = 100/length(fit)
   mc_df <- data.frame(matrix(rep(0, num_paths * (num_periods + 1)), nrow = num_periods + 1))
   
-  pb <- txtProgressBar(min = 0,      # Minimum value of the progress bar
-                       max = num_paths, # Maximum value of the progress bar
-                       style = 3,    # Progress bar style (also available style = 1 and style = 2)
-                       width = 50,   # Progress bar width. Defaults to getOption("width")
-                       char = "=")   # Character used to create the bar
+  ## Only draw the progress bar in an interactive session. Under rmarkdown::render
+  ## the session is non-interactive and knitr captures every '\r' update as text,
+  ## flooding the rendered HTML with pages of progress bars.
+  show_pb <- interactive()
+  pb <- if (show_pb)
+    txtProgressBar(min = 0,      # Minimum value of the progress bar
+                   max = num_paths, # Maximum value of the progress bar
+                   style = 3,    # Progress bar style (also available style = 1 and style = 2)
+                   width = 50,   # Progress bar width. Defaults to getOption("width")
+                   char = "=")   # Character used to create the bar
+  else NULL
   
   if(distribution == "sstd") {
     for(i in seq_along(fit)) {
       for(j in 1:num_paths) {
         mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rsstd(num_periods, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2], fit[[i]]$dist_params[3], fit[[i]]$dist_params[4]))))
-        setTxtProgressBar(pb, j)
+        if (show_pb) setTxtProgressBar(pb, j)
       }
     }
   } else if(distribution == "std") {
     for(i in seq_along(fit)) {
       for(j in 1:num_paths) {
         mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rstd(num_periods, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2], fit[[i]]$dist_params[3]))))
-        setTxtProgressBar(pb, j)
+        if (show_pb) setTxtProgressBar(pb, j)
       }
     }
   } else {
     for(i in seq_along(fit)) {
       for(j in 1:num_paths) {
         mc_df[ ,j] <- mc_df[ ,j] + c(init_capital, init_capital * exp(cumsum(rnorm(num_periods, fit[[i]]$dist_params[1], fit[[i]]$dist_params[2]))))
-        setTxtProgressBar(pb, j)
+        if (show_pb) setTxtProgressBar(pb, j)
       }
     }
   }
   
+  if (show_pb) close(pb)
+
   if(dao == TRUE) {
     mc_df <- down_and_out_df(mc_df, threshold)
     num_dao <- count_num_dao(mc_df, threshold)
     dao_probability_percent <- 100 * num_dao/num_paths
-    
+
   } else {
     dao_probability_percent <- NA
   }

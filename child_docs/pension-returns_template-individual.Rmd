@@ -187,7 +187,15 @@ if(long == FALSE) {
 
 ### Max vs sum
 
-Max vs sum plots for the first four moments:
+These are the report's primary check on whether a moment *exists at all* -- the
+goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
+for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
+\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
+toward zero, because no single observation can dominate the sum; if a new extreme keeps
+overwhelming the running total the ratio refuses to settle, and any statistic that assumes
+that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
+something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
+the prior question. The panels show the first four moments under each fitted distribution:
 
 ```{r fig.height=8, fig.width=10}
 if(long == FALSE) {

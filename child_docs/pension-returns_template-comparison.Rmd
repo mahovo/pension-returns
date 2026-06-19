@@ -488,7 +488,34 @@ rownames(bic_df) <- c("sstd", "std", "normal")
 knitr::kable(bic_df, digits = 3)
 ```
 
-#### Kappa  
+#### Anderson-Darling (tail-weighted goodness-of-fit)
+
+The probability-plot PPCC above and the AIC/BIC just shown are all relatively insensitive to
+the *tails* -- the region where fat-tailed returns depart from a Gaussian, and the region
+that matters for risk. The Anderson-Darling statistic $A^2$ weights the fit discrepancy by
+$1/[F(1-F)]$, concentrating its weight in the tails; a larger $A^2$ is a worse fit. Because
+the parameters are estimated from the same sample, the textbook $A^2$ critical values do not
+apply, so the p-value is obtained by a parametric bootstrap -- simulate from the fitted model,
+refit, recompute $A^2$, 499 replicates -- and a small p rejects the distribution.
+
+$A^2$ statistic (larger = worse tail fit):
+
+```{r}
+knitr::kable(ad_df, digits = 2)
+```
+
+Parametric-bootstrap p-value (small = reject the distribution):
+
+```{r}
+knitr::kable(ad_p_df, digits = 3)
+```
+
+Where AIC and BIC only *rank* the three candidates, Anderson-Darling asks whether the chosen
+one is actually adequate in the tail: a distribution that AIC prefers can still be rejected
+here if it misfits where the weight is. Read it together with the max-sum plots below, which
+test the stronger question of whether the relevant moments exist at all.
+
+#### Kappa
 
 Let $\{X_{g,i}\}$ be Gaussian distributed with mean $\mu$ and scale $\sigma$.
 

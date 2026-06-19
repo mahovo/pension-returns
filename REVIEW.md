@@ -104,14 +104,18 @@ Status legend: ✅ fixed in this review · ⏸ held for your confirmation · �
 | 5 | `src/…functions.R` `mc_simulation` (CI loop) | `ci_l <- mu_hat - dev[i]` (no `[i]`) overwrote the whole vector each iteration → constant-width band. Now builds `dev` then vectorises `ci_l/ci_u`. | ✅ |
 | 6 | `child_docs/…comparison.Rmd` `make_extreme_probs` | `pnorm(min(x), params[1], params[1])` used the **mean as the sd**. Changed second arg to `params[2]`. (Live doc.) | ✅ |
 | 7 | `src/…functions.R` `f_kappa` / `f_n_min` | `sd` scaled by `nu/(nu-2)` (twice via `f_n_min`). Harmless — kappa is **scale-invariant** — but misleading. Removed the rescaling; verified kappa identical for sd=0.2 vs 5.0. | ✅ |
-| 8 | `src/…functions.R` `fit_distribution` (`r_squared`) | `cor(sort(fit), sort(x))` is a correlation, reported as "R^2". Squared it so the "R^2" label is honest (monotonic → rankings unchanged). | ✅ |
+| 8 | `src/…functions.R` `fit_distribution` (`r_squared`) | `cor(sort(fit), sort(x))` is a correlation, reported as "R^2". Squared it so the "R^2" label is honest (monotonic → rankings unchanged). **Later superseded — see §6:** the squared value is now reported un-squared as **PPCC** (`r`, Filliben), since under thick tails the in-sample R² is inflated. | ✅→§6 |
+| 9 | `src/…functions.R` `mc_simulation` (progress bar) | `txtProgressBar`/`setTxtProgressBar` write to the captured stream under `rmarkdown::render`, so every `\r` update landed in the HTML — pages of progress bars. Now gated on `interactive()` (suppressed during render, unchanged in the console) and the missing `close(pb)` added. | ✅ |
+| 10 | `src/…functions.R` `sstd_se` | `optim(method="BFGS", hessian=TRUE)` was unguarded; on n=13 (one annual **mix** series, `mhr`) its finite-difference gradient went non-finite and **threw**, aborting the annual render inside the comparison child doc (`non-finite finite-difference value [4]`). Now `tryCatch`: BFGS → Nelder-Mead → NA, matching the function's "NA = not locally identified" design. Latent bug — the SE section postdated the last successful annual render, so the first full re-knit was the first to hit it. | ✅ |
 
 Items 1, 4, 5, 6 change reported numbers; 2, 3 affect model-selection/plots; 7, 8 are
-correctness-of-labelling / dead-code cleanups. All eight are now fixed.
+correctness-of-labelling / dead-code cleanups; 9 fixes rendered output; 10 unblocks the
+annual render. All ten are now fixed.
 
 Verification: `parse()` clean; `fit_distribution` runs for all three distributions with
 corrected AIC (sstd −27.85 / std −16.38 / normal −20.32 on `vmr`); kappa scale-invariance
-confirmed.
+confirmed; `sstd_se` no longer throws on any of the 8 annual funds; both reports re-knit
+clean (progress-bar lines: 0).
 
 ---
 
@@ -160,3 +164,46 @@ here because the input data is itself out of date — see §1.)
 **Note on IS.** With the new `fit_id`, importance sampling also uses single fits (consistent
 black box), but the IS *estimator* bug #4 remains **held** pending confirmation; it is
 independent of this change.
+
+---
+
+## 6. Diagnostics added — PPCC, Anderson–Darling, max-sum; and Sharpe ray/curve
+
+Additions requested after the soundness review, to make the goodness-of-fit story honest
+under thick tails and to give the investor tool citable results. All live-computed and
+rendered in both reports.
+
+**PPCC (supersedes bug #8).** The probability-plot correlation is reported as **PPCC** — the
+correlation `r` itself (Filliben), not its square — relabelled from "R²" across both reports'
+fit-summary tables and QQ annotations (`fit$ppcc` in `fit_distribution`). Under thick tails an
+in-sample R² is inflated, so the appendix caution now states that PPCC, like AIC/BIC, speaks
+to the *body* of the distribution, not the tail. (The regression R² in the "Path crossing"
+section is a different quantity and was left as "R²".)
+
+**Anderson–Darling (new, `ad_gof()` in functions.R).** Tail-weighted A² against each fitted
+CDF, with a **parametric-bootstrap** p-value — simulate from the fit, refit (Nelder-Mead),
+recompute A²; 499 reps — because the textbook A² critical values do not apply once the
+parameters are estimated from the same sample. Cached like the fits (`ad_df`, `ad_p_df`,
+gated on `run_fits`) and displayed per fund × {sstd, std, normal} in the comparison child doc
+after AIC/BIC. **Result (monthly, n=142): only the skewed-t survives** — normal rejected
+(p ≤ 0.002) and the *symmetric*-t also rejected (p ≈ 0.002–0.01), independently confirming the
+ξ ≈ 0.70 left skew (cf. §3). Where AIC/BIC only *rank* the candidates, AD asks whether the best
+one is adequate in the tail.
+
+**Max-sum plots (elevated).** Reframed in the individual child doc as the report's primary
+moment-existence check (Taleb's GoF tool): for moment `p`, `max|Xᵢ|ᵖ / Σ|Xᵢ|ᵖ` must fall to
+zero iff the p-th moment is finite. Positioned as the question that *precedes* PPCC/AIC/BIC
+(which presuppose the moments they compare).
+
+**Sharpe ray vs curve (new, both reports).** A live Sharpe-by-window table + verdict near the
+"Path crossing" section. **Velliv is a leverage ray** — medium/high Sharpe equal across every
+sub-window (within ~0.03), so the risk level is a pure risk-appetite dial. **PFA curves but the
+better-Sharpe direction is not identifiable** — the medium profile leads from 2012/2011, the
+high profile from 2019/2017, tied in between, all inside the sampling noise. Mirrors the
+investor tool's §1, which cites it. (Reports carry only medium+high per provider; the tool
+runs the full low/med/high and A–D menus.)
+
+**Render.** Pinned ggplot2 3.5.2 recreated in `.Rlib_pin/` (git-ignored). Monthly: full
+re-knit (`run_sim=run_fits=TRUE`). Annual: full re-knit computed all sims, then — after the
+bug #10 fix — a fast cache-read re-render exercised the corrected live `sstd_se`. Verified:
+0 progress-bar lines, AD/Sharpe/PPCC present, 0 stale "R²" fit-table rownames.
