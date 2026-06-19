@@ -49,8 +49,11 @@ po/*~
 rsconnect/
 
 # --- pension-returns build artifacts ---
-# (the repo intentionally tracks the rendered reports and data/*.RData; the items
-#  below are regenerable intermediates / a project-local pinned library and should not)
+# (the repo tracks the rendered reports [.html/.pdf/.md] but NOT the regenerable
+#  simulation caches data/**/*.RData: they are large -- the monthly mc_output files are
+#  ~283 MB each, over GitHub's 100 MB limit -- and a re-knit rebuilds them. The source
+#  data the .RData derive from [data/**/*.json, *.csv] stays tracked.)
+*.RData
 .Rlib_pin/
 /pension-returns_annual_files/
 /pension-returns_monthly_files/
