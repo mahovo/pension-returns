@@ -3,9 +3,7 @@ title: "Monthly pension returns analysis: \nVelliv June 2012 - April 2024"
 author: Martin Hoshi Vognsen
 header-includes:
    - \usepackage[default]{sourcesanspro}
-   - \usepackage[T1]{fontenc}
    - \usepackage[fontsize=8pt]{scrextend}
-mainfont: SourceSansPro
 output: 
   html_document:
     toc: true
@@ -14,6 +12,7 @@ output:
   pdf_document:
     toc: true
     toc_depth: 3
+    latex_engine: xelatex
 #fontsize: 10pt # for pdf. Limited to 10pt, 11pt and 12pt. Else use scrextend.
 params:
   run_sim: FALSE ## TRUE: Run simulations and write output. FALSE: Read saved
@@ -26,7 +25,7 @@ params:
   run_is_sim: TRUE
   run_is_plot: TRUE
   include_long: TRUE
-date: "13:30 19 June 2026"
+date: "23:25 20 June 2026"
 ---
 
 
@@ -173,102 +172,8 @@ PFA returns are including "KundeKapital".
 
 ![](pension-returns_monthly_files/figure-html/unnamed-chunk-18-1.png)<!-- -->
 
-## Path crossing and the starting point
-
-In the "Velliv and PFA monthly prices" plot above every plan starts at index 100 in
-June 2012, and the riskier plans' paths never fall below the less-risky ones. It is
-tempting to read this as *more risk always pays*. It could look like the different risk plans for each provider are simply different weighted shares of returns from a single portfolio. What is actually going on here?
-
-The observation does not generalise: It is an artefact of **where the index starts**. Each high-risk plan is, in effect, a leveraged exposure to one common return factor. The high-risk profile is, to a good approximation, a *scaled* version of the medium-risk one -- a slope above 1, essentially zero intercept, and a high $R^2$:
 
 
-```
-## Velliv  corr(medium, high) = 0.997 ;  high = 1.26 * medium + -0.0003 ,  R^2 = 0.994
-```
-
-```
-## PFA     corr(medium, high) = 0.977 ;  high = 1.60 * medium + -0.0002 ,  R^2 = 0.955
-```
-
-"Approximately" matters: The $R^2$ is below 1, and that residual is where the paths
-separate. The profiles are not one stream scaled, but blends of two genuinely different funds -- a low-risk and a high-risk building block. Backing PFA's two funds out of the medium and high profiles (high fund $H = D$, low fund $L = 2B - D$, exact for simple returns):
-
-
-```
-## PFA building blocks (simple returns): corr(low fund, high fund) = 0.59 ; volatility ratio high/low = 3.1
-```
-
-The two underlying funds are only moderately correlated and differ several-fold in
-volatility -- far from interchangeable -- even though the *profiles* built from them are nearly collinear. That collinearity is not surprising: It is what two equity-dominated portfolios must produce. A "low-risk *plan*" is not a low-risk *fund*. By PFA's published strategic allocation, even the low-risk plan is roughly 76% equity-like (global, emerging, private equity, real estate) and only ~24% bonds. To see how little bond content it takes, treat a plan as a weight $w$ in equities and $(1-w)$ in bonds and ask which $w$ reproduces a given correlation with a 100%-equity plan (illustrative capital-market assumptions, not estimated from the data):
-
-
-|equity vol |bond vol |equity weight for corr 0.986 |equity weight for corr 0.84 |
-|:----------|:--------|:----------------------------|:---------------------------|
-|15%        |4%       |61%                          |29%                         |
-|12%        |5%       |71%                          |39%                         |
-|18%        |4%       |57%                          |26%                         |
-
-An equity weight of only about two-thirds already yields a ~0.986 correlation with a pure-equity plan. The observed correlations are therefore unremarkable -- exactly what equity-heavy "low-risk" plans produce -- and not evidence of anything hidden.  
-  
-The implication for the choice is the point of this section. High correlation means the plans rise and fall together, so over a benign, rising sample the higher-risk plan simply ends up higher and the choice looks free. But correlation describes co-movement, not magnitude and not the tails. The lower-risk plan holds a real bond sleeve and a distinct, lower-volatility fund, and -- as the crossings above show -- that cushion is exactly what bites in a drawdown. The plans look alike because both are mostly equities; they are not alike when equities fall.  
-  
-In cumulative log terms $\log(W_\text{high}/100) \approx \beta\,\log(W_\text{med}/100)$ with slope $\beta > 1$ and intercept $\approx 0$. With $\beta > 1$ this gives $W_\text{high} > W_\text{med}$ **exactly when** $W_\text{med} > 100$. So the two paths can only cross while the *safer* plan is itself below its starting value -- equivalently, the high-risk plan sits below the medium-risk plan precisely over any window in which the cumulative return *since the start date* is negative.  
-  
-June 2012 was a low point just before a long bull market, so the safer plans never
-revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
-
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
-
-The high-risk plans regain and overtake the medium-risk plans only once the cumulative return since the start date turns positive again. Whether the realised paths cross is therefore not a property of the plans but of the chosen starting point relative to the market cycle. (A deeper or more prolonged regime -- e.g. one in which the index spends years below its start, as in 2008-2009 -- would keep the high-risk plan below for correspondingly longer.)
-
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
-
-
-
-
-
-
-
-
-## The Sharpe ratio: leverage ray or curve?
-
-The crossing argument established that, within a provider, the high-risk plan is to a good
-approximation a *scaled* version of the medium-risk one. If that scaling were **pure
-leverage**, the two plans would share the same reward-to-risk ratio -- the same annualised
-Sharpe -- and the risk level would carry no consequence for return *per unit of risk*. The
-test is whether the Sharpe ratios coincide, and whether that holds across sub-periods rather
-than being an artefact of one window. (Danish short rates over the sample are near zero, so
-we treat the return as the excess return.)
-
-
-Table: Annualised Sharpe ratio by plan and start date.
-
-|                      | Velliv medium| Velliv high| PFA medium| PFA high|
-|:---------------------|-------------:|-----------:|----------:|--------:|
-|from 2012-06  (n=142) |          0.84|        0.81|       1.06|     1.01|
-|from 2016-01  (n=100) |          0.61|        0.58|       0.75|     0.75|
-|from 2019-01  (n=64)  |          0.66|        0.66|       0.67|     0.82|
-
-**Velliv behaves like a leverage ray.** Its medium and high plans have nearly the same Sharpe
-in every sub-period -- the gap stays within a few hundredths and all but vanishes in the most
-recent window -- the signature of one portfolio held at two levels of exposure. Choosing the
-Velliv risk level is therefore a pure risk-appetite decision: more risk buys proportionally
-more expected return, with no change in reward per unit of risk and nothing to "optimise".
-
-**PFA's two profiles curve -- but which one is better is not identifiable.** PFA's medium and
-high profiles do *not* share a Sharpe, so the menu bends rather than running straight; yet
-*which* end looks better flips with the start date -- the medium profile has the higher Sharpe
-measured from 2012, the high profile from 2019, with the two essentially tied in between. The
-differences sit well inside the sampling noise documented elsewhere in this report. The
-textbook response to a curved menu is to locate the higher-Sharpe blend; here you cannot
-reliably tell which blend that is, so it is not worth paying -- in added risk or in fees -- to
-chase one.
-
-These are only two profiles per provider. The companion investor tool runs the same test on
-the full Velliv low/medium/high and PFA A--D menus and reaches the same verdict -- Velliv a
-ray, PFA an unidentifiable curve -- which it then uses to weigh the choice of provider against
-the choice of risk level.
 
 
 
@@ -418,6 +323,73 @@ Covariances
 |vhr | 0.001| 0.001|   0| 0.001|
 |pmr | 0.000| 0.000|   0| 0.000|
 |phr | 0.001| 0.001|   0| 0.001|
+
+
+
+
+
+## Path crossing and the starting point
+
+In the "Velliv and PFA monthly prices" plot above every plan starts at index 100 in June 2012, and the riskier plans' paths never fall below the less-risky ones. It is tempting to read this as *more risk always pays*. It could look like the different risk plans for each provider are simply different weighted shares of returns from a single portfolio. What is actually going on here?
+
+The observation does not generalise: It is an artefact of **where the index starts**. Each high-risk plan is, in effect, a leveraged exposure to one common return factor. The high-risk profile is, to a good approximation, a *scaled* version of the medium-risk one -- a slope above 1, essentially zero intercept, and a high $R^2$:
+
+```
+## Velliv  corr(medium, high) = 0.997 ;  high = 1.2627 + -0.00 * medium ,  R^2 = 0.994
+```
+
+```
+## PFA     corr(medium, high) = 0.977 ;  high = -0.0002 + 1.60 * medium ,  R^2 = 0.955
+```
+
+"Approximately" matters: The $R^2$ is below 1, and that residual is where the paths separate. The profiles are not one stream scaled, but blends of two genuinely different funds -- a low-risk and a high-risk building block. Backing PFA's two funds out of the medium and high profiles (high fund $H = D$, low fund $L = 2B - D$, exact for simple returns):
+
+```
+## PFA building blocks (simple returns): corr(low fund, high fund) = 0.59 ; volatility ratio high/low = 3.1
+```
+
+The two underlying funds are only moderately correlated and differ several-fold in volatility -- far from interchangeable -- even though the *profiles* built from them are nearly collinear. That collinearity is not surprising: It is what two equity-dominated portfolios must produce. A "low-risk *plan*" is not a low-risk *fund*. Taking PFA's published 2026 strategic allocation (this is after a structural change in 2024) as an example, even the low-risk plan is roughly 76% equity-like (global, emerging, private equity, real estate) and only ~24% bonds. To see how little bond content it takes, treat a plan as a weight $w$ in equities and $(1-w)$ in bonds and ask which $w$ reproduces a given correlation with a 100%-equity plan (illustrative capital-market assumptions, not estimated from the data):
+
+
+|equity vol |bond vol |equity weight for corr 0.986 |equity weight for corr 0.84 |
+|:----------|:--------|:----------------------------|:---------------------------|
+|15%        |4%       |61%                          |29%                         |
+|12%        |5%       |71%                          |39%                         |
+|18%        |4%       |57%                          |26%                         |
+
+An equity weight of only about two-thirds already yields a ~0.986 correlation with a pure-equity plan. The observed correlations are therefore unremarkable -- exactly what equity-heavy "low-risk" plans produce -- and not evidence of anything hidden.  
+  
+The implication for the choice is the point of this section. High correlation means the plans rise and fall together, so over a benign, rising sample the higher-risk plan simply ends up higher and the choice looks free. But correlation describes co-movement, not magnitude and not the tails. The lower-risk plan holds a real bond sleeve and a distinct, lower-volatility fund, and -- as the crossings above show -- that cushion is exactly what bites in a drawdown. The plans look alike because both are mostly equities; they are not alike when equities fall.  
+  
+In cumulative log terms $\log(W_\text{high}/100) \approx \beta\,\log(W_\text{med}/100)$ with slope $\beta > 1$ and intercept $\approx 0$. With $\beta > 1$ this gives $W_\text{high} > W_\text{med}$ **exactly when** $W_\text{med} > 100$. So the two paths can only cross while the *safer* plan is itself below its starting value -- equivalently, the high-risk plan sits below the medium-risk plan precisely over any window in which the cumulative return *since the start date* is negative.  
+  
+June 2012 was a low point just before a long bull market, so the safer plans never
+revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
+
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-140-1.png)<!-- -->
+
+The high-risk plans regain and overtake the medium-risk plans only once the cumulative return since the start date turns positive again. Whether the realised paths cross is therefore not a property of the plans but of the chosen starting point relative to the market cycle. (A deeper or more prolonged regime -- e.g. one in which the index spends years below its start, as in 2008-2009 -- would keep the high-risk plan below for correspondingly longer.)
+
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-141-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-142-1.png)<!-- -->
+
+
+## The Sharpe ratio: Leverage ray or curve?
+
+The crossing argument established that, within a provider, the high-risk plan is to a good approximation a *scaled* version of the medium-risk one. If that scaling were **pure leverage**, the two plans would share the same reward-to-risk ratio -- the same annualised Sharpe -- and the risk level would carry no consequence for return *per unit of risk*. The test is whether the Sharpe ratios coincide, and whether that holds across sub-periods rather than being an artefact of one window. (Danish short rates over the sample are near zero, so we treat the return as the excess return.)
+
+
+Table: Annualised Sharpe ratio by plan and start date.
+
+|                      | Velliv medium| Velliv high| PFA medium| PFA high|
+|:---------------------|-------------:|-----------:|----------:|--------:|
+|from 2012-06  (n=142) |          0.84|        0.81|       1.06|     1.01|
+|from 2016-01  (n=100) |          0.61|        0.58|       0.75|     0.75|
+|from 2019-01  (n=64)  |          0.66|        0.66|       0.67|     0.82|
+
+**Velliv behaves like a leverage ray.** Its medium and high plans have nearly the same Sharpe in every sub-period -- the gap stays within a few hundredths and all but vanishes in the most recent window -- the signature of one portfolio held at two levels of exposure. Choosing the Velliv risk level is therefore a pure risk-appetite decision: More risk buys proportionally more expected return, with no change in reward per unit of risk and nothing to "optimise".
+
+**PFA's two profiles curve -- but which one is better is not identifiable.** PFA's medium and high profiles do *not* share a Sharpe, so the menu bends rather than running straight; yet *which* end looks better flips with the start date -- the medium profile has the higher Sharpe measured from 2012, the high profile from 2019, with the two essentially tied in between. The differences sit well inside the sampling noise documented elsewhere in this report. The textbook response to a curved menu is to locate the higher-Sharpe blend; here you cannot reliably tell which blend that is, so it is not worth paying -- in added risk or in fees -- to chase one.
 
 
 # Compare pension plans
@@ -1021,6 +993,18 @@ one is actually adequate in the tail: a distribution that AIC prefers can still 
 here if it misfits where the weight is. Read it together with the max-sum plots below, which
 test the stronger question of whether the relevant moments exist at all.
 
+#### Max-sum plots (moment existence)
+
+The max-sum plot, shown per series in the individual reports, is the most direct
+goodness-of-fit check for fat tails -- and it asks the question that *precedes* the
+comparisons above. For each moment $p$ it tracks $\max_{i\le n}|X_i|^p \big/
+\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
+toward zero, because no single observation can dominate the sum; if a new extreme keeps
+overwhelming the running total the ratio refuses to settle, and any statistic that assumes
+that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
+something that is not defined. Where the PPCC and AIC/BIC compare only the *shape* of a
+distribution, this asks whether the moments those comparisons lean on exist at all.
+
 #### Kappa
 
 Let $\{X_{g,i}\}$ be Gaussian distributed with mean $\mu$ and scale $\sigma$.
@@ -1220,19 +1204,7 @@ Normal distribution:
 
 # Compare Gaussian and skewed t-distribution fits
 
-## Gaussian fits
-
-
-
-
-
-
-
-### Gaussian QQ plots
-
-
-
-### Gaussian vs skewed t
+## Gaussian vs skewed t
 
 
 
@@ -1255,7 +1227,7 @@ Average number of years between min or max events (respectively):
 |t: avg yrs btw max    |    223.334|    213.054|      88.115|    162.868|    135.275|    192.893|    184.323|    163.056|
 
 
-#### Lilliefors test  
+### Lilliefors test  
 
 
 
@@ -1272,14 +1244,14 @@ Testing $H_0$, that log-returns are Gaussian.
 
 
 
-#### Wittgenstein's Ruler  
+### Wittgenstein's Ruler  
 
 
 For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
 
 Conditional probabilities for smallest observed log-returns:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-229-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-226-1.png)<!-- -->
 
 
 Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
@@ -1299,7 +1271,7 @@ $x_{\text{obs}} = \min(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{G
 Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
 $x_{\text{obs}} = \max(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{Gauss}}[X \geq x_{\text{max}}]$:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-232-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-229-1.png)<!-- -->
 
 
 
@@ -1320,7 +1292,7 @@ $x_{\text{obs}} = \max(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{G
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-322-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-316-1.png)<!-- -->
 
 
 
@@ -1328,7 +1300,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-323-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-317-1.png)<!-- -->
 
 
 
@@ -1336,7 +1308,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-324-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-318-1.png)<!-- -->
 
 
 
@@ -1362,38 +1334,32 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-329-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-323-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-330-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-324-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-331-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-325-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-332-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-326-1.png)<!-- -->
 
 Parameters
 
@@ -1403,7 +1369,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-334-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-328-1.png)<!-- -->
 
 
 
@@ -1418,7 +1384,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-351-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-345-1.png)<!-- -->
 
 
 
@@ -1426,7 +1392,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-352-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-346-1.png)<!-- -->
 
 
 
@@ -1434,7 +1400,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-353-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-347-1.png)<!-- -->
 
 
 
@@ -1460,38 +1426,32 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-358-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-352-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-359-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-353-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-360-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-354-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-361-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-355-1.png)<!-- -->
 
 Parameters
 
@@ -1501,7 +1461,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-363-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-357-1.png)<!-- -->
 
 
 
@@ -1516,7 +1476,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-380-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-374-1.png)<!-- -->
 
 
 
@@ -1524,7 +1484,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-381-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-375-1.png)<!-- -->
 
 
 
@@ -1532,7 +1492,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-382-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-376-1.png)<!-- -->
 
 
 
@@ -1558,38 +1518,32 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-387-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-381-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-388-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-382-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-389-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-383-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-390-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-384-1.png)<!-- -->
 
 Parameters
 
@@ -1599,7 +1553,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-392-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-386-1.png)<!-- -->
 
 
 
@@ -1614,7 +1568,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-409-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-403-1.png)<!-- -->
 
 
 
@@ -1622,7 +1576,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-410-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-404-1.png)<!-- -->
 
 
 
@@ -1630,7 +1584,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-411-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-405-1.png)<!-- -->
 
 
 
@@ -1647,47 +1601,41 @@ phr has the sstd fit with the highest sstd fit with thevalue of nu. Compare with
 
 
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-413-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-407-1.png)<!-- -->
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-414-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-408-1.png)<!-- -->
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-415-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-409-1.png)<!-- -->
 
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-416-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-410-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-417-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-411-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-418-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-412-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-419-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-413-1.png)<!-- -->
 
 Parameters
 
@@ -1697,7 +1645,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-421-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-415-1.png)<!-- -->
 
 
 
@@ -1712,7 +1660,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-438-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-432-1.png)<!-- -->
 
 
 
@@ -1720,7 +1668,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-439-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-433-1.png)<!-- -->
 
 
 
@@ -1728,7 +1676,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-440-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-434-1.png)<!-- -->
 
 
 
@@ -1745,47 +1693,41 @@ mmr has the sstd fit with the lowest value of nu. Compare with other distributio
 
 
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-442-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-436-1.png)<!-- -->
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-443-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-437-1.png)<!-- -->
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-444-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-438-1.png)<!-- -->
 
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-445-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-439-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-446-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-440-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-447-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-441-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-448-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-442-1.png)<!-- -->
 
 Parameters
 
@@ -1795,7 +1737,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-450-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-444-1.png)<!-- -->
 
 
 
@@ -1810,7 +1752,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-467-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-461-1.png)<!-- -->
 
 
 
@@ -1818,7 +1760,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-468-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-462-1.png)<!-- -->
 
 
 
@@ -1826,7 +1768,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-469-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-463-1.png)<!-- -->
 
 
 
@@ -1852,38 +1794,32 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-474-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-468-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-475-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-469-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-476-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-470-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-477-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-471-1.png)<!-- -->
 
 Parameters
 
@@ -1893,7 +1829,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-479-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-473-1.png)<!-- -->
 
 
 
@@ -1908,7 +1844,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-496-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-490-1.png)<!-- -->
 
 
 
@@ -1916,7 +1852,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-497-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-491-1.png)<!-- -->
 
 
 
@@ -1924,7 +1860,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-498-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-492-1.png)<!-- -->
 
 
 
@@ -1950,38 +1886,32 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-503-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-497-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-504-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-498-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-505-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-499-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-506-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-500-1.png)<!-- -->
 
 Parameters
 
@@ -1991,7 +1921,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-508-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-502-1.png)<!-- -->
 
 
 
@@ -2006,7 +1936,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-525-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-519-1.png)<!-- -->
 
 
 
@@ -2014,7 +1944,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-526-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-520-1.png)<!-- -->
 
 
 
@@ -2022,7 +1952,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-527-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-521-1.png)<!-- -->
 
 
 
@@ -2048,38 +1978,32 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-532-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-526-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-533-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-527-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-534-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-528-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-535-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-529-1.png)<!-- -->
 
 Parameters
 
@@ -2089,7 +2013,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-537-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-531-1.png)<!-- -->
 
 
 # Velliv medium risk (vmr), June 2012 - April 2024
@@ -2101,7 +2025,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-555-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-549-1.png)<!-- -->
 
 
 
@@ -2109,7 +2033,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-556-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-550-1.png)<!-- -->
 
 
 
@@ -2117,7 +2041,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-557-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-551-1.png)<!-- -->
 
 
 
@@ -2143,38 +2067,32 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-562-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-556-1.png)<!-- -->
 
 
 ## Convergence
 
 ### Max vs sum
 
-These are the report's primary check on whether a moment *exists at all* -- the
-goodness-of-fit question that precedes any shape comparison, and the one Taleb singles out
-for fat-tailed data. For moment $p$, the plot tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
-something that is not defined. Where the PPCC and AIC/BIC only compare *shapes*, this asks
-the prior question. The panels show the first four moments under each fitted distribution:
+Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward zero flags
+that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
+this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-563-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-557-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-564-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-558-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-565-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-559-1.png)<!-- -->
 
 Parameters
 
@@ -2184,7 +2102,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-567-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-561-1.png)<!-- -->
 
 
 # Findings
@@ -2196,7 +2114,7 @@ theory that motivates the study, and draw out the implications.
 ## 1. The plans are one portfolio held at different leverage
 
 *Result.* Within each provider the high-risk plan is, to a close approximation, a scalar
-multiple of the medium-risk plan: regressing one cumulative log-path on the other gives a
+multiple of the medium-risk plan: Regressing one cumulative log-path on the other gives a
 slope of about 1.2 (Velliv) and 1.5 (PFA) with intercept indistinguishable from zero and
 R^2 between 0.91 and 0.98. Across all four plans the first principal component accounts for
 roughly 96% of the variation. The implied low-risk building block (2*B - D for PFA)
@@ -2208,8 +2126,7 @@ profile B is approximately a 50/50 blend of its high- and low-risk funds and pro
 underlying funds. The choice of "risk profile" within a provider is therefore a choice of
 exposure (leverage) to one portfolio, not a choice between different portfolios.
 
-*Implication.* Comparisons that treat the profiles (or their mixes) as distinct assets
-overstate the dimensionality of the problem. The investor's first decision reduces to *how
+*Implication.* The investor's first decision reduces to *how
 much* of one factor to hold.
 
 ## 2. "Risk" is amplified drawdown, and apparent path-dominance is a starting-point artefact
@@ -2478,13 +2395,13 @@ same distribution as a mix of two simulated returns series.
 
 
 ```
-## m(data_x): 0.002714025 
-## s(data_x): 0.3548921 
-## m(data_y): 9.882429 
-## s(data_y): 2.934888 
+## m(data_x): 0.02400138 
+## s(data_x): 0.319392 
+## m(data_y): 9.28157 
+## s(data_y): 2.995861 
 ## 
-## m(data_x + data_y): 4.942571 
-## s(data_x + data_y): 1.531018
+## m(data_x + data_y): 4.652786 
+## s(data_x + data_y): 1.500241
 ```
 
 m and s of final state of all paths.\
@@ -2494,26 +2411,26 @@ m and s of final state of all paths.\
 
 |    m_a|    m_b|   s_a|   s_b|
 |------:|------:|-----:|-----:|
-| 99.001| 98.518| 6.776| 7.191|
-| 98.681| 99.133| 6.283| 6.805|
-| 99.059| 98.970| 6.402| 6.703|
-| 98.936| 98.689| 6.554| 6.850|
-| 98.932| 99.013| 6.729| 6.691|
-| 99.183| 98.500| 6.470| 6.937|
-| 98.883| 98.866| 6.611| 7.095|
-| 99.004| 99.193| 6.440| 6.732|
-| 99.034| 98.875| 6.682| 6.533|
-| 99.080| 98.626| 6.508| 6.788|
+| 93.070| 92.984| 6.799| 6.820|
+| 92.988| 93.375| 6.724| 6.692|
+| 92.715| 92.881| 6.869| 6.635|
+| 93.232| 93.198| 6.527| 6.587|
+| 93.158| 93.215| 6.792| 6.479|
+| 93.123| 92.853| 6.780| 6.795|
+| 92.775| 93.220| 6.838| 6.627|
+| 92.990| 92.958| 6.690| 6.685|
+| 92.903| 93.323| 6.546| 6.652|
+| 93.300| 93.249| 6.549| 6.803|
 
 
 ```
 ##       m_a             m_b             s_a             s_b       
-##  Min.   :98.68   Min.   :98.50   Min.   :6.283   Min.   :6.533  
-##  1st Qu.:98.93   1st Qu.:98.64   1st Qu.:6.447   1st Qu.:6.710  
-##  Median :99.00   Median :98.87   Median :6.531   Median :6.796  
-##  Mean   :98.98   Mean   :98.84   Mean   :6.545   Mean   :6.832  
-##  3rd Qu.:99.05   3rd Qu.:99.00   3rd Qu.:6.664   3rd Qu.:6.916  
-##  Max.   :99.18   Max.   :99.19   Max.   :6.776   Max.   :7.191
+##  Min.   :92.72   Min.   :92.85   Min.   :6.527   Min.   :6.479  
+##  1st Qu.:92.92   1st Qu.:92.96   1st Qu.:6.584   1st Qu.:6.629  
+##  Median :93.03   Median :93.21   Median :6.752   Median :6.669  
+##  Mean   :93.03   Mean   :93.13   Mean   :6.711   Mean   :6.678  
+##  3rd Qu.:93.15   3rd Qu.:93.24   3rd Qu.:6.797   3rd Qu.:6.769  
+##  Max.   :93.30   Max.   :93.38   Max.   :6.869   Max.   :6.820
 ```
 
 `_a` and `_b` are very close to equal.\
@@ -2522,14 +2439,14 @@ distributions in version a and b.
 
 The final state is independent of the order of the preceding steps:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-50-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-44-1.png)<!-- -->
 
 So does the order of the steps in the two processes matter, when mixing
 simulated returns?
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-51-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-45-1.png)<!-- -->
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-52-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-46-1.png)<!-- -->
 
 The order of steps in the individual paths do not matter, because the
 mix of simulated paths is a sum of a sum, so the order of terms doesn't
@@ -2567,12 +2484,12 @@ We do this by sampling 142 observations from the long series `vmrl`
 
 ```
 ##        m                  s          
-##  Min.   :0.005329   Min.   :0.01651  
-##  1st Qu.:0.006266   1st Qu.:0.01790  
-##  Median :0.006588   Median :0.01846  
-##  Mean   :0.006579   Mean   :0.01850  
-##  3rd Qu.:0.006929   3rd Qu.:0.01897  
-##  Max.   :0.008322   Max.   :0.02058
+##  Min.   :0.005242   Min.   :0.01631  
+##  1st Qu.:0.006193   1st Qu.:0.01812  
+##  Median :0.006525   Median :0.01875  
+##  Mean   :0.006510   Mean   :0.01863  
+##  3rd Qu.:0.006901   3rd Qu.:0.01931  
+##  Max.   :0.007389   Max.   :0.02049
 ```
 
 ## The meaning of `xi`
@@ -2580,7 +2497,7 @@ We do this by sampling 142 observations from the long series `vmrl`
 The fit for `mhr` has the highest `xi` value of all. This suggests
 right-skew:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-55-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-49-1.png)<!-- -->
 
 ## Max vs sum plot
 
