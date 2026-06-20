@@ -60,4 +60,7 @@ rsconnect/
 _validate_*
 /Rplots.pdf
 pension-returns_*.log
+# TeX build cruft
+missfont.log
+*.tfm
 /pension-returns_investor_files/

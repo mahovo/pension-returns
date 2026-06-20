@@ -515,6 +515,18 @@ one is actually adequate in the tail: a distribution that AIC prefers can still 
 here if it misfits where the weight is. Read it together with the max-sum plots below, which
 test the stronger question of whether the relevant moments exist at all.
 
+#### Max-sum plots (moment existence)
+
+The max-sum plot, shown per series in the individual reports, is the most direct
+goodness-of-fit check for fat tails -- and it asks the question that *precedes* the
+comparisons above. For each moment $p$ it tracks $\max_{i\le n}|X_i|^p \big/
+\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
+toward zero, because no single observation can dominate the sum; if a new extreme keeps
+overwhelming the running total the ratio refuses to settle, and any statistic that assumes
+that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
+something that is not defined. Where the PPCC and AIC/BIC compare only the *shape* of a
+distribution, this asks whether the moments those comparisons lean on exist at all.
+
 #### Kappa
 
 Let $\{X_{g,i}\}$ be Gaussian distributed with mean $\mu$ and scale $\sigma$.
@@ -673,59 +685,7 @@ knitr::kable(rank_summary(mc_summary_norm, sorting = c("hi", "lo", "hi", "hi", "
 
 # Compare Gaussian and skewed t-distribution fits
 
-## Gaussian fits
-
-```{r eval=FALSE}
-fits_norm <- as.data.frame(lapply(
-  data_df,
-  function(x) {
-    fit_g <- fit_gauss(x)
-    c(fit_g$par[1], fit_g$par[2])
-  }
-))
-rownames(fits_norm) <- c("m", "s")
-```
-
-```{r eval=FALSE}
-knitr::kable(fits_norm, digits = 3)
-```
-
-```{r fig.width=9, fig.height=12, eval=FALSE}
-plot_norm_cdf <- function(x, m, s, minx, maxx, i) {
-  plot(seq(from = minx, to = maxx, length.out = 100), pnorm(seq(from = minx, to = maxx, length.out = 100), m, s), pch = 16, cex = 0.3, type = "l", main = names(data_df)[i], xlab = "p", ylab = "log-return")
-  abline(v = c(min(x), max(x)), col = c("red", "green"))
-  abline(h = c(pnorm(min(x), m, s), pnorm(max(x), m,s)), col = c("red", "green"))
-}
-
-par(mfrow = c(4, 2))
-for(i in 1:ncol(data_df)) {
-  m <- fits_norm[, i][1]
-  s <- fits_norm[, i][2]
-  plot_norm_cdf(data_df[, i], m, s, -0.3, 0.3, i)
-}
-par(mfrow = c(1, 1))
-```
-
-### Gaussian QQ plots
-
-```{r fig.width=9, fig.height=12, eval=FALSE}
-plot_norm_qq <- function(x, m, s, i) {
-  qqnorm((x - m) / s, main = names(data_df)[i])
-  qqline((x - m) / s)
-  abline(0, 1, col = "red")
-  legend("bottomright", legend = c("fit", "y=x"), col = c("black", "red"), lty = 1)
-}
-
-par(mfrow = c(4, 2))
-for(i in 1:ncol(data_df)) {
-  m <- fits_norm[, i][1]
-  s <- fits_norm[, i][2]
-  plot_norm_qq(data_df[, i], m, s, i)
-}
-par(mfrow = c(1, 1))
-```
-
-### Gaussian vs skewed t
+## Gaussian vs skewed t
 
 ```{r}
 # norm_probs <- as.data.frame(lapply(data_df, function(x) {
@@ -769,7 +729,7 @@ knitr::kable(avg_yrs_btw_events, digits = 3)
 ```
 
 
-#### Lilliefors test  
+### Lilliefors test  
 
 
 ```{r}
@@ -795,7 +755,7 @@ knitr::kable(lillie_tests, digits = 3)
 
 
 
-#### Wittgenstein's Ruler  
+### Wittgenstein's Ruler  
 
 
 For different given probabilities that returns are Gaussian, what is the probability that the distribution is Gaussian rather than skewed t-distributed, given the smallest/largest observed log-returns?
@@ -906,3 +866,6 @@ rownames(wittgenstein_max) <- c("Lillie p-val", "Prior prob", "P[Gauss | Event]"
 ```{r}
 knitr::kable(wittgenstein_max, digits = 3)
 ```
+
+
+

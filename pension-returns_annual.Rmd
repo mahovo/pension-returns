@@ -278,100 +278,6 @@ ggplot(
   )
 ```
 
-## Path crossing and the starting point
-
-Plotting the *cumulative* value of each plan from a common starting index makes the
-riskier plans appear to dominate -- their paths sit above the less-risky ones and rarely
-fall below. It is tempting to read this as *more risk always pays*. It does not
-generalise: it depends on **where the index starts**.
-
-Each high-risk plan is, in effect, a leveraged exposure to one common return factor: in
-cumulative log terms $\log(W_\text{high}/100) \approx \beta\,\log(W_\text{med}/100)$ with
-slope $\beta > 1$ and intercept $\approx 0$. With $\beta > 1$ this gives
-$W_\text{high} > W_\text{med}$ **exactly when** $W_\text{med} > 100$, so the high-risk plan
-can only fall below the medium-risk plan over a window in which the cumulative return
-*since the start date* is negative.
-
-Two realised illustrations. First, no rebasing is even needed for PFA: started in 2011,
-the high-risk plan (`phr`, $-6.6\%$ in 2011) begins **below** the medium-risk plan (`pmr`,
-$+0.4\%$) and only overtakes it in 2013. Second, rebasing every plan to 100 at the end of
-2021 -- just before the 2022 drawdown -- the high-risk plans fall below the medium-risk
-plans in 2022 and recross above only in 2023:
-
-```{r fig.width=10}
-## Annual cumulative index, rebased to 100 just before the 2022 drawdown.
-.yrs <- 2011:2023
-.rebase_year <- 2021
-.sel <- .yrs > .rebase_year                            # 2022, 2023
-.idx <- function(lr) 100 * cumprod(c(1, exp(lr[.sel]))) # 100 at 2021, then 2022, 2023
-crossing_df <- data.frame(
-  year = c(.rebase_year, .yrs[.sel]),
-  `Velliv medium` = .idx(data_df$vmr),
-  `Velliv high`   = .idx(data_df$vhr),
-  `PFA medium`    = .idx(data_df$pmr),
-  `PFA high`      = .idx(data_df$phr),
-  check.names = FALSE
-) %>% gather(key = "plan", value = "price", -year)
-
-ggplot(crossing_df, aes(x = year, y = price, color = plan)) +
-  geom_line(linewidth = 0.6) +
-  geom_point() +
-  geom_hline(yintercept = 100, linetype = 2, colour = "grey50") +
-  scale_x_continuous(breaks = c(.rebase_year, .yrs[.sel])) +
-  labs(
-    title = "Annual index started just before the 2022 drawdown (end-2021 = 100)",
-    subtitle = "High-risk plans fall below medium-risk in 2022, then recross above by 2023",
-    x = "year", y = "price index"
-  )
-```
-
-Whether the realised paths cross is therefore a property of the starting point relative
-to the market cycle, not of the plans themselves. A deeper or longer regime (e.g. a
-2008-2009-type drawdown, present in the long Velliv series `vmrl`) would hold the
-high-risk plan below for correspondingly longer.
-
-
-
-
-## The Sharpe ratio: leverage ray or curve?
-
-If the high-risk plan were **pure leverage** of the medium-risk one -- the same portfolio
-scaled up -- the two would share a reward-to-risk ratio (the same annualised Sharpe), and the
-risk level would be a pure risk-appetite dial with no effect on return *per unit of risk*.
-With only thirteen annual observations the Sharpe estimates are themselves noisy, so what
-matters below is the *pattern*, not the decimals. (Danish short rates over the sample are near
-zero, so we treat the return as the excess return.)
-
-```{r sharpe-ray-curve}
-.sharpe <- function(x) mean(x) / sd(x)   # annual data: already annualised; rates ~ 0
-.yrs    <- 2011:2023
-.from   <- c(2011, 2014, 2017)
-.plans  <- c(vmr = "Velliv medium", vhr = "Velliv high",
-             pmr = "PFA medium",    phr = "PFA high")
-.tab <- t(sapply(.from, function(f) {
-  .s <- data_df[.yrs >= f, ]
-  round(sapply(names(.plans), function(p) .sharpe(.s[[p]])), 2)
-}))
-rownames(.tab) <- paste0("from ", .from, "  (n=", sapply(.from, function(f) sum(.yrs >= f)), ")")
-colnames(.tab) <- .plans
-knitr::kable(.tab, caption = "Annualised Sharpe ratio by plan and start year (annual returns).")
-```
-
-**Velliv behaves like a leverage ray.** Its medium and high plans have all but identical
-Sharpe ratios in every window -- the gap never exceeds about one-hundredth -- exactly what one
-portfolio held at two exposure levels looks like. Choosing the Velliv risk level is a pure
-risk-appetite decision, with nothing to "optimise".
-
-**PFA's two profiles do not share a Sharpe -- and which is better is not identifiable.** PFA's
-menu bends rather than running straight, but *which* end looks better flips with the start
-year: the medium profile has the clearly higher Sharpe measured from 2011, the high profile
-from 2017, with the two essentially tied in between. At $n = 13$ those differences sit well
-inside the sampling noise this report is about, so there is no reliably "better" PFA blend to
-chase -- in added risk or in fees.
-
-The monthly report repeats this test on 142 observations and reaches the same verdict, and the
-companion investor tool extends it to the full Velliv low/medium/high and PFA A--D menus.
-
 ```{r chunk12}
 ################################################################################
 ##
@@ -968,9 +874,11 @@ Because $\beta>1$ with near-zero intercept, the high-risk plan amplifies the com
 symmetrically. Over 2011-2023 that meant higher average returns (Velliv 8.5% vs 7.0%, PFA
 9.5% vs 6.5%) but deeper drawdowns (worst year $-15.1\%$ vs $-13.2\%$ for Velliv, $-12.2\%$
 vs $-9.6\%$ for PFA) and outright underperformance in flat or down years. The much-noted
-property that the cumulative high-risk path never dips below the medium-risk path is, as the
-"Path crossing" section shows, an artefact of starting the index in 2012 at a low point
-before a long bull market -- not evidence that more risk is free.
+property that the cumulative high-risk path never dips below the medium-risk path is an
+artefact of starting the index in 2012 at a low point before a long bull market -- not
+evidence that more risk is free. The monthly report develops this "path-crossing" point in
+detail (rebasing the index to a market peak makes the paths cross); the annual sample is too
+thin to add to it.
 
 ## What the data can and cannot tell us
 

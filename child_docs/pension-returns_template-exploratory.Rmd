@@ -62,8 +62,17 @@ knitr::kable(
 
 
 
-
-
-
-
-
+```{r crossing-sharpe-monthly, results='asis', echo=FALSE}
+## Crossing-path and Sharpe analyses are monthly-only; the annual report has too few points
+## and defers them to the monthly report. Rendered from a child fragment so this shared
+## exploratory doc skips them cleanly when knit from the annual report.
+if (exists("monthly_logreturns_df")) {
+  cat(
+    knitr::knit_child(
+      here::here("child_docs", "pension-returns_template-crossing.Rmd"),
+      quiet = TRUE
+    ),
+    sep = "\n"
+  )
+}
+```
