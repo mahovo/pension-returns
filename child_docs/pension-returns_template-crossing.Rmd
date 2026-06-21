@@ -45,7 +45,155 @@ An equity weight of only about two-thirds already yields a ~0.986 correlation wi
   
 The implication for the choice is the point of this section. High correlation means the plans rise and fall together, so over a benign, rising sample the higher-risk plan simply ends up higher and the choice looks free. But correlation describes co-movement, not magnitude and not the tails. The lower-risk plan holds a real bond sleeve and a distinct, lower-volatility fund, and -- as the crossings above show -- that cushion is exactly what bites in a drawdown. The plans look alike because both are mostly equities; they are not alike when equities fall.  
   
-In cumulative log terms $\log(W_\text{high}/100) \approx \beta\,\log(W_\text{med}/100)$ with slope $\beta > 1$ and intercept $\approx 0$. With $\beta > 1$ this gives $W_\text{high} > W_\text{med}$ **exactly when** $W_\text{med} > 100$. So the two paths can only cross while the *safer* plan is itself below its starting value -- equivalently, the high-risk plan sits below the medium-risk plan precisely over any window in which the cumulative return *since the start date* is negative.  
+### The crossing condition
+
+For each plan $X\in\{m,h\}$ (medium, high) and period $u=1,2,\dots$ from the chosen start
+date, let $s_{X,u}$ be the simple return (gross return $1+s_{X,u}$), $r_{X,u}=\log(1+s_{X,u})$
+the log return, $R_{X,t}=\sum_{u=1}^{t}r_{X,u}$ the cumulative log return through period $t$,
+and $W_{X,t}=100\,e^{R_{X,t}}$ the wealth index rebased to $100$ at the start. Since
+$x\mapsto 100\,e^{x}$ is strictly increasing,
+$$
+W_{h,t}<W_{m,t}\iff R_{h,t}<R_{m,t},
+$$
+exactly. What makes this usable is a model for how $R_{h,t}$ relates to $R_{m,t}$.
+
+**Model A (proportionality in log returns).** The regression above fits the affine relation in
+log returns, $r_{h,u}=\alpha+\beta\,r_{m,u}+\varepsilon_u$ with $\beta>1$. Summing over
+$u=1,\dots,t$ and writing $E_t=\sum_{u\le t}\varepsilon_u$ for the cumulative residual gives
+$R_{h,t}=\alpha t+\beta R_{m,t}+E_t$, so
+$$
+\begin{aligned}
+W_{h,t}<W_{m,t}
+&\iff \alpha t+\beta R_{m,t}+E_t<R_{m,t}\\
+&\iff \alpha t+E_t<(1-\beta)\,R_{m,t}\\
+&\iff R_{m,t}<-\frac{\alpha t+E_t}{\beta-1},
+\end{aligned}
+$$
+the last step dividing by $1-\beta<0$, which reverses the inequality. Writing
+$\theta_t=-(\alpha t+E_t)/(\beta-1)$ for the threshold, the crossing is $R_{m,t}<\theta_t$. In
+the idealisation $\alpha=0$ and $\varepsilon_u\equiv0$ (hence $E_t\equiv0$) the threshold is
+$\theta_t=0$, giving the clean rule
+$$
+W_{h,t}<W_{m,t}\iff R_{m,t}<0\iff W_{m,t}<100:
+$$
+the high plan sits below the medium plan exactly over those windows in which the medium
+(safer) plan is itself below its starting value.
+
+The clean rule replaces $\theta_t$ by $0$; its error $\theta_t$ has an intercept part
+$-\alpha t/(\beta-1)$ and a residual part $-E_t/(\beta-1)$. With an intercept in the
+regression, least squares forces $\sum_{u=1}^{T}\hat\varepsilon_u=0$ over the full sample of
+length $T$, so $E_T=0$ and the residual part vanishes over the whole window; over a strict
+sub-window -- the COVID rebasing below is one -- the partial sum
+$E_t=\sum_{u\le t}\hat\varepsilon_u$ is generally nonzero and is the slack between the clean
+rule and the truth there.
+
+More fundamentally, $\beta$ is the population least-squares slope: minimising
+$E\!\left[(r_h-a-b\,r_m)^2\right]$ over $(a,b)$ gives the first-order conditions
+$a=E[r_h]-b\,E[r_m]$ and $E[r_m r_h]=a\,E[r_m]+b\,E[r_m^2]$, which eliminate $a$ to leave
+$\operatorname{Cov}(r_h,r_m)=b\,\operatorname{Var}(r_m)$, hence
+$$
+\beta=\frac{\operatorname{Cov}(r_h,r_m)}{\operatorname{Var}(r_m)}.
+$$
+This is defined only when the second moments are finite, and stably estimable only under
+stronger conditions. The fitted $\nu\approx3$–$4$ with a confidence interval reaching
+$\nu\le2$, together with the max-sum plots, is precisely the evidence that finite variance
+cannot be assumed: the crossing rule is therefore not a geometric identity but a statement
+conditional on the existence of the second moments -- the same caveat that governs every tail
+estimate in this study.
+
+**Model B (constant leverage).** Read "the high plan is a $\beta$-leveraged version of the
+medium plan" literally -- a position rebalanced each period to hold constant exposure $\beta$.
+Ignoring financing this scales the simple returns, $s_{h,u}=\beta\,s_{m,u}$ (a per-period
+borrowing rate $c$ gives $s_{h,u}=\beta s_{m,u}-(\beta-1)c$; take $c=0$). Log returns are now
+not proportional, and the crossing condition is exact,
+$$
+W_{h,t}<W_{m,t}\iff\sum_{u=1}^{t}\bigl[\log(1+\beta s_{m,u})-\log(1+s_{m,u})\bigr]<0
+\iff\prod_{u=1}^{t}\frac{1+\beta s_{m,u}}{1+s_{m,u}}<1,
+$$
+valid while $s_{m,u}>-1/\beta$ (the leveraged plan is not wiped out). Expanding with
+$\log(1+x)=x-\tfrac12 x^2+O(x^3)$ gives
+$\log(1+\beta s)-\log(1+s)=(\beta-1)s-\tfrac12(\beta^2-1)s^2+O(s^3)$; summing, setting the
+total $<0$, dividing by $\beta-1>0$ and using $\beta^2-1=(\beta-1)(\beta+1)$,
+$$
+\bar s_m<\tfrac12(\beta+1)\,\overline{s_m^{2}},\qquad
+\overline{s_m^{2}}=\tfrac1n\sum_{u}s_{m,u}^2=\widehat{\operatorname{Var}}(s_m)+\bar s_m^2
+\approx\hat\sigma_m^2 .
+$$
+For i.i.d. returns with $\mu=E[s_m]$ and $\sigma^2=\operatorname{Var}(s_m)$, the long-run
+growth rate is $g=E[\log(1+s)]\approx\mu-\tfrac12\sigma^2$, so $g_m\approx\mu-\tfrac12\sigma^2$
+and $g_h\approx\beta\mu-\tfrac12\beta^2\sigma^2$. The leveraged path stays below iff
+$g_h<g_m$:
+$$
+(\beta-1)\mu<\tfrac12(\beta^2-1)\sigma^2\iff\mu<\tfrac12(\beta+1)\sigma^2\iff\beta>2\beta^\star-1,
+$$
+with the growth-optimal (Kelly) leverage $\beta^\star=\mu/\sigma^2$.
+
+**The two models contrasted.** Both conditions read $\bar s_m<k\,\overline{s_m^{2}}$:
+$k=\tfrac12$ for Model A (since
+$R_m<0\iff\sum_u\log(1+s_{m,u})<0\iff\bar s_m<\tfrac12\overline{s_m^2}$ to second order) and
+$k=\tfrac{\beta+1}{2}$ for Model B. With $\beta>1$ Model B crosses below over a wider set of
+paths; in drift terms the thresholds on the medium plan's growth are $g_m<0$ (A) versus
+$g_m<\tfrac12\beta\sigma^2$ (B). Model B's is strictly positive -- a constant-leverage high
+plan can sit below while the medium plan still grows -- because leverage multiplies the
+variance by $\beta^2$ but the mean only by $\beta$. The two constructions differ in which
+variable carries the proportionality:
+$$
+g_h^{A}=E[\beta r_m]=\beta g_m,\qquad
+g_h^{B}=\beta\mu-\tfrac12\beta^2\sigma^2=\beta g_m-\underbrace{\tfrac12\beta(\beta-1)\sigma^2}_{\text{leverage drag}} .
+$$
+Model A imposes $r_h=\beta r_m$, i.e. $1+s_h=(1+s_m)^{\beta}$ -- a convex power rule,
+$s_h=\beta s_m+\tfrac12\beta(\beta-1)s_m^2+O(s^3)$, holding more than $\beta s_m$ in large
+moves -- and that extra convexity has expectation $\tfrac12\beta(\beta-1)\sigma^2$, exactly
+cancelling the drag, so $g_h^{A}=\beta g_m$ with no separate penalty.
+
+For the four plans, the high plan regressed on the medium plan (monthly log returns):
+
+```{r crossing-leverage-numbers}
+.lev <- function(lo, hi) {
+  rl <- data_df[[lo]]; rh <- data_df[[hi]]               # monthly log returns
+  f  <- lm(rh ~ rl)
+  sl <- exp(rl) - 1; sh <- exp(rh) - 1                   # simple returns
+  b  <- unname(coef(f)[2]); a <- unname(coef(f)[1])
+  mu <- mean(sl); v <- var(sl)                           # medium plan, monthly, simple
+  list(b = b, a = a,
+       r2 = summary(f)$r.squared, r2s = summary(lm(sh ~ sl))$r.squared,
+       mu_a = 12 * mu, sd_a = sqrt(12 * v),
+       shift = 12 * 0.5 * b * v, drag = 12 * 0.5 * b * (b - 1) * v,
+       kelly = mu / v)
+}
+.v <- .lev("vmr", "vhr"); .p <- .lev("pmr", "phr")
+.pc <- function(x) sprintf("%.2f%%", 100 * x)
+
+.fit_tab <- data.frame(
+  "β"              = sprintf("%.3f",  c(.v$b,   .p$b)),
+  "α (per month)"  = sprintf("%+.4f", c(.v$a,   .p$a)),
+  "R² (log)"       = sprintf("%.3f",  c(.v$r2,  .p$r2)),
+  "R² (simple)"    = sprintf("%.3f",  c(.v$r2s, .p$r2s)),
+  check.names = FALSE,
+  row.names = c("Velliv (medium→high)", "PFA (medium→high)"))
+knitr::kable(.fit_tab, align = "r",
+  caption = "High plan regressed on medium plan, monthly log returns (n = 142).")
+
+.diag_tab <- data.frame(
+  "μ (ann.)"        = c(.pc(.v$mu_a),  .pc(.p$mu_a)),
+  "σ (ann.)"        = c(.pc(.v$sd_a),  .pc(.p$sd_a)),
+  "½βσ²"            = c(.pc(.v$shift), .pc(.p$shift)),
+  "½β(β-1)σ²"       = c(.pc(.v$drag),  .pc(.p$drag)),
+  "Kelly β*"        = sprintf("%.1f",  c(.v$kelly, .p$kelly)),
+  check.names = FALSE,
+  row.names = c("Velliv", "PFA"))
+knitr::kable(.diag_tab, align = "r",
+  caption = "Medium-plan moments and leverage diagnostics (annualised).")
+```
+
+$\hat\beta>1$ with $\hat\alpha\approx0$ for both, so Model A's clean rule is the operative one.
+The log- and simple-return $R^2$ differ by only about $0.001$ because returns are small, so
+Models A and B are observationally almost identical here; the distinction is conceptual. The
+constant-leverage threshold sits only $\tfrac12\beta\hat\sigma^2\approx0.3$–$0.4\%$ per year
+above zero, because $\beta$ is near $1$; for a genuine 2x–3x product it would dominate. The
+in-sample Kelly $\hat\beta^\star\approx11$–$18$ is not a tangency to chase: it is
+$\hat\mu/\hat\sigma^2$ measured on a crash-free window, the ratio of the two least-robust
+quantities -- the moment-existence caveat once more.
   
 June 2012 was a low point just before a long bull market, so the safer plans never
 revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
