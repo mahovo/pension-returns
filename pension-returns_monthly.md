@@ -25,7 +25,7 @@ params:
   run_is_sim: TRUE
   run_is_plot: TRUE
   include_long: TRUE
-date: "15:50 21 June 2026"
+date: "16:45 21 June 2026"
 ---
 
 
@@ -411,7 +411,7 @@ $$
 \beta=\frac{\operatorname{Cov}(r_h,r_m)}{\operatorname{Var}(r_m)}.
 $$
 This is defined only when the second moments are finite, and stably estimable only under
-stronger conditions. The fitted $\nu\approx3$<U+2013>$4$ with a confidence interval reaching
+stronger conditions. The fitted $\nu\approx3$–$4$ with a confidence interval reaching
 $\nu\le2$, together with the max-sum plots, is precisely the evidence that finite variance
 cannot be assumed: the crossing rule is therefore not a geometric identity but a statement
 conditional on the existence of the second moments -- the same caveat that governs every tail
@@ -467,26 +467,26 @@ For the four plans, the high plan regressed on the medium plan (monthly log retu
 
 Table: High plan regressed on medium plan, monthly log returns (n = 142).
 
-|                            | <U+03B2>| <U+03B1> (per month)| R<U+00B2> (log)| R<U+00B2> (simple)|
-|:---------------------------|--------:|--------------------:|---------------:|------------------:|
-|Velliv (medium<U+2192>high) |    1.263|              -0.0003|           0.994|              0.993|
-|PFA (medium<U+2192>high)    |    1.600|              -0.0002|           0.955|              0.954|
+|                        | $\beta$| $\alpha$ (per month)| $R^2$ (log)| $R^2$ (simple)|
+|:-----------------------|-------:|--------------------:|-----------:|--------------:|
+|Velliv (medium to high) |   1.263|              -0.0003|       0.994|          0.993|
+|PFA (medium to high)    |   1.600|              -0.0002|       0.955|          0.954|
 
 
 
 Table: Medium-plan moments and leverage diagnostics (annualised).
 
-|       | <U+03BC> (ann.)| <U+03C3> (ann.)| <U+00BD><U+03B2><U+03C3><U+00B2>| <U+00BD><U+03B2>(<U+03B2>-1)<U+03C3><U+00B2>| Kelly <U+03B2>*|
-|:------|---------------:|---------------:|--------------------------------:|--------------------------------------------:|---------------:|
-|Velliv |           7.45%|           8.35%|                            0.44%|                                        0.12%|            10.7|
-|PFA    |           6.50%|           5.94%|                            0.28%|                                        0.17%|            18.4|
+|       | $\mu$ (ann.)| $\sigma$ (ann.)| $\tfrac12\beta\sigma^2$| $\tfrac12\beta(\beta-1)\sigma^2$| Kelly $\beta^\star$|
+|:------|------------:|---------------:|-----------------------:|--------------------------------:|-------------------:|
+|Velliv |        7.45%|           8.35%|                   0.44%|                            0.12%|                10.7|
+|PFA    |        6.50%|           5.94%|                   0.28%|                            0.17%|                18.4|
 
 $\hat\beta>1$ with $\hat\alpha\approx0$ for both, so Model A's clean rule is the operative one.
 The log- and simple-return $R^2$ differ by only about $0.001$ because returns are small, so
 Models A and B are observationally almost identical here; the distinction is conceptual. The
-constant-leverage threshold sits only $\tfrac12\beta\hat\sigma^2\approx0.3$<U+2013>$0.4\%$ per year
-above zero, because $\beta$ is near $1$; for a genuine 2x<U+2013>3x product it would dominate. The
-in-sample Kelly $\hat\beta^\star\approx11$<U+2013>$18$ is not a tangency to chase: it is
+constant-leverage threshold sits only $\tfrac12\beta\hat\sigma^2\approx0.3$–$0.4\%$ per year
+above zero, because $\beta$ is near $1$; for a genuine 2x–3x product it would dominate. The
+in-sample Kelly $\hat\beta^\star\approx11$–$18$ is not a tangency to chase: it is
 $\hat\mu/\hat\sigma^2$ measured on a crash-free window, the ratio of the two least-robust
 quantities -- the moment-existence caveat once more.
   
@@ -541,7 +541,7 @@ $$
 \operatorname{Var}(\hat S)\approx\frac1T\left(1+\tfrac12 S^2-\gamma_3 S+\tfrac14(\gamma_4-3)S^2\right),
 $$
 with $\gamma_3$ the skewness and $\gamma_4$ the kurtosis -- and $\gamma_4$ is finite only for
-$\nu>4$. The fitted $\nu\approx3.4$<U+2013>$4.3$ straddles $4$: the Sharpe is computable, but its own
+$\nu>4$. The fitted $\nu\approx3.4$–$4.3$ straddles $4$: the Sharpe is computable, but its own
 standard error need not be finite. The figures below use the i.i.d.-normal standard error
 $\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound -- the sample
 skewness ($\approx-1$) and kurtosis ($\approx6$) inflate it, and the population kurtosis may
@@ -562,10 +562,10 @@ each estimate:
 
 Table: Within-provider Sharpe decomposition and sampling error (full sample, n = 142; annualised; SE i.i.d.-normal, a lower bound).
 
-|       | <U+03C1> (corr)| S med| S high| <U+03C1> <U+00D7> S med| SE(S)| gap / SE|
-|:------|---------------:|-----:|------:|-----------------------:|-----:|--------:|
-|Velliv |           0.997|  0.84|   0.81|                    0.84|  0.29|     0.11|
-|PFA    |           0.977|  1.06|   1.01|                    1.03|  0.30|     0.17|
+|       | $\rho$| $S_m$| $S_h$| $\rho S_m$| $\mathrm{SE}(S)$| gap / SE|
+|:------|------:|-----:|-----:|----------:|----------------:|--------:|
+|Velliv |  0.997|  0.84|  0.81|       0.84|             0.29|     0.11|
+|PFA    |  0.977|  1.06|  1.01|       1.03|             0.30|     0.17|
 
 **Reading.** For Velliv $\hat\rho=0.997$: the medium and high plans are a near-perfect leverage
 ray, $\hat S_h$ is reproduced by $\hat\rho(\hat S_m+\hat\alpha/(\hat\beta\hat\sigma_m))$ to the
@@ -2583,13 +2583,13 @@ same distribution as a mix of two simulated returns series.
 
 
 ```
-## m(data_x): -0.01741171 
-## s(data_x): 0.3112779 
-## m(data_y): 10.03236 
-## s(data_y): 2.947451 
+## m(data_x): 0.06130665 
+## s(data_x): 0.3258708 
+## m(data_y): 10.29039 
+## s(data_y): 3.066238 
 ## 
-## m(data_x + data_y): 5.007472 
-## s(data_x + data_y): 1.472912
+## m(data_x + data_y): 5.17585 
+## s(data_x + data_y): 1.561344
 ```
 
 m and s of final state of all paths.\
@@ -2599,26 +2599,26 @@ m and s of final state of all paths.\
 
 |     m_a|     m_b|   s_a|   s_b|
 |-------:|-------:|-----:|-----:|
-| 100.052| 100.617| 6.740| 6.655|
-| 100.590| 100.434| 6.652| 6.584|
-| 100.166| 100.279| 6.429| 6.781|
-| 100.341|  99.862| 6.702| 6.507|
-| 100.016| 100.170| 6.536| 6.665|
-| 100.229|  99.672| 6.570| 6.802|
-| 100.265|  99.748| 6.759| 6.364|
-| 100.184| 100.145| 6.502| 6.697|
-| 100.212| 100.256| 6.869| 6.699|
-|  99.986|  99.927| 6.794| 6.625|
+| 103.440| 103.578| 7.061| 6.832|
+| 103.270| 103.715| 6.853| 6.940|
+| 103.367| 103.175| 6.807| 7.120|
+| 103.874| 103.249| 6.940| 6.880|
+| 103.486| 103.215| 6.840| 6.973|
+| 103.517| 102.887| 6.846| 7.059|
+| 103.509| 103.272| 6.939| 7.102|
+| 103.681| 103.823| 7.114| 6.960|
+| 103.499| 103.339| 7.253| 6.868|
+| 103.448| 103.502| 6.860| 6.959|
 
 
 ```
-##       m_a              m_b              s_a             s_b       
-##  Min.   : 99.99   Min.   : 99.67   Min.   :6.429   Min.   :6.364  
-##  1st Qu.:100.08   1st Qu.: 99.88   1st Qu.:6.544   1st Qu.:6.595  
-##  Median :100.20   Median :100.16   Median :6.677   Median :6.660  
-##  Mean   :100.20   Mean   :100.11   Mean   :6.655   Mean   :6.638  
-##  3rd Qu.:100.26   3rd Qu.:100.27   3rd Qu.:6.754   3rd Qu.:6.699  
-##  Max.   :100.59   Max.   :100.62   Max.   :6.869   Max.   :6.802
+##       m_a             m_b             s_a             s_b       
+##  Min.   :103.3   Min.   :102.9   Min.   :6.807   Min.   :6.832  
+##  1st Qu.:103.4   1st Qu.:103.2   1st Qu.:6.848   1st Qu.:6.895  
+##  Median :103.5   Median :103.3   Median :6.899   Median :6.959  
+##  Mean   :103.5   Mean   :103.4   Mean   :6.951   Mean   :6.969  
+##  3rd Qu.:103.5   3rd Qu.:103.6   3rd Qu.:7.031   3rd Qu.:7.037  
+##  Max.   :103.9   Max.   :103.8   Max.   :7.253   Max.   :7.120
 ```
 
 `_a` and `_b` are very close to equal.\
@@ -2672,12 +2672,12 @@ We do this by sampling 142 observations from the long series `vmrl`
 
 ```
 ##        m                  s          
-##  Min.   :0.005202   Min.   :0.01689  
-##  1st Qu.:0.005929   1st Qu.:0.01793  
-##  Median :0.006463   Median :0.01863  
-##  Mean   :0.006451   Mean   :0.01865  
-##  3rd Qu.:0.006849   3rd Qu.:0.01922  
-##  Max.   :0.008191   Max.   :0.02042
+##  Min.   :0.005152   Min.   :0.01689  
+##  1st Qu.:0.006059   1st Qu.:0.01817  
+##  Median :0.006475   Median :0.01859  
+##  Mean   :0.006497   Mean   :0.01857  
+##  3rd Qu.:0.006983   3rd Qu.:0.01902  
+##  Max.   :0.007780   Max.   :0.02028
 ```
 
 ## The meaning of `xi`

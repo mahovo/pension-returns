@@ -165,21 +165,21 @@ For the four plans, the high plan regressed on the medium plan (monthly log retu
 .pc <- function(x) sprintf("%.2f%%", 100 * x)
 
 .fit_tab <- data.frame(
-  "β"              = sprintf("%.3f",  c(.v$b,   .p$b)),
-  "α (per month)"  = sprintf("%+.4f", c(.v$a,   .p$a)),
-  "R² (log)"       = sprintf("%.3f",  c(.v$r2,  .p$r2)),
-  "R² (simple)"    = sprintf("%.3f",  c(.v$r2s, .p$r2s)),
+  "$\\beta$"              = sprintf("%.3f",  c(.v$b,   .p$b)),
+  "$\\alpha$ (per month)" = sprintf("%+.4f", c(.v$a,   .p$a)),
+  "$R^2$ (log)"           = sprintf("%.3f",  c(.v$r2,  .p$r2)),
+  "$R^2$ (simple)"        = sprintf("%.3f",  c(.v$r2s, .p$r2s)),
   check.names = FALSE,
-  row.names = c("Velliv (medium→high)", "PFA (medium→high)"))
+  row.names = c("Velliv (medium to high)", "PFA (medium to high)"))
 knitr::kable(.fit_tab, align = "r",
   caption = "High plan regressed on medium plan, monthly log returns (n = 142).")
 
 .diag_tab <- data.frame(
-  "μ (ann.)"        = c(.pc(.v$mu_a),  .pc(.p$mu_a)),
-  "σ (ann.)"        = c(.pc(.v$sd_a),  .pc(.p$sd_a)),
-  "½βσ²"            = c(.pc(.v$shift), .pc(.p$shift)),
-  "½β(β-1)σ²"       = c(.pc(.v$drag),  .pc(.p$drag)),
-  "Kelly β*"        = sprintf("%.1f",  c(.v$kelly, .p$kelly)),
+  "$\\mu$ (ann.)"    = c(.pc(.v$mu_a),  .pc(.p$mu_a)),
+  "$\\sigma$ (ann.)" = c(.pc(.v$sd_a),  .pc(.p$sd_a)),
+  "$\\tfrac12\\beta\\sigma^2$"         = c(.pc(.v$shift), .pc(.p$shift)),
+  "$\\tfrac12\\beta(\\beta-1)\\sigma^2$" = c(.pc(.v$drag),  .pc(.p$drag)),
+  "Kelly $\\beta^\\star$" = sprintf("%.1f",  c(.v$kelly, .p$kelly)),
   check.names = FALSE,
   row.names = c("Velliv", "PFA"))
 knitr::kable(.diag_tab, align = "r",
@@ -343,12 +343,12 @@ each estimate:
   rho <- cor(rm, rh)
   se  <- sqrt(12 * (1 + Sm^2 / 24) / n)                  # i.i.d.-normal SE of annualised Sharpe
   data.frame(
-    "ρ (corr)"  = sprintf("%.3f", rho),
-    "S med"     = sprintf("%.2f", Sm),
-    "S high"    = sprintf("%.2f", Sh),
-    "ρ × S med" = sprintf("%.2f", rho * Sm),
-    "SE(S)"     = sprintf("%.2f", se),
-    "gap / SE"  = sprintf("%.2f", (Sm - Sh) / se),
+    "$\\rho$"           = sprintf("%.3f", rho),
+    "$S_m$"             = sprintf("%.2f", Sm),
+    "$S_h$"             = sprintf("%.2f", Sh),
+    "$\\rho S_m$"       = sprintf("%.2f", rho * Sm),
+    "$\\mathrm{SE}(S)$" = sprintf("%.2f", se),
+    "gap / SE"          = sprintf("%.2f", (Sm - Sh) / se),
     check.names = FALSE)
 }
 .stab <- rbind(.sh("vmr", "vhr"), .sh("pmr", "phr"))
