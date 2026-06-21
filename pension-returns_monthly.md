@@ -25,7 +25,7 @@ params:
   run_is_sim: TRUE
   run_is_plot: TRUE
   include_long: TRUE
-date: "15:12 21 June 2026"
+date: "15:50 21 June 2026"
 ---
 
 
@@ -501,9 +501,51 @@ The high-risk plans regain and overtake the medium-risk plans only once the cumu
 ![](pension-returns_monthly_files/figure-html/unnamed-chunk-142-1.png)<!-- -->
 
 
-## The Sharpe ratio: Leverage ray or curve?
+## The Sharpe ratio: leverage ray or curve?
 
-The crossing argument established that, within a provider, the high-risk plan is to a good approximation a *scaled* version of the medium-risk one. If that scaling were **pure leverage**, the two plans would share the same reward-to-risk ratio -- the same annualised Sharpe -- and the risk level would carry no consequence for return *per unit of risk*. The test is whether the Sharpe ratios coincide, and whether that holds across sub-periods rather than being an artefact of one window. (Danish short rates over the sample are near zero, so we treat the return as the excess return.)
+The crossing model $r_{h,u}=\alpha+\beta\,r_{m,u}+\varepsilon_u$ has a second consequence --
+about reward per unit of risk rather than path order.
+
+**Definition.** The annualised Sharpe ratio of plan $X$ is $S_X=(\mu_X-r_f)/\sigma_X$, with
+$\mu_X$ and $\sigma_X$ the mean and standard deviation of the monthly log returns and $r_f$ the
+risk-free rate. Danish short rates are near zero over the sample, so we set $r_f=0$ and
+$S_X=\mu_X/\sigma_X$, estimated by $\hat S_X=(\bar x_X/\hat\sigma_X)\sqrt{12}$; the $\sqrt{12}$
+annualisation assumes serially independent returns. Geometrically, plotting each plan as a
+point $(\sigma_X,\mu_X)$, the Sharpe is the slope of the line from the origin to that point,
+so a set of plans shares one Sharpe if and only if the points lie on a single ray through the
+origin.
+
+**A ray is the signature of leverage.** Under Model A with a clean fit ($\alpha=0$,
+$\varepsilon_u\equiv0$), scaling the log returns by $\beta$ scales both moments by $\beta$ --
+$\mu_h=\beta\mu_m$, $\sigma_h=\beta\sigma_m$ -- so $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: the
+two plans share a Sharpe and lie exactly on a ray. This is the same log-scaling that produced
+the clean crossing rule. With a real fit ($\alpha\approx0$, $R^2<1$), let
+$\rho=\operatorname{Cov}(r_h,r_m)/(\sigma_h\sigma_m)$ be the correlation; since
+$\operatorname{Cov}(r_h,r_m)=\beta\sigma_m^2$ we have $\rho=\beta\sigma_m/\sigma_h$, hence
+$$
+S_h=\frac{\alpha+\beta\mu_m}{\sigma_h}=\rho\left(S_m+\frac{\alpha}{\beta\sigma_m}\right)\approx\rho\,S_m\quad(\alpha\approx0).
+$$
+The high plan's Sharpe is the medium plan's Sharpe scaled by the correlation $\rho=\sqrt{R^2}$.
+A perfect leverage ray is $\rho=1$ ($S_h=S_m$); the menu bends by exactly the log-collinearity
+shortfall $1-\rho$ -- the same residual the crossing section flagged. (Equivalently, in
+simple-return space, constant leverage financed at $r_f$ -- Model B -- traces the
+constant-excess-Sharpe Capital Allocation Line; a ray is the signature of leverage in either
+reading.)
+
+**Why the curvature cannot be read off.** Two obstructions, both the study's theme. First,
+$S=\mu/\sigma$ requires a finite variance ($\nu>2$); the fitted $\nu$ has a confidence
+interval reaching $\nu\le2$, so the denominator may not exist, and where it does not the
+Sharpe is not a population quantity. Second, even granting a finite variance, the sampling
+variance of the estimator is (Lo 2002; Mertens 2002, under serial independence)
+$$
+\operatorname{Var}(\hat S)\approx\frac1T\left(1+\tfrac12 S^2-\gamma_3 S+\tfrac14(\gamma_4-3)S^2\right),
+$$
+with $\gamma_3$ the skewness and $\gamma_4$ the kurtosis -- and $\gamma_4$ is finite only for
+$\nu>4$. The fitted $\nu\approx3.4$<U+2013>$4.3$ straddles $4$: the Sharpe is computable, but its own
+standard error need not be finite. The figures below use the i.i.d.-normal standard error
+$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound -- the sample
+skewness ($\approx-1$) and kurtosis ($\approx6$) inflate it, and the population kurtosis may
+be infinite.
 
 
 Table: Annualised Sharpe ratio by plan and start date.
@@ -514,9 +556,28 @@ Table: Annualised Sharpe ratio by plan and start date.
 |from 2016-01  (n=100) |          0.61|        0.58|       0.75|     0.75|
 |from 2019-01  (n=64)  |          0.66|        0.66|       0.67|     0.82|
 
-**Velliv behaves like a leverage ray.** Its medium and high plans have nearly the same Sharpe in every sub-period -- the gap stays within a few hundredths and all but vanishes in the most recent window -- the signature of one portfolio held at two levels of exposure. Choosing the Velliv risk level is therefore a pure risk-appetite decision: More risk buys proportionally more expected return, with no change in reward per unit of risk and nothing to "optimise".
+The full-sample decomposition $S_h=\rho(S_m+\alpha/(\beta\sigma_m))$ and the sampling error of
+each estimate:
 
-**PFA's two profiles curve -- but which one is better is not identifiable.** PFA's medium and high profiles do *not* share a Sharpe, so the menu bends rather than running straight; yet *which* end looks better flips with the start date -- the medium profile has the higher Sharpe measured from 2012, the high profile from 2019, with the two essentially tied in between. The differences sit well inside the sampling noise documented elsewhere in this report. The textbook response to a curved menu is to locate the higher-Sharpe blend; here you cannot reliably tell which blend that is, so it is not worth paying -- in added risk or in fees -- to chase one.
+
+Table: Within-provider Sharpe decomposition and sampling error (full sample, n = 142; annualised; SE i.i.d.-normal, a lower bound).
+
+|       | <U+03C1> (corr)| S med| S high| <U+03C1> <U+00D7> S med| SE(S)| gap / SE|
+|:------|---------------:|-----:|------:|-----------------------:|-----:|--------:|
+|Velliv |           0.997|  0.84|   0.81|                    0.84|  0.29|     0.11|
+|PFA    |           0.977|  1.06|   1.01|                    1.03|  0.30|     0.17|
+
+**Reading.** For Velliv $\hat\rho=0.997$: the medium and high plans are a near-perfect leverage
+ray, $\hat S_h$ is reproduced by $\hat\rho(\hat S_m+\hat\alpha/(\hat\beta\hat\sigma_m))$ to the
+displayed precision, and the gap $\hat S_m-\hat S_h\approx0.03$ is about $0.1$ of one standard
+error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise -- the
+same $\beta$-scaling that gives Velliv's clean crossing rule. For PFA $\hat\rho=0.977$: the
+menu is measurably more bent (by about $2\%$), but the Sharpe gap is still only about $0.2$ of
+a standard error, and which profile leads flips with the start date (the by-window table
+above). So although PFA's menu does curve, no best-Sharpe blend is identifiable at this sample
+size -- and the standard error itself is only a lower bound, since the kurtosis it omits may
+be infinite. It is not worth paying, in added risk or in fees, to chase a tangency that the
+data cannot locate.
 
 
 # Compare pension plans
@@ -1378,7 +1439,7 @@ For different given probabilities that returns are Gaussian, what is the probabi
 
 Conditional probabilities for smallest observed log-returns:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-227-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-228-1.png)<!-- -->
 
 
 Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
@@ -1398,7 +1459,7 @@ $x_{\text{obs}} = \min(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{G
 Use $1 - \text{p-value}$ from Lilliefors test as prior probability that the distribution is Gaussian.  
 $x_{\text{obs}} = \max(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{Gauss}}[X \geq x_{\text{max}}]$:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-230-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-231-1.png)<!-- -->
 
 
 
@@ -1419,7 +1480,7 @@ $x_{\text{obs}} = \max(x)$ and $P[\text{Event}\ |\ \text{Gaussian}] = P_{\text{G
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-317-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-318-1.png)<!-- -->
 
 
 
@@ -1427,7 +1488,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-318-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-319-1.png)<!-- -->
 
 
 
@@ -1435,7 +1496,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-319-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-320-1.png)<!-- -->
 
 
 
@@ -1461,7 +1522,7 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-324-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-325-1.png)<!-- -->
 
 
 ## Convergence
@@ -1472,21 +1533,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-325-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-326-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-326-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-327-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-327-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-328-1.png)<!-- -->
 
 Parameters
 
@@ -1496,7 +1557,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-329-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-330-1.png)<!-- -->
 
 
 
@@ -1511,7 +1572,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-346-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-347-1.png)<!-- -->
 
 
 
@@ -1519,7 +1580,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-347-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-348-1.png)<!-- -->
 
 
 
@@ -1527,7 +1588,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-348-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-349-1.png)<!-- -->
 
 
 
@@ -1553,7 +1614,7 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-353-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-354-1.png)<!-- -->
 
 
 ## Convergence
@@ -1564,21 +1625,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-354-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-355-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-355-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-356-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-356-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-357-1.png)<!-- -->
 
 Parameters
 
@@ -1588,7 +1649,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-358-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-359-1.png)<!-- -->
 
 
 
@@ -1603,7 +1664,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-375-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-376-1.png)<!-- -->
 
 
 
@@ -1611,7 +1672,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-376-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-377-1.png)<!-- -->
 
 
 
@@ -1619,7 +1680,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-377-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-378-1.png)<!-- -->
 
 
 
@@ -1645,7 +1706,7 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-382-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-383-1.png)<!-- -->
 
 
 ## Convergence
@@ -1656,21 +1717,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-383-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-384-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-384-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-385-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-385-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-386-1.png)<!-- -->
 
 Parameters
 
@@ -1680,7 +1741,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-387-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-388-1.png)<!-- -->
 
 
 
@@ -1695,7 +1756,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-404-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-405-1.png)<!-- -->
 
 
 
@@ -1703,7 +1764,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-405-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-406-1.png)<!-- -->
 
 
 
@@ -1711,7 +1772,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-406-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-407-1.png)<!-- -->
 
 
 
@@ -1728,16 +1789,16 @@ phr has the sstd fit with the highest sstd fit with thevalue of nu. Compare with
 
 
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-408-1.png)<!-- -->
-
 ![](pension-returns_monthly_files/figure-html/unnamed-chunk-409-1.png)<!-- -->
 
 ![](pension-returns_monthly_files/figure-html/unnamed-chunk-410-1.png)<!-- -->
 
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-411-1.png)<!-- -->
+
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-411-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-412-1.png)<!-- -->
 
 
 ## Convergence
@@ -1748,21 +1809,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-412-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-413-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-413-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-414-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-414-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-415-1.png)<!-- -->
 
 Parameters
 
@@ -1772,7 +1833,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-416-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-417-1.png)<!-- -->
 
 
 
@@ -1787,7 +1848,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-433-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-434-1.png)<!-- -->
 
 
 
@@ -1795,7 +1856,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-434-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-435-1.png)<!-- -->
 
 
 
@@ -1803,7 +1864,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-435-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-436-1.png)<!-- -->
 
 
 
@@ -1820,16 +1881,16 @@ mmr has the sstd fit with the lowest value of nu. Compare with other distributio
 
 
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-437-1.png)<!-- -->
-
 ![](pension-returns_monthly_files/figure-html/unnamed-chunk-438-1.png)<!-- -->
 
 ![](pension-returns_monthly_files/figure-html/unnamed-chunk-439-1.png)<!-- -->
 
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-440-1.png)<!-- -->
+
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-440-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-441-1.png)<!-- -->
 
 
 ## Convergence
@@ -1840,21 +1901,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-441-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-442-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-442-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-443-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-443-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-444-1.png)<!-- -->
 
 Parameters
 
@@ -1864,7 +1925,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-445-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-446-1.png)<!-- -->
 
 
 
@@ -1879,7 +1940,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-462-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-463-1.png)<!-- -->
 
 
 
@@ -1887,7 +1948,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-463-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-464-1.png)<!-- -->
 
 
 
@@ -1895,7 +1956,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-464-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-465-1.png)<!-- -->
 
 
 
@@ -1921,7 +1982,7 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-469-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-470-1.png)<!-- -->
 
 
 ## Convergence
@@ -1932,21 +1993,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-470-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-471-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-471-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-472-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-472-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-473-1.png)<!-- -->
 
 Parameters
 
@@ -1956,7 +2017,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-474-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-475-1.png)<!-- -->
 
 
 
@@ -1971,7 +2032,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-491-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-492-1.png)<!-- -->
 
 
 
@@ -1979,7 +2040,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-492-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-493-1.png)<!-- -->
 
 
 
@@ -1987,7 +2048,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-493-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-494-1.png)<!-- -->
 
 
 
@@ -2013,7 +2074,7 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-498-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-499-1.png)<!-- -->
 
 
 ## Convergence
@@ -2024,21 +2085,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-499-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-500-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-500-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-501-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-501-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-502-1.png)<!-- -->
 
 Parameters
 
@@ -2048,7 +2109,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-503-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-504-1.png)<!-- -->
 
 
 
@@ -2063,7 +2124,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-520-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-521-1.png)<!-- -->
 
 
 
@@ -2071,7 +2132,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-521-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-522-1.png)<!-- -->
 
 
 
@@ -2079,7 +2140,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-522-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-523-1.png)<!-- -->
 
 
 
@@ -2105,7 +2166,7 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-527-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-528-1.png)<!-- -->
 
 
 ## Convergence
@@ -2116,21 +2177,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-528-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-529-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-529-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-530-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-530-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-531-1.png)<!-- -->
 
 Parameters
 
@@ -2140,7 +2201,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-532-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-533-1.png)<!-- -->
 
 
 # Velliv medium risk (vmr), June 2012 - April 2024
@@ -2152,7 +2213,7 @@ Objective function plots
 
 Skewed $t$-distribution (sstd):  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-550-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-551-1.png)<!-- -->
 
 
 
@@ -2160,7 +2221,7 @@ Skewed $t$-distribution (sstd):
 
 Let's plot the fit and the observed returns together.  
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-551-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-552-1.png)<!-- -->
 
 
 
@@ -2168,7 +2229,7 @@ Let's plot the fit and the observed returns together.
 
 Now lets look at the CDF of the estimated distribution for each 0.1% increment between 0.5% and 99.5% for the estimated distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-552-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-553-1.png)<!-- -->
 
 
 
@@ -2194,7 +2255,7 @@ Now lets look at the CDF of the estimated distribution for each 0.1% increment b
 
 Sorted portfolio index values for last period of all runs
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-557-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-558-1.png)<!-- -->
 
 
 ## Convergence
@@ -2205,21 +2266,21 @@ Max-vs-sum plots for the first four moments -- a ratio that doesn't fall toward 
 that moment as possibly non-existent (see "Max-sum plots" in the comparison report for what
 this diagnostic tests). Panels by fitted distribution:
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-558-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-559-1.png)<!-- -->
 
 
 
 
 ### MC
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-559-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-560-1.png)<!-- -->
 
 
 ### IS
 
 Skewed $t$-distribution with a normal proposal distribution.
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-560-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-561-1.png)<!-- -->
 
 Parameters
 
@@ -2229,7 +2290,7 @@ Parameters
 
 Objective function plots
 
-![](pension-returns_monthly_files/figure-html/unnamed-chunk-562-1.png)<!-- -->
+![](pension-returns_monthly_files/figure-html/unnamed-chunk-563-1.png)<!-- -->
 
 
 # Findings
@@ -2522,13 +2583,13 @@ same distribution as a mix of two simulated returns series.
 
 
 ```
-## m(data_x): 0.3124464 
-## s(data_x): 0.5118178 
-## m(data_y): 9.526644 
-## s(data_y): 3.137064 
+## m(data_x): -0.01741171 
+## s(data_x): 0.3112779 
+## m(data_y): 10.03236 
+## s(data_y): 2.947451 
 ## 
-## m(data_x + data_y): 4.919545 
-## s(data_x + data_y): 1.638071
+## m(data_x + data_y): 5.007472 
+## s(data_x + data_y): 1.472912
 ```
 
 m and s of final state of all paths.\
@@ -2536,28 +2597,28 @@ m and s of final state of all paths.\
 `_b` is simulated mixed returns.
 
 
-|    m_a|    m_b|   s_a|   s_b|
-|------:|------:|-----:|-----:|
-| 98.177| 98.157| 7.132| 7.264|
-| 98.142| 98.074| 6.934| 7.355|
-| 97.936| 98.526| 6.751| 7.420|
-| 98.336| 98.276| 7.119| 7.060|
-| 98.096| 98.158| 7.098| 7.286|
-| 98.717| 98.450| 7.317| 7.247|
-| 98.220| 98.450| 7.067| 7.085|
-| 98.305| 98.694| 7.256| 7.152|
-| 98.099| 98.638| 7.096| 7.484|
-| 98.579| 98.203| 7.281| 7.156|
+|     m_a|     m_b|   s_a|   s_b|
+|-------:|-------:|-----:|-----:|
+| 100.052| 100.617| 6.740| 6.655|
+| 100.590| 100.434| 6.652| 6.584|
+| 100.166| 100.279| 6.429| 6.781|
+| 100.341|  99.862| 6.702| 6.507|
+| 100.016| 100.170| 6.536| 6.665|
+| 100.229|  99.672| 6.570| 6.802|
+| 100.265|  99.748| 6.759| 6.364|
+| 100.184| 100.145| 6.502| 6.697|
+| 100.212| 100.256| 6.869| 6.699|
+|  99.986|  99.927| 6.794| 6.625|
 
 
 ```
-##       m_a             m_b             s_a             s_b       
-##  Min.   :97.94   Min.   :98.07   Min.   :6.751   Min.   :7.060  
-##  1st Qu.:98.11   1st Qu.:98.17   1st Qu.:7.074   1st Qu.:7.153  
-##  Median :98.20   Median :98.36   Median :7.108   Median :7.256  
-##  Mean   :98.26   Mean   :98.36   Mean   :7.105   Mean   :7.251  
-##  3rd Qu.:98.33   3rd Qu.:98.51   3rd Qu.:7.225   3rd Qu.:7.337  
-##  Max.   :98.72   Max.   :98.69   Max.   :7.317   Max.   :7.484
+##       m_a              m_b              s_a             s_b       
+##  Min.   : 99.99   Min.   : 99.67   Min.   :6.429   Min.   :6.364  
+##  1st Qu.:100.08   1st Qu.: 99.88   1st Qu.:6.544   1st Qu.:6.595  
+##  Median :100.20   Median :100.16   Median :6.677   Median :6.660  
+##  Mean   :100.20   Mean   :100.11   Mean   :6.655   Mean   :6.638  
+##  3rd Qu.:100.26   3rd Qu.:100.27   3rd Qu.:6.754   3rd Qu.:6.699  
+##  Max.   :100.59   Max.   :100.62   Max.   :6.869   Max.   :6.802
 ```
 
 `_a` and `_b` are very close to equal.\
@@ -2611,12 +2672,12 @@ We do this by sampling 142 observations from the long series `vmrl`
 
 ```
 ##        m                  s          
-##  Min.   :0.005275   Min.   :0.01709  
-##  1st Qu.:0.006249   1st Qu.:0.01827  
-##  Median :0.006538   Median :0.01865  
-##  Mean   :0.006553   Mean   :0.01864  
-##  3rd Qu.:0.006877   3rd Qu.:0.01917  
-##  Max.   :0.007585   Max.   :0.01992
+##  Min.   :0.005202   Min.   :0.01689  
+##  1st Qu.:0.005929   1st Qu.:0.01793  
+##  Median :0.006463   Median :0.01863  
+##  Mean   :0.006451   Mean   :0.01865  
+##  3rd Qu.:0.006849   3rd Qu.:0.01922  
+##  Max.   :0.008191   Max.   :0.02042
 ```
 
 ## The meaning of `xi`

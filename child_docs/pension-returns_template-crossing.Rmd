@@ -271,9 +271,51 @@ ggplot(
 ```
 
 
-## The Sharpe ratio: Leverage ray or curve?
+## The Sharpe ratio: leverage ray or curve?
 
-The crossing argument established that, within a provider, the high-risk plan is to a good approximation a *scaled* version of the medium-risk one. If that scaling were **pure leverage**, the two plans would share the same reward-to-risk ratio -- the same annualised Sharpe -- and the risk level would carry no consequence for return *per unit of risk*. The test is whether the Sharpe ratios coincide, and whether that holds across sub-periods rather than being an artefact of one window. (Danish short rates over the sample are near zero, so we treat the return as the excess return.)
+The crossing model $r_{h,u}=\alpha+\beta\,r_{m,u}+\varepsilon_u$ has a second consequence --
+about reward per unit of risk rather than path order.
+
+**Definition.** The annualised Sharpe ratio of plan $X$ is $S_X=(\mu_X-r_f)/\sigma_X$, with
+$\mu_X$ and $\sigma_X$ the mean and standard deviation of the monthly log returns and $r_f$ the
+risk-free rate. Danish short rates are near zero over the sample, so we set $r_f=0$ and
+$S_X=\mu_X/\sigma_X$, estimated by $\hat S_X=(\bar x_X/\hat\sigma_X)\sqrt{12}$; the $\sqrt{12}$
+annualisation assumes serially independent returns. Geometrically, plotting each plan as a
+point $(\sigma_X,\mu_X)$, the Sharpe is the slope of the line from the origin to that point,
+so a set of plans shares one Sharpe if and only if the points lie on a single ray through the
+origin.
+
+**A ray is the signature of leverage.** Under Model A with a clean fit ($\alpha=0$,
+$\varepsilon_u\equiv0$), scaling the log returns by $\beta$ scales both moments by $\beta$ --
+$\mu_h=\beta\mu_m$, $\sigma_h=\beta\sigma_m$ -- so $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: the
+two plans share a Sharpe and lie exactly on a ray. This is the same log-scaling that produced
+the clean crossing rule. With a real fit ($\alpha\approx0$, $R^2<1$), let
+$\rho=\operatorname{Cov}(r_h,r_m)/(\sigma_h\sigma_m)$ be the correlation; since
+$\operatorname{Cov}(r_h,r_m)=\beta\sigma_m^2$ we have $\rho=\beta\sigma_m/\sigma_h$, hence
+$$
+S_h=\frac{\alpha+\beta\mu_m}{\sigma_h}=\rho\left(S_m+\frac{\alpha}{\beta\sigma_m}\right)\approx\rho\,S_m\quad(\alpha\approx0).
+$$
+The high plan's Sharpe is the medium plan's Sharpe scaled by the correlation $\rho=\sqrt{R^2}$.
+A perfect leverage ray is $\rho=1$ ($S_h=S_m$); the menu bends by exactly the log-collinearity
+shortfall $1-\rho$ -- the same residual the crossing section flagged. (Equivalently, in
+simple-return space, constant leverage financed at $r_f$ -- Model B -- traces the
+constant-excess-Sharpe Capital Allocation Line; a ray is the signature of leverage in either
+reading.)
+
+**Why the curvature cannot be read off.** Two obstructions, both the study's theme. First,
+$S=\mu/\sigma$ requires a finite variance ($\nu>2$); the fitted $\nu$ has a confidence
+interval reaching $\nu\le2$, so the denominator may not exist, and where it does not the
+Sharpe is not a population quantity. Second, even granting a finite variance, the sampling
+variance of the estimator is (Lo 2002; Mertens 2002, under serial independence)
+$$
+\operatorname{Var}(\hat S)\approx\frac1T\left(1+\tfrac12 S^2-\gamma_3 S+\tfrac14(\gamma_4-3)S^2\right),
+$$
+with $\gamma_3$ the skewness and $\gamma_4$ the kurtosis -- and $\gamma_4$ is finite only for
+$\nu>4$. The fitted $\nu\approx3.4$–$4.3$ straddles $4$: the Sharpe is computable, but its own
+standard error need not be finite. The figures below use the i.i.d.-normal standard error
+$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound -- the sample
+skewness ($\approx-1$) and kurtosis ($\approx6$) inflate it, and the population kurtosis may
+be infinite.
 
 ```{r sharpe-ray-curve}
 .sharpe <- function(x) mean(x) / sd(x) * sqrt(12)   # annualised; rates ~ 0 over the sample
@@ -290,9 +332,42 @@ colnames(.tab) <- .plans
 knitr::kable(.tab, caption = "Annualised Sharpe ratio by plan and start date.")
 ```
 
-**Velliv behaves like a leverage ray.** Its medium and high plans have nearly the same Sharpe in every sub-period -- the gap stays within a few hundredths and all but vanishes in the most recent window -- the signature of one portfolio held at two levels of exposure. Choosing the Velliv risk level is therefore a pure risk-appetite decision: More risk buys proportionally more expected return, with no change in reward per unit of risk and nothing to "optimise".
+The full-sample decomposition $S_h=\rho(S_m+\alpha/(\beta\sigma_m))$ and the sampling error of
+each estimate:
 
-**PFA's two profiles curve -- but which one is better is not identifiable.** PFA's medium and high profiles do *not* share a Sharpe, so the menu bends rather than running straight; yet *which* end looks better flips with the start date -- the medium profile has the higher Sharpe measured from 2012, the high profile from 2019, with the two essentially tied in between. The differences sit well inside the sampling noise documented elsewhere in this report. The textbook response to a curved menu is to locate the higher-Sharpe blend; here you cannot reliably tell which blend that is, so it is not worth paying -- in added risk or in fees -- to chase one.
+```{r sharpe-leverage-numbers}
+.sh <- function(lo, hi) {
+  rm <- data_df[[lo]]; rh <- data_df[[hi]]; n <- length(rm)
+  Sm  <- mean(rm) / sd(rm) * sqrt(12)                    # annualised Sharpe, medium
+  Sh  <- mean(rh) / sd(rh) * sqrt(12)                    # annualised Sharpe, high
+  rho <- cor(rm, rh)
+  se  <- sqrt(12 * (1 + Sm^2 / 24) / n)                  # i.i.d.-normal SE of annualised Sharpe
+  data.frame(
+    "ρ (corr)"  = sprintf("%.3f", rho),
+    "S med"     = sprintf("%.2f", Sm),
+    "S high"    = sprintf("%.2f", Sh),
+    "ρ × S med" = sprintf("%.2f", rho * Sm),
+    "SE(S)"     = sprintf("%.2f", se),
+    "gap / SE"  = sprintf("%.2f", (Sm - Sh) / se),
+    check.names = FALSE)
+}
+.stab <- rbind(.sh("vmr", "vhr"), .sh("pmr", "phr"))
+rownames(.stab) <- c("Velliv", "PFA")
+knitr::kable(.stab, align = "r",
+  caption = "Within-provider Sharpe decomposition and sampling error (full sample, n = 142; annualised; SE i.i.d.-normal, a lower bound).")
+```
+
+**Reading.** For Velliv $\hat\rho=0.997$: the medium and high plans are a near-perfect leverage
+ray, $\hat S_h$ is reproduced by $\hat\rho(\hat S_m+\hat\alpha/(\hat\beta\hat\sigma_m))$ to the
+displayed precision, and the gap $\hat S_m-\hat S_h\approx0.03$ is about $0.1$ of one standard
+error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise -- the
+same $\beta$-scaling that gives Velliv's clean crossing rule. For PFA $\hat\rho=0.977$: the
+menu is measurably more bent (by about $2\%$), but the Sharpe gap is still only about $0.2$ of
+a standard error, and which profile leads flips with the start date (the by-window table
+above). So although PFA's menu does curve, no best-Sharpe blend is identifiable at this sample
+size -- and the standard error itself is only a lower bound, since the kurtosis it omits may
+be infinite. It is not worth paying, in added risk or in fees, to chase a tangency that the
+data cannot locate.
 
 
 
