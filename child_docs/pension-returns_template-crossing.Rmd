@@ -83,7 +83,7 @@ The clean rule replaces $\theta_t$ by $0$; its error $\theta_t$ has an intercept
 $-\alpha t/(\beta-1)$ and a residual part $-E_t/(\beta-1)$. With an intercept in the
 regression, least squares forces $\sum_{u=1}^{T}\hat\varepsilon_u=0$ over the full sample of
 length $T$, so $E_T=0$ and the residual part vanishes over the whole window; over a strict
-sub-window -- the COVID rebasing below is one -- the partial sum
+sub-window (the COVID rebasing below is one), the partial sum
 $E_t=\sum_{u\le t}\hat\varepsilon_u$ is generally nonzero and is the slack between the clean
 rule and the truth there.
 
@@ -95,14 +95,14 @@ $$
 \beta=\frac{\operatorname{Cov}(r_h,r_m)}{\operatorname{Var}(r_m)}.
 $$
 This is defined only when the second moments are finite, and stably estimable only under
-stronger conditions. The fitted $\nu\approx3$–$4$ with a confidence interval reaching
+stronger conditions. The fitted $\nu\approx3$ to $4$ with a confidence interval reaching
 $\nu\le2$, together with the max-sum plots, is precisely the evidence that finite variance
 cannot be assumed: the crossing rule is therefore not a geometric identity but a statement
-conditional on the existence of the second moments -- the same caveat that governs every tail
+conditional on the existence of the second moments, the same caveat that governs every tail
 estimate in this study.
 
 **Model B (constant leverage).** Read "the high plan is a $\beta$-leveraged version of the
-medium plan" literally -- a position rebalanced each period to hold constant exposure $\beta$.
+medium plan" literally, as a position rebalanced each period to hold constant exposure $\beta$.
 Ignoring financing this scales the simple returns, $s_{h,u}=\beta\,s_{m,u}$ (a per-period
 borrowing rate $c$ gives $s_{h,u}=\beta s_{m,u}-(\beta-1)c$; take $c=0$). Log returns are now
 not proportional, and the crossing condition is exact,
@@ -133,17 +133,17 @@ $k=\tfrac12$ for Model A (since
 $R_m<0\iff\sum_u\log(1+s_{m,u})<0\iff\bar s_m<\tfrac12\overline{s_m^2}$ to second order) and
 $k=\tfrac{\beta+1}{2}$ for Model B. With $\beta>1$ Model B crosses below over a wider set of
 paths; in drift terms the thresholds on the medium plan's growth are $g_m<0$ (A) versus
-$g_m<\tfrac12\beta\sigma^2$ (B). Model B's is strictly positive -- a constant-leverage high
-plan can sit below while the medium plan still grows -- because leverage multiplies the
+$g_m<\tfrac12\beta\sigma^2$ (B). Model B's is strictly positive (a constant-leverage high
+plan can sit below while the medium plan still grows), because leverage multiplies the
 variance by $\beta^2$ but the mean only by $\beta$. The two constructions differ in which
 variable carries the proportionality:
 $$
 g_h^{A}=E[\beta r_m]=\beta g_m,\qquad
 g_h^{B}=\beta\mu-\tfrac12\beta^2\sigma^2=\beta g_m-\underbrace{\tfrac12\beta(\beta-1)\sigma^2}_{\text{leverage drag}} .
 $$
-Model A imposes $r_h=\beta r_m$, i.e. $1+s_h=(1+s_m)^{\beta}$ -- a convex power rule,
-$s_h=\beta s_m+\tfrac12\beta(\beta-1)s_m^2+O(s^3)$, holding more than $\beta s_m$ in large
-moves -- and that extra convexity has expectation $\tfrac12\beta(\beta-1)\sigma^2$, exactly
+Model A imposes $r_h=\beta r_m$, i.e. $1+s_h=(1+s_m)^{\beta}$, a convex power rule
+($s_h=\beta s_m+\tfrac12\beta(\beta-1)s_m^2+O(s^3)$, holding more than $\beta s_m$ in large
+moves), and that extra convexity has expectation $\tfrac12\beta(\beta-1)\sigma^2$, exactly
 cancelling the drag, so $g_h^{A}=\beta g_m$ with no separate penalty.
 
 For the four plans, the high plan regressed on the medium plan (monthly log returns):
@@ -189,11 +189,11 @@ knitr::kable(.diag_tab, align = "r",
 $\hat\beta>1$ with $\hat\alpha\approx0$ for both, so Model A's clean rule is the operative one.
 The log- and simple-return $R^2$ differ by only about $0.001$ because returns are small, so
 Models A and B are observationally almost identical here; the distinction is conceptual. The
-constant-leverage threshold sits only $\tfrac12\beta\hat\sigma^2\approx0.3$–$0.4\%$ per year
-above zero, because $\beta$ is near $1$; for a genuine 2x–3x product it would dominate. The
-in-sample Kelly $\hat\beta^\star\approx11$–$18$ is not a tangency to chase: it is
-$\hat\mu/\hat\sigma^2$ measured on a crash-free window, the ratio of the two least-robust
-quantities -- the moment-existence caveat once more.
+constant-leverage threshold sits only $\tfrac12\beta\hat\sigma^2\approx0.3\%$ to $0.4\%$ per
+year above zero, because $\beta$ is near $1$; for a genuine 2x or 3x product it would
+dominate. The in-sample Kelly $\hat\beta^\star\approx11$ to $18$ is not a tangency to chase:
+it is $\hat\mu/\hat\sigma^2$ measured on a crash-free window, the ratio of the two
+least-robust quantities: the moment-existence caveat once more.
   
 June 2012 was a low point just before a long bull market, so the safer plans never
 revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
@@ -286,8 +286,8 @@ so a set of plans shares one Sharpe if and only if the points lie on a single ra
 origin.
 
 **A ray is the signature of leverage.** Under Model A with a clean fit ($\alpha=0$,
-$\varepsilon_u\equiv0$), scaling the log returns by $\beta$ scales both moments by $\beta$ --
-$\mu_h=\beta\mu_m$, $\sigma_h=\beta\sigma_m$ -- so $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: the
+$\varepsilon_u\equiv0$), scaling the log returns by $\beta$ scales both moments by $\beta$ (so
+$\mu_h=\beta\mu_m$ and $\sigma_h=\beta\sigma_m$), giving $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: the
 two plans share a Sharpe and lie exactly on a ray. This is the same log-scaling that produced
 the clean crossing rule. With a real fit ($\alpha\approx0$, $R^2<1$), let
 $\rho=\operatorname{Cov}(r_h,r_m)/(\sigma_h\sigma_m)$ be the correlation; since
@@ -297,8 +297,8 @@ S_h=\frac{\alpha+\beta\mu_m}{\sigma_h}=\rho\left(S_m+\frac{\alpha}{\beta\sigma_m
 $$
 The high plan's Sharpe is the medium plan's Sharpe scaled by the correlation $\rho=\sqrt{R^2}$.
 A perfect leverage ray is $\rho=1$ ($S_h=S_m$); the menu bends by exactly the log-collinearity
-shortfall $1-\rho$ -- the same residual the crossing section flagged. (Equivalently, in
-simple-return space, constant leverage financed at $r_f$ -- Model B -- traces the
+shortfall $1-\rho$, the same residual the crossing section flagged. (Equivalently, in
+simple-return space, constant leverage financed at $r_f$, i.e. Model B, traces the
 constant-excess-Sharpe Capital Allocation Line; a ray is the signature of leverage in either
 reading.)
 
@@ -310,10 +310,10 @@ variance of the estimator is (Lo 2002; Mertens 2002, under serial independence)
 $$
 \operatorname{Var}(\hat S)\approx\frac1T\left(1+\tfrac12 S^2-\gamma_3 S+\tfrac14(\gamma_4-3)S^2\right),
 $$
-with $\gamma_3$ the skewness and $\gamma_4$ the kurtosis -- and $\gamma_4$ is finite only for
-$\nu>4$. The fitted $\nu\approx3.4$–$4.3$ straddles $4$: the Sharpe is computable, but its own
+with $\gamma_3$ the skewness and $\gamma_4$ the kurtosis, which is finite only for
+$\nu>4$. The fitted $\nu\approx3.4$ to $4.3$ straddles $4$: the Sharpe is computable, but its own
 standard error need not be finite. The figures below use the i.i.d.-normal standard error
-$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound -- the sample
+$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound: the sample
 skewness ($\approx-1$) and kurtosis ($\approx6$) inflate it, and the population kurtosis may
 be infinite.
 
@@ -360,13 +360,13 @@ knitr::kable(.stab, align = "r",
 **Reading.** For Velliv $\hat\rho=0.997$: the medium and high plans are a near-perfect leverage
 ray, $\hat S_h$ is reproduced by $\hat\rho(\hat S_m+\hat\alpha/(\hat\beta\hat\sigma_m))$ to the
 displayed precision, and the gap $\hat S_m-\hat S_h\approx0.03$ is about $0.1$ of one standard
-error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise -- the
+error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise: the
 same $\beta$-scaling that gives Velliv's clean crossing rule. For PFA $\hat\rho=0.977$: the
 menu is measurably more bent (by about $2\%$), but the Sharpe gap is still only about $0.2$ of
 a standard error, and which profile leads flips with the start date (the by-window table
 above). So although PFA's menu does curve, no best-Sharpe blend is identifiable at this sample
-size -- and the standard error itself is only a lower bound, since the kurtosis it omits may
-be infinite. It is not worth paying, in added risk or in fees, to chase a tangency that the
+size, and the standard error itself is only a lower bound (the kurtosis it omits may
+be infinite). It is not worth paying, in added risk or in fees, to chase a tangency that the
 data cannot locate.
 
 
