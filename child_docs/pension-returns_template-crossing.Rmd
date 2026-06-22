@@ -45,6 +45,34 @@ An equity weight of only about two-thirds already yields a ~0.986 correlation wi
   
 The implication for the choice is the point of this section. High correlation means the plans rise and fall together, so over a benign, rising sample the higher-risk plan simply ends up higher and the choice looks free. But correlation describes co-movement, not magnitude and not the tails. The lower-risk plan holds a real bond sleeve and a distinct, lower-volatility fund, and -- as the crossings above show -- that cushion is exactly what bites in a drawdown. The plans look alike because both are mostly equities; they are not alike when equities fall.  
   
+### One common factor
+
+The correlations point to a single common factor. A principal component analysis of the four
+plans confirms it.
+
+```{r pca-plans}
+.pca <- prcomp(data_df[, c("vmr", "vhr", "pmr", "phr")], center = TRUE, scale. = TRUE)
+.ve  <- .pca$sdev^2 / sum(.pca$sdev^2)
+.pca_tab <- data.frame(
+  "variance share" = sprintf("%.1f%%", 100 * .ve),
+  "cumulative"     = sprintf("%.1f%%", 100 * cumsum(.ve)),
+  check.names = FALSE,
+  row.names = paste0("PC", seq_along(.ve)))
+knitr::kable(.pca_tab, align = "r",
+  caption = "Principal components of the four plans' monthly log returns (correlation scaling).")
+```
+
+The first component explains 97.7% of the variance and the first two explain 99.4%. The first
+component loads almost equally on all four plans, near 0.50 each, so it is a common market
+factor. The second component, under two percent, is a Velliv-versus-PFA contrast. To a close
+approximation the four plans are therefore one factor seen at four exposures, which is the
+structure the leverage reading below assumes. The within-provider relation is the special
+case of this: the high plan is a scaled version of the medium plan, as the regression above
+shows. PFA's two profiles are in addition fixed blends of the same two building blocks, with
+the high-risk fund equal to profile D and the low-risk fund recovered as $2B-D$. That last
+decomposition rests on PFA's stated profile weights, not on the data, which only confirm that
+the recovered low-risk fund is coherent.
+
 ### The crossing condition
 
 For each plan $X\in\{m,h\}$ (medium, high) and period $u=1,2,\dots$ from the chosen start
@@ -270,6 +298,201 @@ ggplot(
   )
 ```
 
+
+## When the high plan falls behind
+
+Absolute wealth paths are hard to compare near the terminal date. There they converge. The
+lead of the high plan over the medium plan is easier to read. It is the high index minus the
+medium index, with both rebased to 100 at the entry. It crosses zero exactly when the high
+plan falls behind.
+
+Take first a fixed terminal and a varying entry. Invest 100 at every month in the sample. Hold
+each entry to the last month in the data. The terminal wealth of an entry at month $i$ is
+$W_i=100\,e^{R_i}$ with $R_i=\sum_{u=i}^{t} r_{X_u}$ and $t$ the last month. The lead is the
+high terminal wealth minus the medium terminal wealth, read across entry months.
+
+```{r entry-month-lead, fig.width=10}
+## Lead of the high plan over the medium plan by entry month, terminal fixed at the last month.
+## Invest 100 at each month and hold to the terminal month t. R_i = sum_{u=i}^t r_u, so the
+## terminal wealth of 100 entered at month i is W_i = 100 e^{R_i}. The lead is the high
+## terminal wealth minus the medium terminal wealth, read across entry months.
+.suffix <- function(lr) rev(cumsum(rev(lr)))       # R_i = sum_{u=i}^t lr_u
+.tw     <- function(lr) 100 * exp(.suffix(lr))     # terminal wealth of 100 entered at month i
+.entry_lead <- data.frame(
+  date   = monthly_logreturns_df$date,
+  Velliv = .tw(monthly_logreturns_df$vhr) - .tw(monthly_logreturns_df$vmr),
+  PFA    = .tw(monthly_logreturns_df$phr) - .tw(monthly_logreturns_df$pmr),
+  check.names = FALSE
+) %>% gather(key = "provider", value = "lead", -date)
+
+ggplot(.entry_lead, aes(x = date, y = lead, color = provider)) +
+  geom_line(linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
+  labs(
+    title = "Lead of the high plan over the medium plan by entry month, held to the terminal month",
+    subtitle = "High terminal wealth minus medium terminal wealth, 100 invested at each entry; above zero means the high plan is ahead",
+    x = "entry month", y = "high minus medium (index points)"
+  )
+```
+
+The lead never crosses zero. It is largest for the earliest entries. It shrinks toward zero as
+the entry nears the terminal month. The reason is the terminal date. Our sample ends near its
+high. Every entry has therefore gained by the end. So the high plan leads at every entry.
+Running through all entry months shows no crossing.
+
+Now reverse the exercise. Fix the entry at the first month and vary the terminal. Invest 100 at
+the first month. Read the lead at each terminal month over the entire period.
+
+```{r high-plan-lead, fig.width=10}
+## Lead of the high plan over the medium plan by terminal month, entry fixed at the first month.
+## Mirror of the entry-month plot above: invest 100 at the first month and read the value at
+## each terminal month. S_tau = sum_{u=1}^tau r_u, so the value at terminal tau is 100 e^{S_tau}.
+## The lead is the high value minus the medium value, read across terminal months.
+.prefix <- function(lr) cumsum(lr)                  # S_tau = sum_{u=1}^tau lr_u
+.idx    <- function(lr) 100 * exp(.prefix(lr))      # value of 100 invested at the first month
+.lead <- data.frame(
+  date   = monthly_logreturns_df$date,
+  Velliv = .idx(monthly_logreturns_df$vhr) - .idx(monthly_logreturns_df$vmr),
+  PFA    = .idx(monthly_logreturns_df$phr) - .idx(monthly_logreturns_df$pmr),
+  check.names = FALSE
+) %>% gather(key = "provider", value = "lead", -date)
+
+ggplot(.lead, aes(x = date, y = lead, color = provider)) +
+  geom_line(linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
+  labs(
+    title = "Lead of the high plan over the medium plan by terminal month, entered at the first month",
+    subtitle = "High value minus medium value, 100 invested at the first month; above zero means the high plan is ahead",
+    x = "terminal month", y = "high minus medium (index points)"
+  )
+```
+
+The lead never turns negative. It builds over the bull market. It dips through the March-2020
+trough but stays above zero. The two plots are mirror images. The full-sample lead sits at the
+left edge of the first plot and at the right edge of this one. From the 2012 low looking
+forward, and from the 2024 high looking back, the high plan stays ahead.
+
+Neither full-sample view shows a below-zero lead. That does not rule one out. Each view fixes
+one endpoint and moves the other. To be certain the lead never turns negative we would have to
+run every entry against every terminal, every sub-window of the sample. We do not do that. A
+below-zero lead appears whenever the entry sits at an interior peak. The plot below is one
+example. The entry is the eve of the COVID crash, end-February 2020, a market peak.
+
+```{r covid-entry-lead, fig.width=10}
+## Example of a below-zero lead: a fixed entry at an interior peak, the eve of the COVID crash.
+## Invest 100 at the entry and follow the lead forward over the holding period. Both indices
+## rebased to 100 at the entry; the lead dips below zero while the medium plan is below its entry.
+.entry <- as.Date("2020-02-01")
+.cs <- monthly_logreturns_df %>% filter(date >= .entry)
+.idx <- function(lr) 100 * exp(cumsum(c(0, lr)))   # rebased to 100 at the entry month
+.lead <- data.frame(
+  date   = c(.entry, .cs$date),
+  Velliv = .idx(.cs$vhr) - .idx(.cs$vmr),
+  PFA    = .idx(.cs$phr) - .idx(.cs$pmr),
+  check.names = FALSE
+) %>% gather(key = "provider", value = "lead", -date)
+
+ggplot(.lead, aes(x = date, y = lead, color = provider)) +
+  geom_line(linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  scale_x_date(breaks = date_breaks("6 months"), labels = date_format("%b %Y")) +
+  labs(
+    title = "Lead of the high plan over the medium plan, entry end-Feb 2020",
+    subtitle = "High index minus medium index, both rebased to 100 at entry; below zero means the high plan is behind",
+    x = "date", y = "high minus medium (index points)"
+  )
+```
+
+The lead turns negative through the March-2020 trough. It stays negative for about nine months
+before recovering. This is the realised crossing, now visible as the lead dipping below zero.
+The condition is the one derived above. The high plan trails the medium plan exactly while the
+medium plan is below its entry value.
+
+**A counterfactual.** The non-crossing in the two full-sample views is a feature of this
+sample. The sample is a bull market that ends near its high. To see how much rests on that,
+reverse every monthly return. Replace each $r_{X_u}$ with $-r_{X_u}$. The counterfactual
+terminal wealth is $W'_i=100\,e^{R'_i}$ with $R'_i=\sum_{u=i}^{t} -r_{X_u}$. This is the same
+world with the opposite luck. A rising market becomes a falling one. The leverage relation
+survives the reversal. The reversed high plan is still a $\beta$-scaled version of the reversed
+medium plan, because negating both sides of $h_u=\alpha+\beta m_u$ leaves the slope. Only the
+sign of the cumulative return flips.
+
+```{r cf-entry-month-lead, fig.width=10}
+## Counterfactual plot A: every monthly return reversed. R'_i = sum_{u=i}^t (-r_u), so the
+## terminal wealth of 100 entered at month i is W'_i = 100 e^{R'_i}. Lead is high minus medium.
+.suffix <- function(lr) rev(cumsum(rev(lr)))       # sum_{u=i}^t lr_u
+.tw     <- function(lr) 100 * exp(.suffix(lr))     # terminal wealth of 100 entered at month i
+.cf_entry_lead <- data.frame(
+  date   = monthly_logreturns_df$date,
+  Velliv = .tw(-monthly_logreturns_df$vhr) - .tw(-monthly_logreturns_df$vmr),
+  PFA    = .tw(-monthly_logreturns_df$phr) - .tw(-monthly_logreturns_df$pmr),
+  check.names = FALSE
+) %>% gather(key = "provider", value = "lead", -date)
+
+ggplot(.cf_entry_lead, aes(x = date, y = lead, color = provider)) +
+  geom_line(linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
+  labs(
+    title = "Counterfactual: lead by entry month with every monthly return reversed",
+    subtitle = "Reversed-return terminal wealth, high minus medium; below zero means the high plan is behind",
+    x = "entry month", y = "high minus medium (index points)"
+  )
+```
+
+Now the lead is below zero everywhere. The high plan falls behind at every entry. The mirror
+view by terminal month agrees.
+
+```{r cf-terminal-month-lead, fig.width=10}
+## Counterfactual plot B: every monthly return reversed. S'_tau = sum_{u=1}^tau (-r_u), so the
+## value of 100 invested at the first month is 100 e^{S'_tau}. Lead is high minus medium.
+.prefix <- function(lr) cumsum(lr)                 # sum_{u=1}^tau lr_u
+.idx    <- function(lr) 100 * exp(.prefix(lr))     # value of 100 invested at the first month
+.cf_term_lead <- data.frame(
+  date   = monthly_logreturns_df$date,
+  Velliv = .idx(-monthly_logreturns_df$vhr) - .idx(-monthly_logreturns_df$vmr),
+  PFA    = .idx(-monthly_logreturns_df$phr) - .idx(-monthly_logreturns_df$pmr),
+  check.names = FALSE
+) %>% gather(key = "provider", value = "lead", -date)
+
+ggplot(.cf_term_lead, aes(x = date, y = lead, color = provider)) +
+  geom_line(linewidth = 0.6) +
+  geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
+  scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
+  labs(
+    title = "Counterfactual: lead by terminal month with every monthly return reversed",
+    subtitle = "Reversed-return value, high minus medium, 100 invested at the first month; below zero means the high plan is behind",
+    x = "terminal month", y = "high minus medium (index points)"
+  )
+```
+
+The reversed market ends near a low. Every cumulative return is negative. The high plan
+amplifies losses exactly as it amplifies gains. So it sits below the medium plan throughout.
+The realised non-crossing was the luck of a rising sample. It was never a property of the
+plans.
+
+## The downward bound
+
+A pension account cannot fall below zero. In return terms the simple return satisfies
+$s\ge-1$: at worst a period wipes out the capital, but it cannot take more. This bound sits
+oddly beside a left-skewed and unbounded distribution of log returns. The two are reconciled
+by the way wealth compounds. Wealth is $W=100\,e^{R}=100\prod_u(1+s_u)$, and $e^{R}>0$ for
+every real $R$, so exponentiating a log-return model can never produce a negative value. The
+simulated paths approach zero but never breach it. The wealth distribution is therefore
+right-skewed and bounded below at zero, even though the log-return distribution that generates
+it is left-skewed and unbounded. The heavy left tail in log space becomes a cluster of paths
+near zero, not a set of negative balances.
+
+This also settles which leverage reading applies. Under log-return scaling,
+$1+s_h=(1+s_m)^{\beta}$, so as the medium plan approaches a total loss the high plan does too,
+and neither breaches the bound. Under constant financial leverage, $s_h=\beta s_m$, a loss in
+the medium plan beyond $1/\beta$ would drive the high plan below $-1$ and wipe it out. The
+plans never do this, because they are long-only blends: the weights sum to one and no money is
+borrowed, so the value is a weighted sum of non-negative fund values and stays non-negative.
+The leverage here is higher exposure to the volatile fund, not borrowed money, which is why
+the data follow the log-scaling relation rather than constant financial leverage.
 
 ## The Sharpe ratio: leverage ray or curve?
 
