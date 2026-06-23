@@ -9,7 +9,8 @@ output:
   pdf_document:
     toc: true
     toc_depth: 3
-date: "17:34 18 June 2026"
+    latex_engine: xelatex
+date: "23:26 22 June 2026"
 ---
 
 
@@ -32,7 +33,7 @@ not to emit a single "best" plan. Returns are monthly, 172 months
 (2010-01 to 2024-04), PFA at the 30-year horizon; rates over the period are
 near zero, so "Sharpe" is return divided by volatility.
 
-# 1. Within a provider: is a higher-risk plan just more leverage?
+# 1. Within a provider: Is a higher-risk plan just more leverage?
 
 A higher-risk plan is *pure leverage* of a lower-risk one when it has the same
 reward-to-risk (Sharpe) and the same distributional shape, only scaled. If so, choosing a
@@ -64,7 +65,7 @@ fees -- to chase one.
 
 ![](pension-returns_investor_files/figure-html/mean-var-plot-1.png)<!-- -->
 
-# 2. Across providers: is there diversification?
+# 2. Across providers: Is there diversification?
 
 
 Table: Correlation matrix of monthly returns across all plans.
@@ -80,12 +81,11 @@ Table: Correlation matrix of monthly returns across all plans.
 |PFA high (D) |      0.945|      0.946|       0.939|       0.837| 0.967| 0.995|        1.000|
 
 Every pair is correlated above 0.83, because every plan is equity-dominated (see the
-"Path crossing" section of the returns reports: even a "low-risk plan" is mostly equities).
-The least-correlated plan is **PFA's low-risk profile (A)** -- the most bond-heavy, and so
-the natural diversifier.
+"Path crossing" section of the returns reports: Even a "low-risk plan" is mostly equities).
+The least-correlated plans are **PFA's low-risk profile (A)** and **PFA's high-risk profile (D)**.
 
 
-Table: 50/50 cross-provider mixes: correlation and volatility reduction vs the weighted-average volatility.
+Table: 50/50 cross-provider mixes: Correlation and volatility reduction vs the weighted-average volatility.
 
 |                           |correlation |vol reduction |
 |:--------------------------|:-----------|:-------------|
@@ -97,7 +97,7 @@ Table: 50/50 cross-provider mixes: correlation and volatility reduction vs the w
 The largest risk reduction among simple cross-provider mixes is **PFA-low + Velliv-high** --
 consistent with the intuition that pairing the most bond-heavy plan of one provider with the
 most equity-heavy of the other combines the most-different compositions. But the benefit is
-*small*: a few percent of volatility, not a step change. Diversifying across providers does
+*small*: A few percent of volatility, not a step change. Diversifying across providers does
 something, just not much, in mean-variance terms.
 
 ## The diversification that *does* work is within a provider
@@ -113,16 +113,16 @@ Table: Volatility reduction from a 50/50 blend: within a provider (across asset 
 
 |blend                                                      | correlation|vol. reduction |
 |:----------------------------------------------------------|-----------:|:--------------|
-|Within PFA: bond fund + equity fund (a mid-risk plan)      |        0.36|14%            |
+|Within PFA: Mid-risk plan                                  |        0.36|14%            |
 |Across providers: Velliv-high + PFA-high (same risk level) |        0.94|2%             |
 
 The within-provider blend correlates ~0.4 and cuts volatility several times more than the
 cross-provider split. A single provider's mid-risk plan is therefore already *more*
 diversified than two equity-heavy plans held across providers -- at one set of fees, not two.
-The upshot, reinforcing Sections 1 and 4: **diversify by lowering your risk level within one
+The upshot, reinforcing Sections 1 and 4: **Diversify by lowering your risk level within one
 provider, not by adding a second provider.**
 
-# 3. Diversification vs. cost: which fees actually matter
+# 3. Diversification vs. cost: Which fees actually matter
 
 Fees split into two kinds, and only one bears on the *split* decision:
 
@@ -139,7 +139,7 @@ and, separately, on any *difference* in proportional rates between providers.
 
 ## Is the diversification worth a second flat fee?
 
-Express the diversification benefit the way it actually accrues: as a boost to the
+Express the diversification benefit the way it actually accrues: As a boost to the
 **compound** growth rate -- the variance drain it removes, `Δg = (σ²_single − σ²_split)/2`.
 
 
@@ -154,10 +154,17 @@ Table: Balance above which the cross-provider diversification covers a second pr
 
 | flat fee per year (kr)|break-even balance (kr) |
 |----------------------:|:-----------------------|
-|                    200|1,496,000               |
 |                    500|3,739,000               |
+|                    600|4,487,000               |
+|                    700|5,235,000               |
+|                    800|5,983,000               |
+|                    900|6,731,000               |
 |                   1000|7,479,000               |
-|                   2000|14,958,000              |
+|                   1100|8,227,000               |
+|                   1200|8,975,000               |
+|                   1300|9,722,000               |
+|                   1400|10,470,000              |
+|                   1500|11,218,000              |
 
 Because the benefit is only about a basis point a year, the break-even balances run into the
 millions -- for realistic flat fees the diversification never covers them within a normal
@@ -176,11 +183,19 @@ $$\Delta p \;\ge\; \frac{F_2}{W_2}.$$
 
 Table: Proportional-rate discount a second provider must offer to justify its flat fee, by amount placed there (W2).
 
-|              |kr 100,000 |kr 300,000 |kr 1,000,000 |kr 3,000,000 |
-|:-------------|:----------|:----------|:------------|:------------|
-|F2 = kr 500   |0.50%      |0.17%      |0.05%        |0.02%        |
-|F2 = kr 1,000 |1.00%      |0.33%      |0.10%        |0.03%        |
-|F2 = kr 2,000 |2.00%      |0.67%      |0.20%        |0.07%        |
+|              |kr 500,000 |kr 600,000 |kr 700,000 |kr 800,000 |kr 900,000 |
+|:-------------|:----------|:----------|:----------|:----------|:----------|
+|F2 = kr 500   |0.10%      |0.08%      |0.07%      |0.06%      |0.06%      |
+|F2 = kr 600   |0.12%      |0.10%      |0.09%      |0.07%      |0.07%      |
+|F2 = kr 700   |0.14%      |0.12%      |0.10%      |0.09%      |0.08%      |
+|F2 = kr 800   |0.16%      |0.13%      |0.11%      |0.10%      |0.09%      |
+|F2 = kr 900   |0.18%      |0.15%      |0.13%      |0.11%      |0.10%      |
+|F2 = kr 1,000 |0.20%      |0.17%      |0.14%      |0.12%      |0.11%      |
+|F2 = kr 1,100 |0.22%      |0.18%      |0.16%      |0.14%      |0.12%      |
+|F2 = kr 1,200 |0.24%      |0.20%      |0.17%      |0.15%      |0.13%      |
+|F2 = kr 1,300 |0.26%      |0.22%      |0.19%      |0.16%      |0.14%      |
+|F2 = kr 1,400 |0.28%      |0.23%      |0.20%      |0.17%      |0.16%      |
+|F2 = kr 1,500 |0.30%      |0.25%      |0.21%      |0.19%      |0.17%      |
 
 A second provider charging kr 1,000/year that receives kr 100,000 of your savings must be a
 full **1 percentage point/year** cheaper just to break even on fees; at kr 1,000,000 placed
@@ -189,7 +204,7 @@ left-hand side, but at ~1 bp it barely moves the bar. (If a second provider is *
 cheaper on both fee types, the question is not whether to *add* it but whether to *switch*
 entirely.)
 
-## The benefit the variance drain misses: hedging an unreadable provider bet
+## The benefit the variance drain misses: Hedging an unreadable provider bet
 
 The variance drain above compares the mix to the *average* single plan, treating the two
 providers' expected returns as known and equal. But the real risk in the provider choice is
@@ -231,13 +246,13 @@ Table: Certainty-equivalent value (kr, on kr 1,000,000) of holding both provider
 |20 yr |7,550 |15,099 |30,199 |
 
 So this is a **genuine close call, not a slam dunk.** The certainty-equivalent value of hedging
-the provider bet is *comparable to* the flat fee: it falls short for a moderately risk-averse
+the provider bet is *comparable to* the flat fee: It falls short for a moderately risk-averse
 saver (`γ ≈ 1–2`) and clears the fee only for a more risk-averse one (`γ ≳ 2–4`) over a long
 horizon. The large *realised* gap (~0.47 m over 2012--2024) is hindsight, not an expected gain.
 Two correctives follow. The variance-drain view earlier in this section was *too dismissive* of
 a second provider -- it priced ~1 bp/yr and ignored the selection bet entirely. And "worth it
 by a long shot" is *too generous* -- the ex-ante, risk-adjusted value is modest. The defensible
-reading: for a sufficiently risk-averse saver with a long horizon, a second provider is mild
+reading: For a sufficiently risk-averse saver with a long horizon, a second provider is mild
 insurance against an unreadable bet, worth roughly its flat fee; for everyone else it is close
 to a wash. Throughout, the *risk-level* choice (Sections 1 and 4) remains the larger lever --
 and all of this assumes you do **not** chase the apparent drift edge, which Section 1 says you
@@ -284,7 +299,7 @@ bulk co-movement already caps the diversification, so the tail dependence we *ca
 estimate turns out not to change the answer. Provider-splitting at the same risk level is a
 weak crash hedge -- two equity-dominated providers mostly fall together.
 
-The far larger lever for crash protection is the **risk level itself**: the bond sleeve of a
+The far larger lever for crash protection is the **risk level itself**: The bond sleeve of a
 lower-risk plan cuts the crash probability much more than a second provider does (the flip
 side of the "Path crossing" result in the returns reports -- the lower-risk plan genuinely
 cushions a drawdown, at the cost of expected return). The one diversification a *returns*
@@ -294,11 +309,11 @@ outside this data.
 
 # 5. Using the tool
 
-- **Risk level, Velliv:** a pure risk-appetite dial (one leverage ray). Pick by drawdown
+- **Risk level, Velliv:** A pure risk-appetite dial (one leverage ray). Pick by drawdown
   tolerance; there is no reward-per-risk to optimise.
-- **Risk level, PFA:** the menu curves, but the best-Sharpe blend is not identifiable and
+- **Risk level, PFA:** The menu curves, but the best-Sharpe blend is not identifiable and
   flips across periods. Default to risk appetite; do not pay to chase a tangency.
-- **One provider or both:** a small mean-variance diversification (best via PFA-low +
+- **One provider or both:** A small mean-variance diversification (best via PFA-low +
   Velliv-high), and the joint simulation shows it stays small in the tail too -- two
   equity-heavy providers mostly crash together, so a same-risk split is a weak crash hedge.
   The real crash lever is the *risk level*, not the provider. The strongest case for two

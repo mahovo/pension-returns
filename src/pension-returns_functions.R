@@ -1008,6 +1008,34 @@ mix_of_logreturns <- function(logreturns1, logreturns2) {
   logreturns_of_prices(avg_prices)
 }
 
+## ---------------------------------------------------------------------------
+## Shared helpers used by both the diagnostic reports and the investor tool, so
+## the same definitions are applied to the same data (see pension-returns_investor).
+## ---------------------------------------------------------------------------
+
+## Annualisation of monthly log returns.
+ann_mean <- function(x) mean(x) * 12
+ann_vol  <- function(x) sd(x) * sqrt(12)
+## Annualised Sharpe. Rates over the sample are ~0, so excess return ~ return.
+ann_sharpe <- function(x) mean(x) / sd(x) * sqrt(12)
+
+## Simple (gross - 1) returns from log returns.
+simple_returns <- function(logreturns) exp(logreturns) - 1
+
+## Diversification ratio of a 50/50 blend: weighted-average volatility over the
+## blend's volatility. A value above 1 means the blend reduces volatility.
+divr <- function(a, b) (0.5 * sd(a) + 0.5 * sd(b)) / sd(0.5 * a + 0.5 * b)
+
+## Parameter-only MLE of the Fernandez-Steel skewed t (mean, sd, nu, xi). Uses the
+## same start and method as fit_distribution()'s "sstd" branch, so estimates match
+## the reports' fits. Use fit_distribution() when the QQ/PPCC/AIC outputs are needed
+## and sstd_se() when standard errors are needed.
+fit_sstd_params <- function(x) {
+  nll <- function(p) sum(-dsstd(x, mean = p[1], sd = p[2], nu = p[3], xi = p[4], log = TRUE))
+  setNames(optim(c(mean(x), sd(x), 3, 1), nll, method = "BFGS")$par,
+           c("mean", "sd", "nu", "xi"))
+}
+
 ## Mean Absolute Deviation
 f_mad <- function(x) {
   sum(abs(x - mean(x))) / length(x)
