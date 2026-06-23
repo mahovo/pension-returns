@@ -10,7 +10,9 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "23:26 22 June 2026"
+date: "09:24 23 June 2026"
+params:
+  start_date: null   ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
 ---
 
 
@@ -245,18 +247,14 @@ Table: Certainty-equivalent value (kr, on kr 1,000,000) of holding both provider
 |10 yr |2,675 |5,351  |10,702 |
 |20 yr |7,550 |15,099 |30,199 |
 
-So this is a **genuine close call, not a slam dunk.** The certainty-equivalent value of hedging
-the provider bet is *comparable to* the flat fee: It falls short for a moderately risk-averse
-saver (`γ ≈ 1–2`) and clears the fee only for a more risk-averse one (`γ ≳ 2–4`) over a long
-horizon. The large *realised* gap (~0.47 m over 2012--2024) is hindsight, not an expected gain.
-Two correctives follow. The variance-drain view earlier in this section was *too dismissive* of
-a second provider -- it priced ~1 bp/yr and ignored the selection bet entirely. And "worth it
-by a long shot" is *too generous* -- the ex-ante, risk-adjusted value is modest. The defensible
-reading: For a sufficiently risk-averse saver with a long horizon, a second provider is mild
-insurance against an unreadable bet, worth roughly its flat fee; for everyone else it is close
-to a wash. Throughout, the *risk-level* choice (Sections 1 and 4) remains the larger lever --
-and all of this assumes you do **not** chase the apparent drift edge, which Section 1 says you
-cannot trust.
+This is a genuine close call rather than a slam dunk. The certainty-equivalent value of hedging
+the provider bet is comparable to the flat fee. It falls short for a moderately risk-averse
+saver (`γ ≈ 1–2`) and clears it only for a more risk-averse one (`γ ≳ 2–4`) over a long horizon.
+The large realised gap is hindsight, not an expected gain. The defensible reading is that for a
+sufficiently risk-averse saver with a long horizon a second provider is mild insurance against
+an unreadable bet, worth roughly its flat fee, while for everyone else it is close to a wash.
+The risk-level choice of Sections 1 and 4 remains the larger lever, and all of this assumes the
+saver does not chase the apparent drift edge that Section 1 says cannot be trusted.
 
 *To use this with real numbers, set `F2` (each provider's flat fee), the two proportional
 rates, and your balance / contribution path; the break-evens above then read off directly.*
@@ -337,17 +335,6 @@ will continue") reveals itself only with time. This tool is therefore also meant
   a ~0.47 m spread (PFA compounding ~1.4 pp/year faster) that no one could have called in
   advance. A monitor shows such a gap opening and forces the question of whether it is signal
   or luck.
-- **Composition or fee changes** -- e.g. PFA's 2025 move from four profiles (A--D) to three
+- **Composition or fee changes** -- e.g. PFA's 2024 move from four profiles (A--D) to three
   (Low/Medium/High), or any change in the flat fees that drive the Section 3 arithmetic.
-
-That provider spread also exposes a gap in Section 3. The ~0.47 m of dispersion between
-providers -- against ~8 k of extra flat fees -- is **not** the within-period variance drain
-that Section 3 prices (which treats the providers' expected returns as known and equal). It
-is dispersion in *which provider's drift compounds higher* -- an expected-return difference
-(~1.4 pp/year realised) that the data cannot pin down, since the Sharpe ordering in Section 1
-flips across windows. Holding both hedges that estimation uncertainty for the price of a flat
-fee. Priced properly -- through the posterior uncertainty in the *relative* expected return,
-not the variance drain -- the case for two providers is materially stronger than Section 3
-currently shows. This is the natural next extension, and the reason the tool must run as a
-monitor rather than a single verdict.
 ```
