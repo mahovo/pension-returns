@@ -10,7 +10,7 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "10:03 23 June 2026"
+date: "12:43 23 June 2026"
 params:
   start_date: null   ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
 ---
@@ -142,8 +142,10 @@ and, separately, on any *difference* in proportional rates between providers.
 
 ## Is the diversification worth a second flat fee?
 
-Express the diversification benefit the way it actually accrues: As a boost to the
-**compound** growth rate -- the variance drain it removes, `Δg = (σ²_single − σ²_split)/2`.
+Express the diversification benefit the way it actually accrues, as a boost to the **compound**
+growth rate: the variance drain it removes, `Δg = (σ²_single − σ²_split)/2`. The monthly report
+derives this variance drain, and the certainty equivalent used later in this section, from the
+return moments.
 
 
 
@@ -235,10 +237,12 @@ Table: Dispersion between the two providers' cumulative outcomes by horizon, vs 
 |20 yr   |28%                 |58%                   |278,592             |14,000                |
 |30 yr   |41%                 |68%                   |407,802             |21,000                |
 
-In kroner the gap dwarfs the flat fee. But the gap is *symmetric* -- you might land on either
-side -- so what justifies hedging is its **risk-adjusted** value, not its raw size. For a saver
-with constant relative risk aversion `γ`, the certainty-equivalent value of holding both
-(agnostic about which is better) is about `γ · σ²gap / 8`:
+In kroner the gap dwarfs the flat fee. But the gap is symmetric, since you might land on either
+side, so what justifies hedging is its **risk-adjusted** value, not its raw size. For a saver with
+constant relative risk aversion `γ`, the certainty-equivalent value of holding both, agnostic
+about which is better, is about `γ · σ²gap / 8`, the result derived in the monthly report. Here
+`σ²gap` is the variance of the cumulative provider gap, combining path noise with the estimation
+uncertainty in the relative drift:
 
 
 Table: Certainty-equivalent value (kr, on kr 1,000,000) of holding both providers instead of one, by relative risk aversion (RRA, columns). Compare with the flat fee, kr 700/yr: kr 7,000 over 10 yr, kr 14,000 over 20 yr.
@@ -259,6 +263,31 @@ saver does not chase the apparent drift edge that Section 1 says cannot be trust
 
 *To use this with real numbers, set `F2` (each provider's flat fee), the two proportional
 rates, and your balance / contribution path; the break-evens above then read off directly.*
+
+## A second lens: the split as insurance
+
+The certainty equivalent prices the body of the distribution. A complementary view, free of any
+distributional assumption, treats the split as insurance. A 50/50 buy-and-hold split ends at the
+average of the two single outcomes, so its terminal wealth always lands between the worse and the
+better provider. Splitting removes the risk of committing to the worse provider, and pays for it
+by giving up the better provider's upside.
+
+
+
+Over the sample, 1 kr grew to about 3.7 kr in PFA-high and about
+3.2 kr in Velliv-high. A 50/50 buy-and-hold split would have ended at about
+3.5 kr, between the two. The premium is symmetric, and you cannot know in
+advance which provider will win: the realised drift gap is not distinguishable from zero, as shown
+above.
+
+The honest limit of this lens is that the insurance cannot be priced reliably against the flat
+fee. Its value depends on the dispersion of the provider gap, and under the heavy tails the
+returns reports document that dispersion is not something the data pin down. The Monte Carlo in
+Section 4, and the long-horizon simulations in the returns reports, show that compounded outcomes
+over a long horizon can diverge to an extreme degree. So the mean-variance certainty equivalent
+gives a point estimate that reads as a close call, while the insurance lens says the protection is
+real but its price is genuinely uncertain. The decision rests on how much an unquantifiable hedge
+against picking the worse provider is worth to the saver, set against a known annual flat fee.
 
 # 4. Does diversifying across providers help in the tail? A joint simulation
 

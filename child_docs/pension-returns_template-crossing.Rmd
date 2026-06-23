@@ -592,6 +592,66 @@ size, and the standard error itself is only a lower bound (the kurtosis it omits
 be infinite). It is not worth paying, in added risk or in fees, to chase a tangency that the
 data cannot locate.
 
+## Diversifying across providers: variance drain and certainty equivalent
+
+The crossing and Sharpe results concern one provider's menu. A separate question is what the
+return moments say about holding *both* providers at one risk level, for example Velliv high
+together with PFA high. This is the diversification the investor tool weighs against fees. We
+derive its value here from the moments alone, and the tool applies it to costs.
+
+**Variance drain.** Compound growth sits below the arithmetic mean by half the variance. If a
+plan's simple returns have arithmetic mean $a$ and variance $\sigma^2$, wealth compounds at
+about $g\approx a-\tfrac12\sigma^2$ per period. Cutting variance therefore lifts the compound
+rate one part in two: a reduction $\Delta\sigma^2$ raises $g$ by $\Delta\sigma^2/2$.
+
+**A 50/50 blend cuts variance.** Take two plans of equal variance $\sigma^2$ and correlation
+$\rho$. The equal-weight blend has variance $\tfrac12\sigma^2(1+\rho)$, a reduction of
+$\tfrac12\sigma^2(1-\rho)$. Write $\sigma^2_{\mathrm{gap}}=\operatorname{Var}(r_A-r_B)=2\sigma^2(1-\rho)$
+for the variance of the gap between the two plans. The reduction is then $\sigma^2_{\mathrm{gap}}/4$,
+and the compound-growth lift is
+$$\Delta g=\tfrac12\cdot\frac{\sigma^2_{\mathrm{gap}}}{4}=\frac{\sigma^2_{\mathrm{gap}}}{8}.$$
+
+**Certainty equivalent.** A saver with constant relative risk aversion $\gamma$ values a variance
+cut at $\tfrac12\gamma$ times its size, so the certainty-equivalent value of holding both plans
+rather than one is
+$$\mathrm{CE}\approx\tfrac12\gamma\cdot\frac{\sigma^2_{\mathrm{gap}}}{4}=\frac{\gamma\,\sigma^2_{\mathrm{gap}}}{8}.$$
+The variance drain is the case $\gamma=1$, log utility, where the risk-adjusted value equals the
+raw growth lift. The value scales linearly in risk aversion above that.
+
+**Two sources over a horizon.** Over $T$ periods the gap between the two plans' cumulative log
+returns has two parts. One is path noise, the accumulation of the per-period gap, which grows
+linearly in $T$. The other is uncertainty about the *relative* drift, since which provider
+compounds faster is not known in advance, and this grows as $T^2$, so it dominates at long
+horizons. Both enter $\sigma^2_{\mathrm{gap}}$ and so the certainty equivalent. The estimation
+part is the larger stake for a long-horizon saver, and it is exactly what the data cannot pin
+down.
+
+```{r diversification-value}
+.divval <- function(a, b, label) {
+  gapvar <- var(a - b)                               # per-period (monthly) gap variance
+  ce     <- function(g) 1e4 * 12 * g * gapvar / 8    # certainty equivalent, basis points per year
+  data.frame(
+    blend = label,
+    "$\\sigma_{\\mathrm{gap}}$ (ann.)" = sprintf("%.1f%%", 100 * sqrt(12 * gapvar)),
+    "$\\Delta g$ (bp/yr)"              = sprintf("%.1f", ce(1)),
+    "CE, $\\gamma=2$ (bp/yr)"          = sprintf("%.1f", ce(2)),
+    "CE, $\\gamma=4$ (bp/yr)"          = sprintf("%.1f", ce(4)),
+    check.names = FALSE)
+}
+knitr::kable(
+  rbind(.divval(monthly_logreturns_df$vhr, monthly_logreturns_df$phr, "Velliv high + PFA high"),
+        .divval(monthly_logreturns_df$vmr, monthly_logreturns_df$pmr, "Velliv medium + PFA medium")),
+  row.names = FALSE, align = "r",
+  caption = "Diversification value of a 50/50 cross-provider blend at one risk level, from the return moments (full sample, n = 142). $\\Delta g$ is the variance drain, equal to the certainty equivalent at $\\gamma=1$; $\\Delta g$ and CE are in basis points per year. A mean-variance, body-of-the-distribution figure.")
+```
+
+**A body result, not a tail result.** This is a mean-variance argument, valid for the centre of
+the distribution where a variance is a meaningful summary. The report's central finding is that
+the tail is heavy and the variance may not be finite, in which case $\sigma^2$ and everything
+built on it lose their meaning. The value above is therefore the diversification benefit in the
+body. Whether holding both providers helps in a crash is a tail question, and the investor tool
+takes it up with a joint simulation.
+
 
 
 
