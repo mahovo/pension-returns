@@ -10,7 +10,7 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "12:43 23 June 2026"
+date: "13:10 23 June 2026"
 params:
   start_date: null   ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
 ---
@@ -372,4 +372,29 @@ will continue") reveals itself only with time. This tool is therefore also meant
   the question of whether it is signal or luck.
 - **Composition or fee changes** -- e.g. PFA's 2024 move from four profiles (A--D) to three
   (Low/Medium/High), or any change in the flat fees that drive the Section 3 arithmetic.
-```
+
+## Distance to a path crossing
+
+Section 1 showed the high plan is a leverage of the medium plan, and the monthly report shows the
+flip side: the high plan trails the medium plan exactly while the medium plan sits below its entry
+value. The distance to a crossing is therefore the cushion the medium plan has built above the
+chosen entry, and a crossing begins once a drawdown gives that cushion back. The table reads this
+off for each provider, from the saver's entry (the start of the supplied data by default) and from
+the medium plan's most recent peak.
+
+
+Table: Distance to a within-provider path crossing. The high plan trails the medium plan once the medium plan falls back to its entry level. 'Drawdown to a crossing' is the fall from today, gradual or in a single month, that would trigger it; 'drawdown from peak now' is how far the medium plan already sits under its running high; 'medium return, 6m' shows whether the cushion is widening (positive) or narrowing.
+
+|             provider| cushion since entry| drawdown to a crossing| drawdown from peak now| medium return, 6m|
+|--------------------:|-------------------:|----------------------:|----------------------:|-----------------:|
+| Velliv (high vs med)|               +169%|                    63%|                     2%|            +11.6%|
+|         PFA (D vs B)|               +152%|                    60%|                     2%|             +8.7%|
+
+From an entry at the start of the supplied data the cushion is large, so a crossing needs a
+near-total drawdown: a long-held high plan is far from falling behind its medium plan. The
+fragility is all in the entry point. An investor who bought at the medium plan's most recent peak
+is at the brink, since any down-month then puts the medium plan below entry. This is the COVID-eve
+case from the monthly report. The six-month medium return shows the current direction: positive
+means the cushion is widening and a crossing receding, negative means it is narrowing. This is the
+within-provider crossing, the high plan against its own medium plan, and is separate from the
+cross-provider spread above.

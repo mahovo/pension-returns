@@ -458,4 +458,44 @@ will continue") reveals itself only with time. This tool is therefore also meant
   the question of whether it is signal or luck.
 - **Composition or fee changes** -- e.g. PFA's 2024 move from four profiles (A--D) to three
   (Low/Medium/High), or any change in the flat fees that drive the Section 3 arithmetic.
+
+## Distance to a path crossing
+
+Section 1 showed the high plan is a leverage of the medium plan, and the monthly report shows the
+flip side: the high plan trails the medium plan exactly while the medium plan sits below its entry
+value. The distance to a crossing is therefore the cushion the medium plan has built above the
+chosen entry, and a crossing begins once a drawdown gives that cushion back. The table reads this
+off for each provider, from the saver's entry (the start of the supplied data by default) and from
+the medium plan's most recent peak.
+
+```{r crossing-distance}
+## The high plan trails the medium plan while the medium plan is below its entry (monthly report).
+## So the distance to a crossing is the medium plan's cushion above entry, given back by a drawdown.
+.cross_row <- function(med, label) {
+  Cm     <- sum(med)                              # cumulative medium log return since entry (data start by default)
+  lvl    <- cumsum(med)                           # medium log index since entry
+  peakdd <- 1 - exp(tail(lvl, 1) - max(lvl))      # current drawdown of the medium plan from its running peak
+  k      <- min(6, length(med)); recent <- exp(sum(tail(med, k))) - 1
+  data.frame(
+    provider                 = label,
+    "cushion since entry"    = sprintf("%+.0f%%", 100 * (exp(Cm) - 1)),
+    "drawdown to a crossing" = sprintf("%.0f%%", 100 * (1 - exp(-Cm))),
+    "drawdown from peak now" = sprintf("%.0f%%", 100 * peakdd),
+    "medium return, 6m"      = sprintf("%+.1f%%", 100 * recent),
+    check.names = FALSE)
+}
+knitr::kable(
+  rbind(.cross_row(R$V_med, "Velliv (high vs med)"),
+        .cross_row(R$P_B,   "PFA (D vs B)")),
+  row.names = FALSE, align = "r",
+  caption = "Distance to a within-provider path crossing. The high plan trails the medium plan once the medium plan falls back to its entry level. 'Drawdown to a crossing' is the fall from today, gradual or in a single month, that would trigger it; 'drawdown from peak now' is how far the medium plan already sits under its running high; 'medium return, 6m' shows whether the cushion is widening (positive) or narrowing.")
 ```
+
+From an entry at the start of the supplied data the cushion is large, so a crossing needs a
+near-total drawdown: a long-held high plan is far from falling behind its medium plan. The
+fragility is all in the entry point. An investor who bought at the medium plan's most recent peak
+is at the brink, since any down-month then puts the medium plan below entry. This is the COVID-eve
+case from the monthly report. The six-month medium return shows the current direction: positive
+means the cushion is widening and a crossing receding, negative means it is narrowing. This is the
+within-provider crossing, the high plan against its own medium plan, and is separate from the
+cross-provider spread above.
