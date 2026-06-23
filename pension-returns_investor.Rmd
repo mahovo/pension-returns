@@ -66,7 +66,7 @@ This is a companion to the two returns reports `pension-returns_monthly` and `pe
 2. **One provider or both** -- is there diversification between PFA and Velliv, and could
    it plausibly beat the cost of splitting?
 
-The returns reports' central caveat governs everything here: with about twelve years of
+The returns reports' central caveat governs everything here: with about `r round(nrow(R) / 12)` years of
 data and fat tails, point estimates (means, Sharpe ratios, correlations) are noisy and
 regime-dependent. The tool is therefore built to expose *how robust* each conclusion is,
 not to emit a single "best" plan. Returns are monthly, `r nrow(R)` months
@@ -82,7 +82,8 @@ test this with the Sharpe ratio of each plan and, crucially, its stability acros
 sub-periods.
 
 ```{r sharpe-windows}
-wins <- c("2010-01", "2012-06", "2016-01")
+## Sub-period start dates spanning the supplied window: full, ~1/3 in, ~2/3 in.
+.k <- length(M$ym); wins <- M$ym[unique(round(c(1, .k / 3, 2 * .k / 3)))]
 tab <- t(sapply(wins, function(w) {
   S <- M[M$ym >= w, names(R)]
   round(sapply(S, ann_sharpe), 2)
@@ -90,20 +91,24 @@ tab <- t(sapply(wins, function(w) {
 rownames(tab) <- paste0("from ", wins, "  (n=", sapply(wins, function(w) sum(M$ym >= w)), ")")
 colnames(tab) <- plan_labels[colnames(tab)]
 knitr::kable(tab, caption = "Annualised Sharpe ratio by plan and start date.")
+## Derived figures used in the prose below.
+.vshrp   <- mean(sapply(R[c("V_low", "V_med", "V_high")], ann_sharpe))   # mean Velliv Sharpe
+.pfa     <- c("P_A", "P_B", "P_C", "P_D")
+.bestpfa <- sapply(wins, function(w) { S <- M[M$ym >= w, .pfa]; .pfa[which.max(sapply(S, ann_sharpe))] })
 ```
 
 **Velliv is a leverage ray.** In every sub-period the three Velliv plans have essentially
-the same Sharpe (~0.8), so they are scaled versions of one portfolio. Choosing a Velliv
-risk level is a pure risk-appetite decision: more risk buys proportionally more expected
-return, with no change in reward-per-unit-risk and nothing to "optimise."
+the same Sharpe (about `r round(.vshrp, 1)`), so they are scaled versions of one portfolio.
+Choosing a Velliv risk level is a pure risk-appetite decision: more risk buys proportionally
+more expected return, with no change in reward-per-unit-risk and nothing to "optimise."
 
-**PFA's menu curves -- but the direction is not identifiable.** PFA's profiles do not share
-a single Sharpe, so the menu is a curve rather than a ray. Yet *which* end is the
-better-Sharpe blend flips with the window: the low profile looks best from 2010, the high
-end from 2016. The differences are inside the noise the returns reports warn about. The
-practical conclusion is the opposite of the textbook "find the tangency portfolio": for PFA
-you *cannot* reliably identify a best-Sharpe blend, so you should not pay -- in risk or in
-fees -- to chase one.
+**PFA's menu curves, but the direction is not identifiable.** PFA's profiles do not share a
+single Sharpe, so the menu is a curve rather than a ray. The highest-Sharpe profile by start
+window is `r paste0(plan_labels[.bestpfa], " from ", wins, collapse = "; ")`. These differences
+sit inside the noise the returns reports warn about, so the better end is not reliably
+identifiable. The practical conclusion is the opposite of the textbook "find the tangency
+portfolio": for PFA you cannot reliably pick a best-Sharpe blend, so you should not pay, in risk
+or in fees, to chase one.
 
 ```{r mean-var-plot, fig.width = 8, fig.height = 5}
 mv <- data.frame(
@@ -128,11 +133,15 @@ ggplot(mv, aes(vol, ret, colour = provider)) +
 ```{r corr-matrix}
 C <- cor(R); dimnames(C) <- list(plan_labels[rownames(C)], plan_labels[colnames(C)])
 knitr::kable(round(C, 3), caption = "Correlation matrix of monthly returns across all plans.")
+.offdiag <- C; diag(.offdiag) <- NA
+.mincorr <- min(.offdiag, na.rm = TRUE)
+.minpair <- which(.offdiag == .mincorr, arr.ind = TRUE)[1, ]
 ```
 
-Every pair is correlated above 0.83, because every plan is equity-dominated (see the
-"Path crossing" section of the returns reports: Even a "low-risk plan" is mostly equities).
-The least-correlated plans are **PFA's low-risk profile (A)** and **PFA's high-risk profile (D)**.
+Every pair is highly correlated. The lowest pairwise correlation is `r round(.mincorr, 2)`,
+because every plan is equity-dominated (see the "Path crossing" section of the returns reports:
+even a "low-risk plan" is mostly equities). The least-correlated plans are
+**`r rownames(C)[.minpair[1]]`** and **`r colnames(C)[.minpair[2]]`**.
 
 ```{r divers-table}
 mixes <- list(
@@ -170,7 +179,7 @@ knitr::kable(
   caption = "Volatility reduction from a 50/50 blend: within a provider (across asset classes) vs across providers (same risk level).")
 ```
 
-The within-provider blend correlates ~0.4 and cuts volatility several times more than the
+The within-provider blend correlates about `r round(cor(.L, .H), 1)` and cuts volatility several times more than the
 cross-provider split. A single provider's mid-risk plan is therefore already *more*
 diversified than two equity-heavy plans held across providers -- at one set of fees, not two.
 The upshot, reinforcing Sections 1 and 4: **Diversify by lowering your risk level within one
@@ -315,7 +324,7 @@ left-skewed, and correlation is itself unstable under fat tails. The decision-re
 question is whether holding two providers protects the *tail* -- a crash -- and by how much.
 
 The data fix each plan's *marginal* (mean, volatility, fat-tailed shape) and the *linear
-correlation* between providers (~0.94 for two high-risk plans), but they do **not** fix the
+correlation* between providers (about `r round(cor(R$V_high, R$P_D), 2)` for two high-risk plans), but they do **not** fix the
 *tail dependence*: whether the two crash *together* (a systemic equity selloff) or whether
 one can crash *alone*. So rather than a single number we simulate three models that **all
 match the observed means, volatilities and correlation** and differ only in the tail -- a
@@ -353,15 +362,17 @@ knitr::kable(round(.JT, 2),
   caption = "One-year wealth (start = 100): one high-risk plan vs a 50/50 provider split, under three models matched on mean, volatility and correlation.")
 ```
 
-Three things stand out. **Fat tails make the single plan riskier than a Gaussian view
-admits** -- the chance of a one-year loss worse than 10% rises from ~4.2% (Gaussian) to
-~4.6% (fat-tailed), and for deeper losses the gap widens. **Splitting across two same-risk
-providers helps only modestly** -- it trims that probability to ~3.8% and lifts the
-5th-percentile floor by about a point. And crucially, **that modest benefit barely moves
-between the independent-crash and coincident-crash models**: at a correlation of 0.94 the
-bulk co-movement already caps the diversification, so the tail dependence we *cannot*
-estimate turns out not to change the answer. Provider-splitting at the same risk level is a
-weak crash hedge -- two equity-dominated providers mostly fall together.
+Three things stand out. **Fat tails make the single plan riskier than a Gaussian view admits.**
+The chance of a one-year loss worse than 10% rises from about `r sprintf('%.1f', .JT['Gaussian','single P(loss>10%)'])`%
+under the Gaussian to about `r sprintf('%.1f', .JT['Fat, independent crashes','single P(loss>10%)'])`% with
+fat tails, and for deeper losses the gap widens. **Splitting across two same-risk providers helps
+only modestly.** It trims that probability to about `r sprintf('%.1f', .JT['Fat, independent crashes','split P(loss>10%)'])`%
+and lifts the 5th-percentile floor by about `r sprintf('%.1f', .JT['Fat, independent crashes','split 5th-pct'] - .JT['Fat, independent crashes','single 5th-pct'])`
+points. And crucially, **that modest benefit barely moves between the independent-crash and
+coincident-crash models**: at a correlation of `r round(cor(R$V_high, R$P_D), 2)` the bulk
+co-movement already caps the diversification, so the tail dependence we *cannot* estimate turns
+out not to change the answer. Provider-splitting at the same risk level is a weak crash hedge,
+since two equity-dominated providers mostly fall together.
 
 The far larger lever for crash protection is the **risk level itself**: The bond sleeve of a
 lower-risk plan cuts the crash probability much more than a second provider does (the flip
@@ -393,14 +404,24 @@ providers, what each plan holds, the fees -- change, and a wrong assumption ("th
 will continue") reveals itself only with time. This tool is therefore also meant to be
 **re-run periodically as a monitor**, flagging when a decision needs revisiting:
 
+```{r provider-spread}
+.gf  <- function(x) exp(sum(x))            # growth factor of one unit over the sample
+.wD  <- .gf(R$P_D); .wV <- .gf(R$V_high)
+.hi  <- if (.wD >= .wV) "PFA-high" else "Velliv-high"
+.lo  <- if (.wD >= .wV) "Velliv-high" else "PFA-high"
+.whi <- max(.wD, .wV); .wlo <- min(.wD, .wV)
+.gap_pp <- abs(1200 * (mean(R$P_D) - mean(R$V_high)))   # annualised log-return gap, pp/yr
+```
+
 - **Regime shifts** -- a change in the level of returns, in volatility, or in the tail that
   would alter the *risk-level* choice (e.g. when staying in a high-risk plan stops looking
   safe).
 - **Provider divergence** -- a widening gap between the providers' cumulative outcomes. Over
-  June 2012 -- April 2024, 1 m DKK in PFA-high grew to ~3.3 m versus ~2.8 m in Velliv-high --
-  a ~0.47 m spread (PFA compounding ~1.4 pp/year faster) that no one could have called in
-  advance. A monitor shows such a gap opening and forces the question of whether it is signal
-  or luck.
+  `r min(M$ym)` to `r max(M$ym)`, 1 m DKK in `r .hi` grew to about `r sprintf("%.1f", .whi)` m
+  versus about `r sprintf("%.1f", .wlo)` m in `r .lo`, a spread of about
+  `r sprintf("%.1f", .whi - .wlo)` m, with `r .hi` compounding about `r sprintf("%.1f", .gap_pp)` pp/year
+  faster. No one could have called this in advance. A monitor shows such a gap opening and forces
+  the question of whether it is signal or luck.
 - **Composition or fee changes** -- e.g. PFA's 2024 move from four profiles (A--D) to three
   (Low/Medium/High), or any change in the flat fees that drive the Section 3 arithmetic.
 ```
