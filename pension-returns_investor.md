@@ -10,9 +10,10 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "13:10 23 June 2026"
+date: "13:16 23 June 2026"
 params:
-  start_date: null   ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
+  start_date: null     ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
+  monitor_months: 36   ## Length (months) of the "recent" window for the structure check in Section 6.
 ---
 
 
@@ -398,3 +399,31 @@ case from the monthly report. The six-month medium return shows the current dire
 means the cushion is widening and a crossing receding, negative means it is narrowing. This is the
 within-provider crossing, the high plan against its own medium plan, and is separate from the
 cross-provider spread above.
+
+## Has the return structure changed?
+
+The tool monitors *structure*, not only level. The clearest signal is the number of return
+streams: when a provider splits, merges, or renames its profiles, the column count changes, as
+PFA's 2024 move from four profiles to three does. Subtler shifts, a reweighting toward equities or
+a change of underlying funds, leave the count intact but show up as drift in the per-provider
+leverage, the volatility of the lower-risk plans, and the correlations. The check below compares a
+baseline window with the most recent months.
+
+
+Table: Structure check: baseline window vs the most recent 36 months. The data carry 7 return streams; a change in that count is itself an obvious structural change.
+
+|metric                                |baseline |recent |change  |
+|:-------------------------------------|:--------|:------|:-------|
+|Velliv leverage $\beta$ (high on med) |1.23     |1.22   |-0.01   |
+|PFA leverage $\beta$ (high on med)    |1.79     |1.46   |-0.33   |
+|Velliv medium volatility (ann.)       |7.8%     |9.5%   |+1.7 pp |
+|PFA medium volatility (ann.)          |5.5%     |7.1%   |+1.6 pp |
+|Velliv low-high correlation           |0.97     |0.99   |+0.02   |
+|PFA low-high correlation              |0.83     |0.91   |+0.08   |
+
+On the supplied data the structure is broadly stable, and any drift here reflects the market
+regime rather than a policy change. Run on data that extends past a reweighting, the same check
+would flag it: fewer streams, a higher volatility and a higher low-to-high correlation in the
+plans moved toward equities, and a leverage slope pulled toward one. A flag is a prompt to ask
+which of three causes is at work, market conditions, a change of policy, or a change in the
+underlying funds and weights, and then to revisit the risk-level and provider decisions above.

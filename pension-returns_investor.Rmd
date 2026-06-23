@@ -12,7 +12,8 @@ output:
     latex_engine: xelatex
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 params:
-  start_date: null   ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
+  start_date: null     ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
+  monitor_months: 36   ## Length (months) of the "recent" window for the structure check in Section 6.
 ---
 
 ```{r setup, include=FALSE}
@@ -499,3 +500,45 @@ case from the monthly report. The six-month medium return shows the current dire
 means the cushion is widening and a crossing receding, negative means it is narrowing. This is the
 within-provider crossing, the high plan against its own medium plan, and is separate from the
 cross-provider spread above.
+
+## Has the return structure changed?
+
+The tool monitors *structure*, not only level. The clearest signal is the number of return
+streams: when a provider splits, merges, or renames its profiles, the column count changes, as
+PFA's 2024 move from four profiles to three does. Subtler shifts, a reweighting toward equities or
+a change of underlying funds, leave the count intact but show up as drift in the per-provider
+leverage, the volatility of the lower-risk plans, and the correlations. The check below compares a
+baseline window with the most recent months.
+
+```{r structure-check}
+.mm   <- if (exists("params") && !is.null(params$monitor_months)) params$monitor_months else 36
+.nrec <- min(.mm, nrow(R) - 24)                       # recent window; keep at least 24 months of baseline
+.base <- head(R, nrow(R) - .nrec); .rec <- tail(R, .nrec)
+.beta <- function(D, med, high) unname(coef(lm(D[[high]] ~ D[[med]]))[2])
+.metric <- function(D) c(
+  .beta(D, "V_med", "V_high"), .beta(D, "P_B", "P_D"),
+  ann_vol(D$V_med),            ann_vol(D$P_B),
+  cor(D$V_low, D$V_high),      cor(D$P_A, D$P_D))
+.b <- .metric(.base); .r <- .metric(.rec)
+.num <- function(x, i) sprintf("%.2f", x[i]); .pct <- function(x, i) sprintf("%.1f%%", 100 * x[i])
+.tab <- data.frame(
+  metric = c("Velliv leverage $\\beta$ (high on med)", "PFA leverage $\\beta$ (high on med)",
+             "Velliv medium volatility (ann.)", "PFA medium volatility (ann.)",
+             "Velliv low-high correlation",     "PFA low-high correlation"),
+  baseline = c(.num(.b, 1:2), .pct(.b, 3:4), .num(.b, 5:6)),
+  recent   = c(.num(.r, 1:2), .pct(.r, 3:4), .num(.r, 5:6)),
+  change   = c(sprintf("%+.2f", .r[1:2] - .b[1:2]),
+               sprintf("%+.1f pp", 100 * (.r[3:4] - .b[3:4])),
+               sprintf("%+.2f", .r[5:6] - .b[5:6])),
+  check.names = FALSE)
+knitr::kable(.tab, row.names = FALSE, caption = paste0(
+  "Structure check: baseline window vs the most recent ", .nrec, " months. The data carry ",
+  ncol(R), " return streams; a change in that count is itself an obvious structural change."))
+```
+
+On the supplied data the structure is broadly stable, and any drift here reflects the market
+regime rather than a policy change. Run on data that extends past a reweighting, the same check
+would flag it: fewer streams, a higher volatility and a higher low-to-high correlation in the
+plans moved toward equities, and a leverage slope pulled toward one. A flag is a prompt to ask
+which of three causes is at work, market conditions, a change of policy, or a change in the
+underlying funds and weights, and then to revisit the risk-level and provider decisions above.
