@@ -10,7 +10,7 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "06:42 24 June 2026"
+date: "07:18 24 June 2026"
 params:
   start_date: null         ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
   monitor_months: 36       ## Length (months) of the "recent" window for the structure check.
@@ -65,6 +65,38 @@ Table: Current inputs. Sharpe ratios, certainty equivalents, fee break-evens and
 |Monitor window (months)       |36                     |
 |Assumed tail index            |3.5                    |
 |Assumed skew                  |0.7                    |
+
+# Current regime check
+
+The reports' working model is a heavy-tailed, left-skewed return distribution. Before any
+mean-variance figure can be trusted, check whether the loaded data still look that way or have
+moved toward the Gaussian. A skewed-t fit answers it: a high tail index `nu` with a skew `xi` near 1
+is near-Gaussian; a low `nu`, or a `xi` below 1, is heavy tails and left skew.
+
+
+Table: Skewed-t fit per plan on the loaded data. A low tail index (heavy tails) or a skew below 1 (left skew) is the reports' regime; a high tail index with skew near 1 is near-Gaussian.
+
+|plan          |tail index $\nu$ |$\nu$ SE |skew $\xi$ |$\xi$ SE |
+|:-------------|:----------------|:--------|:----------|:--------|
+|Velliv medium |3.4              |1.2      |0.70       |0.09     |
+|Velliv high   |3.5              |1.2      |0.71       |0.09     |
+|PFA B         |3.5              |1.2      |0.77       |0.08     |
+|PFA high (D)  |4.0              |1.5      |0.74       |0.08     |
+
+Across these plans the median tail index is 3.5 and the median skew is
+0.72. That is firmly heavy-tailed, the regime the reports assume, so the mean-variance figures here are body-of-distribution summaries and the tail caveats stand.
+
+The test is deliberately asymmetric. A single extreme month can reveal a fat tail; no stretch of
+calm can prove its absence.
+
+
+
+The latest month (2024-04) is within the fitted tails of every plan: no fresh tail signal, which on its own proves nothing.
+Calling the regime Gaussian instead needs far more data than a benign stretch provides. The tail
+parameters are not pinned down at 142 observations: by the reports' analysis, matching even
+30 Gaussian observations for the *mean* takes on the order of
+90 heavy-tailed observations, and the tail needs more
+still. Treat a quiet tail as unproven, not safe.
 
 # 1. Within a provider: Is a higher-risk plan just more leverage?
 
@@ -239,6 +271,16 @@ by **1.2 percentage points a year**, with a standard error of
 0.8 pp/yr (t = 1.5), so it is
 **not distinguishable from zero**.
 You could not have known in advance which would win, and the best-Sharpe profile in Section 1 was not stable across windows. The monthly report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
+
+How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: a
+skewed-t with `nu = `3.5` and `xi = `0.7` (set in the inputs). Simulating two
+providers with the data's volatilities and correlation but *no* true difference in mean, the gap
+between them over the sample has its own spread purely from chance and fat tails.
+
+
+
+The realised gap is **1.3 standard deviations** of that pure-chance distribution.
+That is even less than the normal-theory t-statistic implies, because the fat tail widens the range of chance outcomes. The realised lead is well within what no edge at all produces, so it is not signal.
 
 Committing to one provider is thus a bet on an unreadable coin, and the stakes grow with the
 horizon -- increasingly from the *estimation* uncertainty in the drift (which accumulates

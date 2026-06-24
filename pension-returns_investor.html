@@ -163,7 +163,7 @@ pre code {
 
 <h1 class="title toc-ignore">Choosing a pension plan: an investor’s decision tool</h1>
 <h4 class="author">Martin Hoshi Vognsen</h4>
-<h4 class="date">06:42 24 June 2026</h4>
+<h4 class="date">07:18 24 June 2026</h4>
 
 </div>
 
@@ -171,6 +171,7 @@ pre code {
 <ul>
 <li><a href="#purpose">Purpose</a></li>
 <li><a href="#inputs">Inputs</a></li>
+<li><a href="#current-regime-check">Current regime check</a></li>
 <li><a href="#within-a-provider-is-a-higher-risk-plan-just-more-leverage">1. Within a provider: Is a higher-risk plan just more leverage?</a></li>
 <li><a href="#across-providers-is-there-diversification">2. Across providers: Is there diversification?</a>
 <ul>
@@ -260,6 +261,55 @@ pre code {
 </tr>
 </tbody>
 </table>
+</div>
+<div id="current-regime-check" class="section level1">
+<h1>Current regime check</h1>
+<p>The reports’ working model is a heavy-tailed, left-skewed return distribution. Before any mean-variance figure can be trusted, check whether the loaded data still look that way or have moved toward the Gaussian. A skewed-t fit answers it: a high tail index <code>nu</code> with a skew <code>xi</code> near 1 is near-Gaussian; a low <code>nu</code>, or a <code>xi</code> below 1, is heavy tails and left skew.</p>
+<table>
+<caption>Skewed-t fit per plan on the loaded data. A low tail index (heavy tails) or a skew below 1 (left skew) is the reports’ regime; a high tail index with skew near 1 is near-Gaussian.</caption>
+<thead>
+<tr class="header">
+<th align="left">plan</th>
+<th align="left">tail index <span class="math inline">\(\nu\)</span></th>
+<th align="left"><span class="math inline">\(\nu\)</span> SE</th>
+<th align="left">skew <span class="math inline">\(\xi\)</span></th>
+<th align="left"><span class="math inline">\(\xi\)</span> SE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Velliv medium</td>
+<td align="left">3.4</td>
+<td align="left">1.2</td>
+<td align="left">0.70</td>
+<td align="left">0.09</td>
+</tr>
+<tr class="even">
+<td align="left">Velliv high</td>
+<td align="left">3.5</td>
+<td align="left">1.2</td>
+<td align="left">0.71</td>
+<td align="left">0.09</td>
+</tr>
+<tr class="odd">
+<td align="left">PFA B</td>
+<td align="left">3.5</td>
+<td align="left">1.2</td>
+<td align="left">0.77</td>
+<td align="left">0.08</td>
+</tr>
+<tr class="even">
+<td align="left">PFA high (D)</td>
+<td align="left">4.0</td>
+<td align="left">1.5</td>
+<td align="left">0.74</td>
+<td align="left">0.08</td>
+</tr>
+</tbody>
+</table>
+<p>Across these plans the median tail index is 3.5 and the median skew is 0.72. That is firmly heavy-tailed, the regime the reports assume, so the mean-variance figures here are body-of-distribution summaries and the tail caveats stand.</p>
+<p>The test is deliberately asymmetric. A single extreme month can reveal a fat tail; no stretch of calm can prove its absence.</p>
+<p>The latest month (2024-04) is within the fitted tails of every plan: no fresh tail signal, which on its own proves nothing. Calling the regime Gaussian instead needs far more data than a benign stretch provides. The tail parameters are not pinned down at 142 observations: by the reports’ analysis, matching even 30 Gaussian observations for the <em>mean</em> takes on the order of 90 heavy-tailed observations, and the tail needs more still. Treat a quiet tail as unproven, not safe.</p>
 </div>
 <div id="within-a-provider-is-a-higher-risk-plan-just-more-leverage" class="section level1">
 <h1>1. Within a provider: Is a higher-risk plan just more leverage?</h1>
@@ -563,6 +613,8 @@ pre code {
 <h2>The benefit the variance drain misses: Hedging an unreadable provider bet</h2>
 <p>The variance drain above compares the mix to the <em>average</em> single plan, treating the two providers’ expected returns as known and equal. But the real risk in the provider choice is not knowing <em>which provider’s drift will compound higher</em> – and that difference is precisely what the data cannot pin down.</p>
 <p>Over the sample PFA-high out-returned Velliv-high by <strong>1.2 percentage points a year</strong>, with a standard error of 0.8 pp/yr (t = 1.5), so it is <strong>not distinguishable from zero</strong>. You could not have known in advance which would win, and the best-Sharpe profile in Section 1 was not stable across windows. The monthly report’s Sharpe section carries the reference-period version of this comparison and a plot of the two paths.</p>
+<p>How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: a skewed-t with <code>nu =</code>3.5<code>and</code>xi = <code>0.7</code> (set in the inputs). Simulating two providers with the data’s volatilities and correlation but <em>no</em> true difference in mean, the gap between them over the sample has its own spread purely from chance and fat tails.</p>
+<p>The realised gap is <strong>1.3 standard deviations</strong> of that pure-chance distribution. That is even less than the normal-theory t-statistic implies, because the fat tail widens the range of chance outcomes. The realised lead is well within what no edge at all produces, so it is not signal.</p>
 <p>Committing to one provider is thus a bet on an unreadable coin, and the stakes grow with the horizon – increasingly from the <em>estimation</em> uncertainty in the drift (which accumulates linearly) rather than path noise (which accumulates only as √horizon):</p>
 <table>
 <caption>Dispersion between the two providers’ cumulative outcomes by horizon, vs the second provider’s flat fee.</caption>

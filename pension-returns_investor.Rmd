@@ -124,6 +124,54 @@ knitr::kable(data.frame(
   caption = "Current inputs. Sharpe ratios, certainty equivalents, fee break-evens and the stress simulation all read from these.")
 ```
 
+# Current regime check
+
+The reports' working model is a heavy-tailed, left-skewed return distribution. Before any
+mean-variance figure can be trusted, check whether the loaded data still look that way or have
+moved toward the Gaussian. A skewed-t fit answers it: a high tail index `nu` with a skew `xi` near 1
+is near-Gaussian; a low `nu`, or a `xi` below 1, is heavy tails and left skew.
+
+```{r regime-fit}
+.rp   <- c(V_med = "Velliv medium", V_high = "Velliv high", P_B = "PFA B", P_D = "PFA high (D)")
+.fits <- lapply(names(.rp), function(p) sstd_se(R[[p]])); names(.fits) <- names(.rp)
+.nus  <- sapply(.fits, function(f) f$par["nu"]); .xis <- sapply(.fits, function(f) f$par["xi"])
+knitr::kable(data.frame(
+  plan              = unname(.rp),
+  "tail index $\\nu$" = sprintf("%.1f", .nus),
+  "$\\nu$ SE"         = sprintf("%.1f", sapply(.fits, function(f) f$se["nu"])),
+  "skew $\\xi$"       = sprintf("%.2f", .xis),
+  "$\\xi$ SE"         = sprintf("%.2f", sapply(.fits, function(f) f$se["xi"])),
+  check.names = FALSE), row.names = FALSE,
+  caption = "Skewed-t fit per plan on the loaded data. A low tail index (heavy tails) or a skew below 1 (left skew) is the reports' regime; a high tail index with skew near 1 is near-Gaussian.")
+.med_nu <- median(.nus, na.rm = TRUE); .med_xi <- median(.xis, na.rm = TRUE)
+```
+
+Across these plans the median tail index is `r round(.med_nu, 1)` and the median skew is
+`r round(.med_xi, 2)`. `r if (!is.na(.med_nu) && .med_nu < 6) "That is firmly heavy-tailed, the regime the reports assume, so the mean-variance figures here are body-of-distribution summaries and the tail caveats stand." else if (!is.na(.med_nu) && .med_nu > 12 && .med_xi > 0.9) "That is close to Gaussian; the heavy-tail caveats may be relaxing, subject to the data-sufficiency limit below." else "That is in between, neither clearly heavy-tailed nor Gaussian on this sample."`
+
+The test is deliberately asymmetric. A single extreme month can reveal a fat tail; no stretch of
+calm can prove its absence.
+
+```{r tail-watch}
+## Record monitor: is the most recent month beyond the fitted 1st/99th percentile of any plan?
+.extreme <- sapply(names(.rp), function(p) {
+  f <- .fits[[p]]; q <- qsstd(c(0.01, 0.99), f$par["m"], f$par["s"], f$par["nu"], f$par["xi"])
+  R[[p]][nrow(R)] < q[1] || R[[p]][nrow(R)] > q[2]
+})
+## Data sufficiency: skewed-t observations to match 30 Gaussian observations for the mean.
+.nmin <- tryCatch(round(f_n_min(30, mean = 0, sd_g = 1,
+                                nu = max(2.2, round(.med_nu, 1)), xi = round(.med_xi, 1),
+                                approx = TRUE)),
+                  error = function(e) NA)
+```
+
+`r if (any(.extreme)) paste0("The latest month (", max(M$ym), ") sits beyond the fitted 1-in-100 tail for ", paste(unname(.rp)[.extreme], collapse = " and "), ", a fresh signal that the tail is at least as fat as assumed.") else paste0("The latest month (", max(M$ym), ") is within the fitted tails of every plan: no fresh tail signal, which on its own proves nothing.")`
+Calling the regime Gaussian instead needs far more data than a benign stretch provides. The tail
+parameters are not pinned down at `r nrow(R)` observations: by the reports' analysis, matching even
+30 Gaussian observations for the *mean* takes on the order of
+`r if (is.na(.nmin)) "many more" else .nmin` heavy-tailed observations, and the tail needs more
+still. Treat a quiet tail as unproven, not safe.
+
 # 1. Within a provider: Is a higher-risk plan just more leverage?
 
 A higher-risk plan is *pure leverage* of a lower-risk one when it has the same
@@ -319,6 +367,29 @@ by **`r round(1200 * abs(mean(.d)), 1)` percentage points a year**, with a stand
 `r round(1200 * .se, 1)` pp/yr (t = `r round(mean(.d) / .se, 1)`), so it is
 **`r if (abs(mean(.d) / .se) >= 2) "distinguishable from zero" else "not distinguishable from zero"`**.
 `r if (abs(mean(.d) / .se) >= 2) "There is a measurable return edge on this sample, though it remains a single realised path." else "You could not have known in advance which would win, and the best-Sharpe profile in Section 1 was not stable across windows."` The monthly report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
+
+How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: a
+skewed-t with `nu = ``r assumed_nu`` and `xi = ``r assumed_xi`` (set in the inputs). Simulating two
+providers with the data's volatilities and correlation but *no* true difference in mean, the gap
+between them over the sample has its own spread purely from chance and fat tails.
+
+```{r gap-dispersion}
+.gapdisp <- function(n = 5000, seed = 7) {
+  set.seed(seed); T <- nrow(R); rho <- cor(R$V_high, R$P_D)
+  Z  <- MASS::mvrnorm(n * T, c(0, 0), matrix(c(1, rho, rho, 1), 2)); U <- pnorm(Z)
+  cl <- function(u) pmin(pmax(u, 1e-7), 1 - 1e-7)
+  r1 <- qsstd(cl(U[, 1]), 0, sd(R$V_high), assumed_nu, assumed_xi)   # equal means: the null of no edge
+  r2 <- qsstd(cl(U[, 2]), 0, sd(R$P_D),    assumed_nu, assumed_xi)
+  dim(r1) <- dim(r2) <- c(T, n)
+  colSums(r2) - colSums(r1)                                          # total log gap over the sample
+}
+.gapsim   <- .gapdisp()
+.realized <- sum(R$P_D) - sum(R$V_high)                             # realised total log gap
+.within   <- abs(.realized) / sd(.gapsim)                          # realised gap in chance-SDs
+```
+
+The realised gap is **`r round(.within, 1)` standard deviations** of that pure-chance distribution.
+`r if (.within < 1.5) "That is even less than the normal-theory t-statistic implies, because the fat tail widens the range of chance outcomes." else "That is on a par with the normal-theory reading."` The realised lead is well within what no edge at all produces, so it is not signal.
 
 Committing to one provider is thus a bet on an unreadable coin, and the stakes grow with the
 horizon -- increasingly from the *estimation* uncertainty in the drift (which accumulates
