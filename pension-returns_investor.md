@@ -10,7 +10,7 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "07:25 24 June 2026"
+date: "22:56 24 June 2026"
 params:
   start_date: null         ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
   monitor_months: 36       ## Length (months) of the "recent" window for the structure check.
@@ -31,7 +31,7 @@ params:
 
 # Purpose
 
-This tool is the decision companion to the monthly report, which serves as its technical appendix. The monthly report establishes how each plan's returns are distributed (fat tails, a persistent left skew, a tail index the data cannot pin down) and why the methods used below are the right ones. This tool applies them to your data and costs, and turns them into the two decisions an investor actually faces:
+This tool is the decision companion to the diagnostic report *Monthly pension returns analysis*, which serves as its technical appendix. That report establishes how each plan's returns are distributed and why the methods used below are the right ones; this tool applies them to your data and costs and turns them into the two decisions an investor actually faces:
 
 1. **Which risk level** -- and is a higher-risk plan anything more than a more-leveraged
    version of a lower-risk one?
@@ -42,7 +42,7 @@ The returns reports' central caveat governs everything here: with about 12 years
 data and fat tails, point estimates (means, Sharpe ratios, correlations) are noisy and
 regime-dependent. The tool is therefore built to expose *how robust* each conclusion is,
 not to emit a single "best" plan. Returns are monthly, 142 months
-(2012-07 to 2024-04), PFA at the 30-year horizon. Sharpe ratios use the risk-free rate set in the inputs below.
+(2012-07 to 2024-04). Sharpe ratios use the risk-free rate set in the inputs below.
 
 # Inputs
 
@@ -95,7 +95,7 @@ The latest month (2024-04) is within the fitted tails of every plan: no fresh ta
 Calling the regime Gaussian instead needs far more data than a benign stretch provides. The tail
 parameters are not pinned down at 142 observations: by the reports' analysis, matching even
 30 Gaussian observations for the *mean* takes on the order of
-142 heavy-tailed observations, and the tail needs more
+59 heavy-tailed observations, and the tail needs more
 still. Treat a quiet tail as unproven, not safe.
 
 # 2. Within a provider: which risk level?
@@ -115,6 +115,12 @@ Table: Annualised Sharpe ratio by plan and start date.
 |from 2016-05  (n=96)  |       0.64|       0.68|        0.67|        0.67|  0.76|  0.80|         0.80|
 |from 2020-05  (n=48)  |       0.66|       0.72|        0.79|        0.48|  0.77|  0.94|         1.02|
 
+The table samples three start dates. The plot below sweeps every start date that leaves at least
+two years of data to the same fixed end, with 95% confidence bands. Look for whether a provider's
+plans have overlapping bands: where they do, the plans cannot be told apart on reward-per-risk.
+
+![](pension-returns_investor_files/figure-html/sharpe-stability-1.png)<!-- -->
+
 **Velliv.** The three plans' Sharpe ratios (around 0.8) span 0.03
 against a sampling error of about 0.29. That spread is within
 the noise, so on this data Velliv behaves as a leverage ray.
@@ -126,8 +132,13 @@ The highest-Sharpe profile by start window is PFA B from 2012-07; PFA C from 201
 and it is not stable across windows.
 So no best-Sharpe blend is reliably identifiable, and you should not pay, in added risk or in fees, to chase one.
 
-The risk-return picture for all plans, with the leverage ray, is in the monthly report's Sharpe
-section; this tool reports the verdict above rather than repeat the chart.
+The same test reads off the risk-return map. Each plan sits at its annualised volatility and mean
+return; plans on one line from the risk-free rate share a Sharpe ratio, and a plan off that line
+differs in reward-per-risk. Look for whether each provider's plans line up.
+
+![](pension-returns_investor_files/figure-html/mean-var-plot-1.png)<!-- -->
+
+The derivation of the ray and its sampling error is in the Sharpe ratio section of the diagnostic report.
 
 # 3. Across providers: is there diversification?
 
@@ -144,10 +155,11 @@ Table: Correlation matrix of monthly returns across all plans.
 |PFA C        |      0.965|      0.967|       0.966|       0.930| 0.991| 1.000|        0.996|
 |PFA high (D) |      0.956|      0.964|       0.967|       0.896| 0.977| 0.996|        1.000|
 
-Every pair is highly correlated. The lowest pairwise correlation is 0.88,
-because every plan is equity-dominated (see the "Path crossing" section of the returns reports:
-even a "low-risk plan" is mostly equities). The least-correlated plans are
-**PFA low (A)** and **Velliv high**.
+The lowest pairwise correlation is 0.88.
+Every pair moves closely together.
+The least-correlated plans are **PFA low (A)** and
+**Velliv high**. For why the plans co-move, see the Path crossing section of the
+diagnostic report.
 
 
 Table: 50/50 cross-provider mixes: Correlation and volatility reduction vs the weighted-average volatility.
@@ -160,9 +172,9 @@ Table: 50/50 cross-provider mixes: Correlation and volatility reduction vs the w
 |Velliv med + PFA B         |0.961       |1.0%          |
 
 The largest risk reduction among these cross-provider mixes is **PFA low (A) + Velliv high**, at about
-2.6% of volatility, consistent with the intuition that pairing the
-most bond-heavy plan of one provider with the most equity-heavy of the other combines the
-most-different compositions. But the benefit is small, a few percent of volatility, not a step change. Diversifying across providers does something, just not much, in mean-variance terms.
+2.6% of volatility. That is small, a few percent, not a step change: cross-provider diversification does something, but little, in mean-variance terms.
+The reduction comes from pairing the least-correlated plans; the composition behind those
+correlations is in the Path crossing section of the diagnostic report.
 
 ## The diversification that *does* work is within a provider
 
@@ -202,7 +214,7 @@ and, separately, on any *difference* in proportional rates between providers.
 ## Is the diversification worth a second flat fee?
 
 Express the diversification benefit the way it actually accrues, as a boost to the **compound**
-growth rate: the variance drain it removes, `Δg = (σ²_single − σ²_split)/2`. The monthly report
+growth rate: the variance drain it removes, `Δg = (σ²_single − σ²_split)/2`. The diagnostic report
 derives this variance drain, and the certainty equivalent used later in this section, from the
 return moments.
 
@@ -257,7 +269,7 @@ fees. The diversification credit (`dg · W`) could be added to the left-hand sid
 basis point it barely moves the bar. If a second provider is *strictly* cheaper on both fee types,
 the question is not whether to *add* it but whether to *switch* entirely.
 
-## The benefit the variance drain misses: Hedging an unreadable provider bet
+## The benefit the variance drain misses: Hedging an unidentifiable provider difference
 
 The variance drain above compares the mix to the *average* single plan, treating the two
 providers' expected returns as known and equal. But the real risk in the provider choice is
@@ -270,7 +282,7 @@ Over the sample PFA-high out-returned Velliv-high
 by **1.2 percentage points a year**, with a standard error of
 0.8 pp/yr (t = 1.5), so it is
 **not distinguishable from zero**.
-You could not have known in advance which would win, and the best-Sharpe profile in Section 2 was not stable across windows. The monthly report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
+You could not have known in advance which would win, and the best-Sharpe profile in Section 2 was not stable across windows. The diagnostic report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
 
 How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: a
 skewed-t with `nu = `3.5` and `xi = `0.7` (set in the inputs). Simulating two
@@ -279,10 +291,14 @@ between them over the sample has its own spread purely from chance and fat tails
 
 
 
-The realised gap is **1.3 standard deviations** of that pure-chance distribution.
-That is even less than the normal-theory t-statistic implies, because the fat tail widens the range of chance outcomes. The realised lead is well within what no edge at all produces, so it is not signal.
+Under this fat-tailed null, a gap at least as large as the realised one arises by chance about
+**16%** of the time, against 13%
+under normal theory. The two are close: over a multi-year sum the central-limit effect leaves little room for the tail to change the verdict.
+Either way the realised lead is well within what no edge at all produces, so it is not signal.
 
-Committing to one provider is thus a bet on an unreadable coin, and the stakes grow with the
+Committing to one provider is thus a bet on a difference in expected return that the data cannot
+identify: the relative drift is not distinguishable from zero, so there is no statistical basis for
+predicting which provider will compound higher. The stakes grow with the
 horizon -- increasingly from the *estimation* uncertainty in the drift (which accumulates
 linearly) rather than path noise (which accumulates only as √horizon):
 
@@ -296,10 +312,15 @@ Table: Dispersion between the two providers' cumulative outcomes by horizon, vs 
 |20 yr   |23%                 |63%                   |225,610             |14,000                |
 |30 yr   |33%                 |72%                   |330,596             |21,000                |
 
+The **provider gap (1-sd)** column is one standard deviation of the spread between the two
+providers' cumulative outcomes at that horizon, the typical distance by which one ends ahead of the
+other. The **share from estimation** column is how much of that spread comes from not knowing the
+relative drift (which grows with the horizon), as opposed to ordinary path noise.
+
 In kroner the gap dwarfs the flat fee. But the gap is symmetric, since you might land on either
 side, so what justifies hedging is its **risk-adjusted** value, not its raw size. For a saver with
 constant relative risk aversion `γ`, the certainty-equivalent value of holding both, agnostic
-about which is better, is about `γ · σ²gap / 8`, the result derived in the monthly report. Here
+about which is better, is about `γ · σ²gap / 8`, the result derived in the diagnostic report. Here
 `σ²gap` is the variance of the cumulative provider gap, combining path noise with the estimation
 uncertainty in the relative drift:
 
@@ -335,9 +356,8 @@ by giving up the better provider's upside.
 
 Over the sample, 1 kr grew to about 3.2 kr in PFA-high and about
 2.8 kr in Velliv-high. A 50/50 buy-and-hold split would have ended at about
-3.0 kr, between the two. The premium is symmetric, and you cannot know in
-advance which provider will win: the realised drift gap is not distinguishable from zero, as shown
-above.
+3.0 kr, between the two. The premium is symmetric, and
+you cannot know in advance which provider will win, since the realised drift gap is not distinguishable from zero, as shown above.
 
 The honest limit of this lens is that the insurance cannot be priced reliably against the flat
 fee. Its value depends on the dispersion of the provider gap, and under the heavy tails the
@@ -386,7 +406,7 @@ points. And crucially, **that modest benefit barely moves between the independen
 coincident-crash models**: at a correlation of 0.97 the bulk
 co-movement already caps the diversification, so the tail dependence we *cannot* estimate turns
 out not to change the answer. Provider-splitting at the same risk level is a weak crash hedge,
-since two equity-dominated providers mostly fall together.
+since two highly-correlated providers mostly fall together.
 
 The far larger lever for crash protection is the **risk level itself**: The bond sleeve of a
 lower-risk plan cuts the crash probability much more than a second provider does (the flip
@@ -419,7 +439,7 @@ will continue") reveals itself only with time. This tool is therefore also meant
 
 ## Distance to a path crossing
 
-Section 2 showed the high plan is a leverage of the medium plan, and the monthly report shows the
+Section 2 showed the high plan is a leverage of the medium plan, and the diagnostic report shows the
 flip side: the high plan trails the medium plan exactly while the medium plan sits below its entry
 value. The distance to a crossing is therefore the cushion the medium plan has built above the
 chosen entry, and a crossing begins once a drawdown gives that cushion back. The table reads this
@@ -434,13 +454,14 @@ Table: Distance to a within-provider path crossing. The high plan trails the med
 | Velliv (high vs med)|               +131%|                    57%|                     2%|            +11.6%|
 |         PFA (D vs B)|               +111%|                    53%|                     2%|             +8.7%|
 
-From an entry at the start of the supplied data the cushion is large, so a crossing needs a
-near-total drawdown: a long-held high plan is far from falling behind its medium plan. The
-fragility is all in the entry point. An investor who bought at the medium plan's most recent peak
-is at the brink, since any down-month then puts the medium plan below entry. This is the COVID-eve
-case from the monthly report. The six-month medium return shows the current direction: positive
-means the cushion is widening and a crossing receding, negative means it is narrowing. This is the
-within-provider crossing, the high plan against its own medium plan, and is separate from the
+What to read in the table. The **drawdown to a crossing** is how far the medium plan must fall from
+today before the high plan slips behind it. It is large from a long-held entry and small from a
+recent one, because the cushion is whatever the plan has gained since the entry. The **drawdown
+from peak now** is the fragile reading: an entry at the medium plan's most recent peak is closest
+to a crossing, since any further fall puts the plan below its entry. That is the situation the
+diagnostic report illustrates with the COVID-eve example. A positive six-month medium return means
+the cushion is widening and a crossing receding; a negative one means it is narrowing. This is the
+within-provider crossing, the high plan against its own medium plan, separate from the
 cross-provider spread above.
 
 ## Has the return structure changed?
@@ -476,5 +497,5 @@ underlying funds and weights, and then to revisit the risk-level and provider de
 On the loaded data and your inputs:
 
 - **Risk level.** Velliv reads as a leverage ray, and PFA's profiles also read as a ray within the noise. In both, pick the risk level by drawdown tolerance; there is nothing to optimise. The larger lever, for growth and for crash protection alike, is the risk level itself, not the provider.
-- **One provider or both.** The best cross-provider mix (PFA low (A) + Velliv high) cuts volatility about 2.6%. On diversification grounds one provider is enough at your balance. As insurance against the unreadable provider bet, the certainty equivalent (kr 10,347) falls short of the extra flat fees over your horizon (kr 14,000), and the joint simulation makes a same-risk split a weak crash hedge. The strongest case for a second provider is operational risk, which the return data cannot measure.
+- **One provider or both.** The best cross-provider mix (PFA low (A) + Velliv high) cuts volatility about 2.6%. On diversification grounds one provider is enough at your balance. As insurance against the unidentifiable provider difference, the certainty equivalent (kr 10,347) falls short of the extra flat fees over your horizon (kr 14,000), and the joint simulation makes a same-risk split a weak crash hedge. The strongest case for a second provider is operational risk, which the return data cannot measure.
 - **Trust.** The loaded data are heavy-tailed, and the tail is not pinned down at 142 months. Treat every figure here as direction, not precision, and re-run the tool as the data grow.
