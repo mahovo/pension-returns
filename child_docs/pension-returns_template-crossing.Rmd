@@ -592,6 +592,32 @@ size, and the standard error itself is only a lower bound (the kurtosis it omits
 be infinite). It is not worth paying, in added risk or in fees, to chase a tangency that the
 data cannot locate.
 
+The risk-return map shows the same result. Each plan sits at its annualised volatility and mean
+return. Plans on one ray through the origin share a Sharpe ratio; a bend off the ray is a Sharpe
+difference.
+
+```{r mean-var-plot, fig.width = 8, fig.height = 5}
+.mvd <- cbind(velliv_monthly_logreturns_df[, c("low_risk", "medium_risk", "high_risk")],
+              pfa_monthly_logreturns_df[, c("pfa_a", "pfa_b", "pfa_c", "pfa_d")])
+.mv <- data.frame(
+  plan     = c("Velliv low", "Velliv medium", "Velliv high", "PFA A (low)", "PFA B", "PFA C", "PFA D (high)"),
+  provider = c(rep("Velliv", 3), rep("PFA", 4)),
+  vol = sapply(.mvd, function(x) sd(x) * sqrt(12)),
+  ret = sapply(.mvd, function(x) mean(x) * 12))
+.vray <- with(.mv[.mv$provider == "Velliv", ], mean(ret / vol))   # mean Velliv Sharpe (rf = 0)
+ggplot(.mv, aes(vol, ret, colour = provider)) +
+  geom_abline(slope = .vray, intercept = 0, linetype = 2, colour = "grey60") +
+  geom_point(size = 3) +
+  ggrepel::geom_text_repel(aes(label = plan), size = 3, show.legend = FALSE) +
+  labs(title = "Risk vs return by plan (annualised, full sample)",
+       subtitle = "Dashed line: the Velliv leverage ray through the origin",
+       x = "volatility", y = "mean return") +
+  expand_limits(x = 0, y = 0)
+```
+
+The three Velliv plans lie close to one ray, the signature of leverage. PFA's profiles sit a
+little off it, the small bend the decomposition above quantified.
+
 ## Diversifying across providers: variance drain and certainty equivalent
 
 The crossing and Sharpe results concern one provider's menu. A separate question is what the
@@ -651,6 +677,42 @@ the tail is heavy and the variance may not be finite, in which case $\sigma^2$ a
 built on it lose their meaning. The value above is therefore the diversification benefit in the
 body. Whether holding both providers helps in a crash is a tail question, and the investor tool
 takes it up with a joint simulation.
+
+### The provider gap is one realised path
+
+The certainty equivalent above prices the uncertainty about *which* provider compounds faster.
+That uncertainty is real: over the sample the two high-risk plans drift apart, but by a margin the
+data cannot distinguish from zero.
+
+```{r provider-drift}
+.dh  <- monthly_logreturns_df$phr - monthly_logreturns_df$vhr   # PFA high minus Velliv high, monthly
+.seh <- sd(.dh) / sqrt(length(.dh))
+knitr::kable(data.frame(
+  "annualised gap" = sprintf("%+.1f pp/yr", 1200 * mean(.dh)),
+  "standard error" = sprintf("%.1f pp/yr", 1200 * .seh),
+  "t"              = sprintf("%.1f", mean(.dh) / .seh),
+  check.names = FALSE),
+  caption = "Realised return gap, PFA high minus Velliv high (full sample, n = 142).")
+```
+
+```{r provider-drift-plot, fig.width = 10}
+.idx <- function(lr) 100 * exp(cumsum(lr))
+.pp  <- data.frame(
+  date = monthly_logreturns_df$date,
+  `Velliv high` = .idx(monthly_logreturns_df$vhr),
+  `PFA high`    = .idx(monthly_logreturns_df$phr),
+  check.names = FALSE) %>% gather(key = "plan", value = "index", -date)
+ggplot(.pp, aes(date, index, colour = plan)) +
+  geom_line(linewidth = 0.6) +
+  scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
+  labs(title = "Cumulative index of the two high-risk plans (100 at the start)",
+       subtitle = "One realised path over the sample",
+       x = "date", y = "price index")
+```
+
+The paths separate, yet with $t\approx`r round(mean(.dh) / .seh, 1)`$ the gap is not
+distinguishable from zero. Which provider leads is not something the data establish in advance,
+which is exactly the uncertainty the certainty equivalent prices.
 
 
 

@@ -10,7 +10,7 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "06:35 24 June 2026"
+date: "06:42 24 June 2026"
 params:
   start_date: null         ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
   monitor_months: 36       ## Length (months) of the "recent" window for the structure check.
@@ -94,7 +94,8 @@ The highest-Sharpe profile by start window is PFA B from 2012-07; PFA C from 201
 and it is not stable across windows.
 So no best-Sharpe blend is reliably identifiable, and you should not pay, in added risk or in fees, to chase one.
 
-![](pension-returns_investor_files/figure-html/mean-var-plot-1.png)<!-- -->
+The risk-return picture for all plans, with the leverage ray, is in the monthly report's Sharpe
+section; this tool reports the verdict above rather than repeat the chart.
 
 # 2. Across providers: Is there diversification?
 
@@ -233,10 +234,11 @@ what the data cannot pin down.
 
 
 
-Over the sample PFA-high out-returned Velliv-high by **1.2
-percentage points a year** -- but with a standard error of 0.8 pp/yr
-(t = 1.5), so it is **not distinguishable from zero**. You could not
-have known which would win, and Section 1 showed the ranking flips across windows.
+Over the sample PFA-high out-returned Velliv-high
+by **1.2 percentage points a year**, with a standard error of
+0.8 pp/yr (t = 1.5), so it is
+**not distinguishable from zero**.
+You could not have known in advance which would win, and the best-Sharpe profile in Section 1 was not stable across windows. The monthly report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
 
 Committing to one provider is thus a bet on an unreadable coin, and the stakes grow with the
 horizon -- increasingly from the *estimation* uncertainty in the drift (which accumulates
