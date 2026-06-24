@@ -10,9 +10,9 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "13:16 23 June 2026"
+date: "06:16 24 June 2026"
 params:
-  start_date: null     ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
+  start_date: null     ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
   monitor_months: 36   ## Length (months) of the "recent" window for the structure check in Section 6.
 ---
 
@@ -29,11 +29,11 @@ This is a companion to the two returns reports `pension-returns_monthly` and `pe
 2. **One provider or both** -- is there diversification between PFA and Velliv, and could
    it plausibly beat the cost of splitting?
 
-The returns reports' central caveat governs everything here: with about 14 years of
+The returns reports' central caveat governs everything here: with about 12 years of
 data and fat tails, point estimates (means, Sharpe ratios, correlations) are noisy and
 regime-dependent. The tool is therefore built to expose *how robust* each conclusion is,
-not to emit a single "best" plan. Returns are monthly, 172 months
-(2010-01 to 2024-04), PFA at the 30-year horizon; rates over the period are
+not to emit a single "best" plan. Returns are monthly, 142 months
+(2012-07 to 2024-04), PFA at the 30-year horizon; rates over the period are
 near zero, so "Sharpe" is return divided by volatility.
 
 # 1. Within a provider: Is a higher-risk plan just more leverage?
@@ -49,9 +49,9 @@ Table: Annualised Sharpe ratio by plan and start date.
 
 |                      | Velliv low| Velliv med| Velliv high| PFA low (A)| PFA B| PFA C| PFA high (D)|
 |:---------------------|----------:|----------:|-----------:|-----------:|-----:|-----:|------------:|
-|from 2010-01  (n=172) |       0.82|       0.84|        0.81|        1.24|  1.10|  0.99|         0.90|
-|from 2014-09  (n=116) |       0.62|       0.64|        0.62|        0.79|  0.81|  0.81|         0.79|
-|from 2019-07  (n=58)  |       0.44|       0.52|        0.53|        0.30|  0.52|  0.64|         0.68|
+|from 2012-07  (n=142) |       0.82|       0.84|        0.81|        1.05|  1.06|  1.04|         1.01|
+|from 2016-05  (n=96)  |       0.64|       0.68|        0.67|        0.67|  0.76|  0.80|         0.80|
+|from 2020-05  (n=48)  |       0.66|       0.72|        0.79|        0.48|  0.77|  0.94|         1.02|
 
 **Velliv is a leverage ray.** In every sub-period the three Velliv plans have essentially
 the same Sharpe (about 0.8), so they are scaled versions of one portfolio.
@@ -60,7 +60,7 @@ more expected return, with no change in reward-per-unit-risk and nothing to "opt
 
 **PFA's menu curves, but the direction is not identifiable.** PFA's profiles do not share a
 single Sharpe, so the menu is a curve rather than a ray. The highest-Sharpe profile by start
-window is PFA low (A) from 2010-01; PFA C from 2014-09; PFA high (D) from 2019-07. These differences
+window is PFA B from 2012-07; PFA C from 2016-05; PFA high (D) from 2020-05. These differences
 sit inside the noise the returns reports warn about, so the better end is not reliably
 identifiable. The practical conclusion is the opposite of the textbook "find the tangency
 portfolio": for PFA you cannot reliably pick a best-Sharpe blend, so you should not pay, in risk
@@ -75,28 +75,28 @@ Table: Correlation matrix of monthly returns across all plans.
 
 |             | Velliv low| Velliv med| Velliv high| PFA low (A)| PFA B| PFA C| PFA high (D)|
 |:------------|----------:|----------:|-----------:|-----------:|-----:|-----:|------------:|
-|Velliv low   |      1.000|      0.991|       0.974|       0.870| 0.951| 0.954|        0.945|
-|Velliv med   |      0.991|      1.000|       0.994|       0.868| 0.951| 0.955|        0.946|
-|Velliv high  |      0.974|      0.994|       1.000|       0.855| 0.941| 0.947|        0.939|
-|PFA low (A)  |      0.870|      0.868|       0.855|       1.000| 0.948| 0.885|        0.837|
-|PFA B        |      0.951|      0.951|       0.941|       0.948| 1.000| 0.987|        0.967|
-|PFA C        |      0.954|      0.955|       0.947|       0.885| 0.987| 1.000|        0.995|
-|PFA high (D) |      0.945|      0.946|       0.939|       0.837| 0.967| 0.995|        1.000|
+|Velliv low   |      1.000|      0.994|       0.986|       0.924| 0.966| 0.965|        0.956|
+|Velliv med   |      0.994|      1.000|       0.997|       0.903| 0.961| 0.967|        0.964|
+|Velliv high  |      0.986|      0.997|       1.000|       0.880| 0.951| 0.966|        0.967|
+|PFA low (A)  |      0.924|      0.903|       0.880|       1.000| 0.969| 0.930|        0.896|
+|PFA B        |      0.966|      0.961|       0.951|       0.969| 1.000| 0.991|        0.977|
+|PFA C        |      0.965|      0.967|       0.966|       0.930| 0.991| 1.000|        0.996|
+|PFA high (D) |      0.956|      0.964|       0.967|       0.896| 0.977| 0.996|        1.000|
 
-Every pair is highly correlated. The lowest pairwise correlation is 0.84,
+Every pair is highly correlated. The lowest pairwise correlation is 0.88,
 because every plan is equity-dominated (see the "Path crossing" section of the returns reports:
 even a "low-risk plan" is mostly equities). The least-correlated plans are
-**PFA high (D)** and **PFA low (A)**.
+**PFA low (A)** and **Velliv high**.
 
 
 Table: 50/50 cross-provider mixes: Correlation and volatility reduction vs the weighted-average volatility.
 
 |                           |correlation |vol reduction |
 |:--------------------------|:-----------|:-------------|
-|PFA low (A) + Velliv high  |0.855       |3.1%          |
-|Velliv low + PFA high (D)  |0.945       |1.4%          |
-|Velliv high + PFA high (D) |0.939       |1.6%          |
-|Velliv med + PFA B         |0.951       |1.2%          |
+|PFA low (A) + Velliv high  |0.88        |2.6%          |
+|Velliv low + PFA high (D)  |0.956       |1.1%          |
+|Velliv high + PFA high (D) |0.967       |0.8%          |
+|Velliv med + PFA B         |0.961       |1.0%          |
 
 The largest risk reduction among simple cross-provider mixes is **PFA-low + Velliv-high** --
 consistent with the intuition that pairing the most bond-heavy plan of one provider with the
@@ -117,10 +117,10 @@ Table: Volatility reduction from a 50/50 blend: within a provider (across asset 
 
 |blend                                                      | correlation|vol. reduction |
 |:----------------------------------------------------------|-----------:|:--------------|
-|Within PFA: Mid-risk plan                                  |        0.36|14%            |
-|Across providers: Velliv-high + PFA-high (same risk level) |        0.94|2%             |
+|Within PFA: Mid-risk plan                                  |        0.59|9%             |
+|Across providers: Velliv-high + PFA-high (same risk level) |        0.97|1%             |
 
-The within-provider blend correlates about 0.4 and cuts volatility several times more than the
+The within-provider blend correlates about 0.6 and cuts volatility several times more than the
 cross-provider split. A single provider's mid-risk plan is therefore already *more*
 diversified than two equity-heavy plans held across providers -- at one set of fees, not two.
 The upshot, reinforcing Sections 1 and 4: **Diversify by lowering your risk level within one
@@ -150,7 +150,7 @@ return moments.
 
 
 
-For a cross-provider same-risk split this is **1.3 basis points per
+For a cross-provider same-risk split this is **5.3 basis points per
 year** -- the entire "gain that compounds" from holding two providers. In kroner it is
 `dg · W`, while the flat fee `F₂` is paid every year regardless of `W`. The split pays only
 above a break-even balance `W* = F₂ / dg`:
@@ -160,17 +160,17 @@ Table: Balance above which the cross-provider diversification covers a second pr
 
 | flat fee per year (kr)|break-even balance (kr) |
 |----------------------:|:-----------------------|
-|                    500|3,739,000               |
-|                    600|4,487,000               |
-|                    700|5,235,000               |
-|                    800|5,983,000               |
-|                    900|6,731,000               |
-|                   1000|7,479,000               |
-|                   1100|8,227,000               |
-|                   1200|8,975,000               |
-|                   1300|9,722,000               |
-|                   1400|10,470,000              |
-|                   1500|11,218,000              |
+|                    500|942,000                 |
+|                    600|1,130,000               |
+|                    700|1,318,000               |
+|                    800|1,507,000               |
+|                    900|1,695,000               |
+|                   1000|1,883,000               |
+|                   1100|2,072,000               |
+|                   1200|2,260,000               |
+|                   1300|2,448,000               |
+|                   1400|2,636,000               |
+|                   1500|2,825,000               |
 
 Because the benefit is only about a basis point a year, the break-even balances run into the
 millions -- for realistic flat fees the diversification never covers them within a normal
@@ -219,9 +219,9 @@ what the data cannot pin down.
 
 
 
-Over the sample PFA-high out-returned Velliv-high by **1
-percentage points a year** -- but with a standard error of 0.9 pp/yr
-(t = 1.1), so it is **not distinguishable from zero**. You could not
+Over the sample PFA-high out-returned Velliv-high by **1.2
+percentage points a year** -- but with a standard error of 0.8 pp/yr
+(t = 1.5), so it is **not distinguishable from zero**. You could not
 have known which would win, and Section 1 showed the ranking flips across windows.
 
 Committing to one provider is thus a bet on an unreadable coin, and the stakes grow with the
@@ -233,10 +233,10 @@ Table: Dispersion between the two providers' cumulative outcomes by horizon, vs 
 
 |horizon |provider gap (1-sd) |share from estimation |gap on kr 1,000,000 |flat fee over horizon |
 |:-------|:-------------------|:---------------------|:-------------------|:---------------------|
-|5 yr    |10%                 |26%                   |96,595              |3,500                 |
-|10 yr   |16%                 |41%                   |157,541             |7,000                 |
-|20 yr   |28%                 |58%                   |278,592             |14,000                |
-|30 yr   |41%                 |68%                   |407,802             |21,000                |
+|5 yr    |8%                  |30%                   |76,773              |3,500                 |
+|10 yr   |13%                 |46%                   |126,521             |7,000                 |
+|20 yr   |23%                 |63%                   |225,610             |14,000                |
+|30 yr   |33%                 |72%                   |330,596             |21,000                |
 
 In kroner the gap dwarfs the flat fee. But the gap is symmetric, since you might land on either
 side, so what justifies hedging is its **risk-adjusted** value, not its raw size. For a saver with
@@ -250,8 +250,8 @@ Table: Certainty-equivalent value (kr, on kr 1,000,000) of holding both provider
 
 |      |RRA 1 |RRA 2  |RRA 4  |
 |:-----|:-----|:------|:------|
-|10 yr |2,675 |5,351  |10,702 |
-|20 yr |7,550 |15,099 |30,199 |
+|10 yr |1,774 |3,548  |7,097  |
+|20 yr |5,173 |10,347 |20,694 |
 
 This is a genuine close call rather than a slam dunk. The certainty-equivalent value of hedging
 the provider bet is comparable to the flat fee. It falls short for a moderately risk-averse
@@ -275,9 +275,9 @@ by giving up the better provider's upside.
 
 
 
-Over the sample, 1 kr grew to about 3.7 kr in PFA-high and about
-3.2 kr in Velliv-high. A 50/50 buy-and-hold split would have ended at about
-3.5 kr, between the two. The premium is symmetric, and you cannot know in
+Over the sample, 1 kr grew to about 3.2 kr in PFA-high and about
+2.8 kr in Velliv-high. A 50/50 buy-and-hold split would have ended at about
+3.0 kr, between the two. The premium is symmetric, and you cannot know in
 advance which provider will win: the realised drift gap is not distinguishable from zero, as shown
 above.
 
@@ -298,7 +298,7 @@ left-skewed, and correlation is itself unstable under fat tails. The decision-re
 question is whether holding two providers protects the *tail* -- a crash -- and by how much.
 
 The data fix each plan's *marginal* (mean, volatility, fat-tailed shape) and the *linear
-correlation* between providers (about 0.94 for two high-risk plans), but they do **not** fix the
+correlation* between providers (about 0.97 for two high-risk plans), but they do **not** fix the
 *tail dependence*: whether the two crash *together* (a systemic equity selloff) or whether
 one can crash *alone*. So rather than a single number we simulate three models that **all
 match the observed means, volatilities and correlation** and differ only in the tail -- a
@@ -314,18 +314,18 @@ Table: One-year wealth (start = 100): one high-risk plan vs a 50/50 provider spl
 
 |                         | single 5th-pct| single P(loss>10%)| split 5th-pct| split P(loss>10%)|
 |:------------------------|--------------:|------------------:|-------------:|-----------------:|
-|Gaussian                 |          90.80|               4.05|         91.76|              3.16|
-|Fat, independent crashes |          90.48|               4.67|         91.44|              3.61|
-|Fat, coincident crashes  |          90.53|               4.65|         91.27|              3.84|
+|Gaussian                 |          89.12|               5.95|         91.05|              3.78|
+|Fat, independent crashes |          88.91|               6.00|         90.97|              4.30|
+|Fat, coincident crashes  |          88.62|               5.74|         90.60|              4.42|
 
 Three things stand out. **Fat tails make the single plan riskier than a Gaussian view admits.**
-The chance of a one-year loss worse than 10% rises from about 4.0%
-under the Gaussian to about 4.7% with
+The chance of a one-year loss worse than 10% rises from about 5.9%
+under the Gaussian to about 6.0% with
 fat tails, and for deeper losses the gap widens. **Splitting across two same-risk providers helps
-only modestly.** It trims that probability to about 3.6%
-and lifts the 5th-percentile floor by about 1.0
+only modestly.** It trims that probability to about 4.3%
+and lifts the 5th-percentile floor by about 2.1
 points. And crucially, **that modest benefit barely moves between the independent-crash and
-coincident-crash models**: at a correlation of 0.94 the bulk
+coincident-crash models**: at a correlation of 0.97 the bulk
 co-movement already caps the diversification, so the tail dependence we *cannot* estimate turns
 out not to change the answer. Provider-splitting at the same risk level is a weak crash hedge,
 since two equity-dominated providers mostly fall together.
@@ -366,9 +366,9 @@ will continue") reveals itself only with time. This tool is therefore also meant
   would alter the *risk-level* choice (e.g. when staying in a high-risk plan stops looking
   safe).
 - **Provider divergence** -- a widening gap between the providers' cumulative outcomes. Over
-  2010-01 to 2024-04, 1 m DKK in PFA-high grew to about 3.7 m
-  versus about 3.2 m in Velliv-high, a spread of about
-  0.5 m, with PFA-high compounding about 1.0 pp/year
+  2012-07 to 2024-04, 1 m DKK in PFA-high grew to about 3.2 m
+  versus about 2.8 m in Velliv-high, a spread of about
+  0.4 m, with PFA-high compounding about 1.2 pp/year
   faster. No one could have called this in advance. A monitor shows such a gap opening and forces
   the question of whether it is signal or luck.
 - **Composition or fee changes** -- e.g. PFA's 2024 move from four profiles (A--D) to three
@@ -388,8 +388,8 @@ Table: Distance to a within-provider path crossing. The high plan trails the med
 
 |             provider| cushion since entry| drawdown to a crossing| drawdown from peak now| medium return, 6m|
 |--------------------:|-------------------:|----------------------:|----------------------:|-----------------:|
-| Velliv (high vs med)|               +169%|                    63%|                     2%|            +11.6%|
-|         PFA (D vs B)|               +152%|                    60%|                     2%|             +8.7%|
+| Velliv (high vs med)|               +131%|                    57%|                     2%|            +11.6%|
+|         PFA (D vs B)|               +111%|                    53%|                     2%|             +8.7%|
 
 From an entry at the start of the supplied data the cushion is large, so a crossing needs a
 near-total drawdown: a long-held high plan is far from falling behind its medium plan. The
@@ -414,12 +414,12 @@ Table: Structure check: baseline window vs the most recent 36 months. The data c
 
 |metric                                |baseline |recent |change  |
 |:-------------------------------------|:--------|:------|:-------|
-|Velliv leverage $\beta$ (high on med) |1.23     |1.22   |-0.01   |
-|PFA leverage $\beta$ (high on med)    |1.79     |1.46   |-0.33   |
-|Velliv medium volatility (ann.)       |7.8%     |9.5%   |+1.7 pp |
-|PFA medium volatility (ann.)          |5.5%     |7.1%   |+1.6 pp |
-|Velliv low-high correlation           |0.97     |0.99   |+0.02   |
-|PFA low-high correlation              |0.83     |0.91   |+0.08   |
+|Velliv leverage $\beta$ (high on med) |1.29     |1.22   |-0.06   |
+|PFA leverage $\beta$ (high on med)    |1.69     |1.46   |-0.23   |
+|Velliv medium volatility (ann.)       |8.0%     |9.5%   |+1.5 pp |
+|PFA medium volatility (ann.)          |5.5%     |7.1%   |+1.5 pp |
+|Velliv low-high correlation           |0.99     |0.99   |+0.01   |
+|PFA low-high correlation              |0.90     |0.91   |+0.01   |
 
 On the supplied data the structure is broadly stable, and any drift here reflects the market
 regime rather than a policy change. Run on data that extends past a reweighting, the same check

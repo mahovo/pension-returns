@@ -12,7 +12,7 @@ output:
     latex_engine: xelatex
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 params:
-  start_date: null     ## NULL = use the full span of the supplied data; else a "YYYY-MM-DD" cut-off.
+  start_date: null     ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
   monitor_months: 36   ## Length (months) of the "recent" window for the structure check in Section 6.
 ---
 
@@ -49,9 +49,17 @@ for (y in j$afkast_maaned$afkast) for (m in y$maaneder) if (m$maaned != "YTD")
 P <- do.call(rbind, rows)
 
 M <- merge(vlr, P, by = "ym"); M <- M[order(M$ym), ]
-## Window: default to the full span of the supplied data. Override with params$start_date.
+## Comparability: each provider's plans must be genuinely distinct over the window. Velliv's
+## low/medium/high are a single backfilled series until the plans split (here 2012-07, the first
+## month the three returns differ; they share a common 100 anchor at 2012-06). Earlier months are
+## degenerate and excluded. PFA's profiles are distinct throughout. The comparable window starts at
+## the latest genuine first return month across the providers; the user may start later, not earlier.
+.v_start   <- min(vlr$ym[apply(vlr[, c("V_low", "V_med", "V_high")], 1,
+                               function(r) length(unique(r)) > 1)])
+.cmp_start <- max(.v_start, min(P$ym))
 if (exists("params") && !is.null(params$start_date))
-  M <- M[M$ym >= format(as.Date(params$start_date), "%Y-%m"), ]
+  .cmp_start <- max(.cmp_start, format(as.Date(params$start_date), "%Y-%m"))
+M <- M[M$ym >= .cmp_start, ]
 R <- M[, c("V_low", "V_med", "V_high", "P_A", "P_B", "P_C", "P_D")]
 plan_labels <- c(V_low = "Velliv low", V_med = "Velliv med", V_high = "Velliv high",
                  P_A = "PFA low (A)", P_B = "PFA B", P_C = "PFA C", P_D = "PFA high (D)")
