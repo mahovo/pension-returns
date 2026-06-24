@@ -163,7 +163,7 @@ pre code {
 
 <h1 class="title toc-ignore">Choosing a pension plan: an investor’s decision tool</h1>
 <h4 class="author">Martin Hoshi Vognsen</h4>
-<h4 class="date">07:18 24 June 2026</h4>
+<h4 class="date">07:25 24 June 2026</h4>
 
 </div>
 
@@ -171,32 +171,32 @@ pre code {
 <ul>
 <li><a href="#purpose">Purpose</a></li>
 <li><a href="#inputs">Inputs</a></li>
-<li><a href="#current-regime-check">Current regime check</a></li>
-<li><a href="#within-a-provider-is-a-higher-risk-plan-just-more-leverage">1. Within a provider: Is a higher-risk plan just more leverage?</a></li>
-<li><a href="#across-providers-is-there-diversification">2. Across providers: Is there diversification?</a>
+<li><a href="#current-regime-check">1. Current regime check</a></li>
+<li><a href="#within-a-provider-which-risk-level">2. Within a provider: which risk level?</a></li>
+<li><a href="#across-providers-is-there-diversification">3. Across providers: is there diversification?</a>
 <ul>
 <li><a href="#the-diversification-that-does-work-is-within-a-provider">The diversification that <em>does</em> work is within a provider</a></li>
 </ul></li>
-<li><a href="#diversification-vs.-cost-which-fees-actually-matter">3. Diversification vs. cost: Which fees actually matter</a>
+<li><a href="#one-provider-or-both-the-cost">4. One provider or both: the cost</a>
 <ul>
 <li><a href="#is-the-diversification-worth-a-second-flat-fee">Is the diversification worth a second flat fee?</a></li>
 <li><a href="#how-much-cheaper-must-a-second-provider-be">How much cheaper must a second provider be?</a></li>
 <li><a href="#the-benefit-the-variance-drain-misses-hedging-an-unreadable-provider-bet">The benefit the variance drain misses: Hedging an unreadable provider bet</a></li>
 <li><a href="#a-second-lens-the-split-as-insurance">A second lens: the split as insurance</a></li>
 </ul></li>
-<li><a href="#does-diversifying-across-providers-help-in-the-tail-a-joint-simulation">4. Does diversifying across providers help in the tail? A joint simulation</a></li>
-<li><a href="#using-the-tool">5. Using the tool</a></li>
-<li><a href="#from-a-one-off-decision-to-an-ongoing-monitor">6. From a one-off decision to an ongoing monitor</a>
+<li><a href="#does-a-second-provider-help-in-the-tail">5. Does a second provider help in the tail?</a></li>
+<li><a href="#monitoring-what-has-changed">6. Monitoring: what has changed?</a>
 <ul>
 <li><a href="#distance-to-a-path-crossing">Distance to a path crossing</a></li>
 <li><a href="#has-the-return-structure-changed">Has the return structure changed?</a></li>
 </ul></li>
+<li><a href="#verdict">7. Verdict</a></li>
 </ul>
 </div>
 
 <div id="purpose" class="section level1">
 <h1>Purpose</h1>
-<p>This is a companion to the two returns reports <code>pension-returns_monthly</code> and <code>pension-returns_annual</code>. Those reports characterise the <em>distribution</em> of each plan’s returns – fat tails, a persistent left skew, and a tail index the data cannot pin down. This tool turns those findings into the two decisions an investor actually faces:</p>
+<p>This tool is the decision companion to the monthly report, which serves as its technical appendix. The monthly report establishes how each plan’s returns are distributed (fat tails, a persistent left skew, a tail index the data cannot pin down) and why the methods used below are the right ones. This tool applies them to your data and costs, and turns them into the two decisions an investor actually faces:</p>
 <ol style="list-style-type: decimal">
 <li><strong>Which risk level</strong> – and is a higher-risk plan anything more than a more-leveraged version of a lower-risk one?</li>
 <li><strong>One provider or both</strong> – is there diversification between PFA and Velliv, and could it plausibly beat the cost of splitting?</li>
@@ -263,7 +263,7 @@ pre code {
 </table>
 </div>
 <div id="current-regime-check" class="section level1">
-<h1>Current regime check</h1>
+<h1>1. Current regime check</h1>
 <p>The reports’ working model is a heavy-tailed, left-skewed return distribution. Before any mean-variance figure can be trusted, check whether the loaded data still look that way or have moved toward the Gaussian. A skewed-t fit answers it: a high tail index <code>nu</code> with a skew <code>xi</code> near 1 is near-Gaussian; a low <code>nu</code>, or a <code>xi</code> below 1, is heavy tails and left skew.</p>
 <table>
 <caption>Skewed-t fit per plan on the loaded data. A low tail index (heavy tails) or a skew below 1 (left skew) is the reports’ regime; a high tail index with skew near 1 is near-Gaussian.</caption>
@@ -309,10 +309,10 @@ pre code {
 </table>
 <p>Across these plans the median tail index is 3.5 and the median skew is 0.72. That is firmly heavy-tailed, the regime the reports assume, so the mean-variance figures here are body-of-distribution summaries and the tail caveats stand.</p>
 <p>The test is deliberately asymmetric. A single extreme month can reveal a fat tail; no stretch of calm can prove its absence.</p>
-<p>The latest month (2024-04) is within the fitted tails of every plan: no fresh tail signal, which on its own proves nothing. Calling the regime Gaussian instead needs far more data than a benign stretch provides. The tail parameters are not pinned down at 142 observations: by the reports’ analysis, matching even 30 Gaussian observations for the <em>mean</em> takes on the order of 90 heavy-tailed observations, and the tail needs more still. Treat a quiet tail as unproven, not safe.</p>
+<p>The latest month (2024-04) is within the fitted tails of every plan: no fresh tail signal, which on its own proves nothing. Calling the regime Gaussian instead needs far more data than a benign stretch provides. The tail parameters are not pinned down at 142 observations: by the reports’ analysis, matching even 30 Gaussian observations for the <em>mean</em> takes on the order of 142 heavy-tailed observations, and the tail needs more still. Treat a quiet tail as unproven, not safe.</p>
 </div>
-<div id="within-a-provider-is-a-higher-risk-plan-just-more-leverage" class="section level1">
-<h1>1. Within a provider: Is a higher-risk plan just more leverage?</h1>
+<div id="within-a-provider-which-risk-level" class="section level1">
+<h1>2. Within a provider: which risk level?</h1>
 <p>A higher-risk plan is <em>pure leverage</em> of a lower-risk one when it has the same reward-to-risk (Sharpe) and the same distributional shape, only scaled. If so, choosing a risk level is a pure risk-appetite dial with no consequence for return-per-unit-risk. We test this with the Sharpe ratio of each plan and, crucially, its stability across sub-periods.</p>
 <table>
 <caption>Annualised Sharpe ratio by plan and start date.</caption>
@@ -366,7 +366,7 @@ pre code {
 <p>The risk-return picture for all plans, with the leverage ray, is in the monthly report’s Sharpe section; this tool reports the verdict above rather than repeat the chart.</p>
 </div>
 <div id="across-providers-is-there-diversification" class="section level1">
-<h1>2. Across providers: Is there diversification?</h1>
+<h1>3. Across providers: is there diversification?</h1>
 <table>
 <caption>Correlation matrix of monthly returns across all plans.</caption>
 <thead>
@@ -513,11 +513,11 @@ pre code {
 </tr>
 </tbody>
 </table>
-<p>The within-provider blend correlates about 0.6 and cuts volatility several times more than the cross-provider split. A single provider’s mid-risk plan is therefore already more diversified than two equity-heavy plans held across providers, at one set of fees, not two. The upshot, reinforcing Sections 1 and 4: diversify by lowering your risk level within one provider, not by adding a second.</p>
+<p>The within-provider blend correlates about 0.6 and cuts volatility several times more than the cross-provider split. A single provider’s mid-risk plan is therefore already more diversified than two equity-heavy plans held across providers, at one set of fees, not two. The upshot, reinforcing Sections 2 and 5: diversify by lowering your risk level within one provider, not by adding a second.</p>
 </div>
 </div>
-<div id="diversification-vs.-cost-which-fees-actually-matter" class="section level1">
-<h1>3. Diversification vs. cost: Which fees actually matter</h1>
+<div id="one-provider-or-both-the-cost" class="section level1">
+<h1>4. One provider or both: the cost</h1>
 <p>Fees split into two kinds, and only one bears on the <em>split</em> decision:</p>
 <ul>
 <li><strong>Proportional fees</strong> (a percentage of assets under management). If both providers charge the same rate they are <em>split-neutral</em>: <code>p</code> on the whole pot costs the same whether it sits in one plan or two (<code>p·W = p·W₁ + p·W₂</code>). Equal proportional fees therefore drop out of the one-vs-two decision entirely.</li>
@@ -612,7 +612,7 @@ pre code {
 <div id="the-benefit-the-variance-drain-misses-hedging-an-unreadable-provider-bet" class="section level2">
 <h2>The benefit the variance drain misses: Hedging an unreadable provider bet</h2>
 <p>The variance drain above compares the mix to the <em>average</em> single plan, treating the two providers’ expected returns as known and equal. But the real risk in the provider choice is not knowing <em>which provider’s drift will compound higher</em> – and that difference is precisely what the data cannot pin down.</p>
-<p>Over the sample PFA-high out-returned Velliv-high by <strong>1.2 percentage points a year</strong>, with a standard error of 0.8 pp/yr (t = 1.5), so it is <strong>not distinguishable from zero</strong>. You could not have known in advance which would win, and the best-Sharpe profile in Section 1 was not stable across windows. The monthly report’s Sharpe section carries the reference-period version of this comparison and a plot of the two paths.</p>
+<p>Over the sample PFA-high out-returned Velliv-high by <strong>1.2 percentage points a year</strong>, with a standard error of 0.8 pp/yr (t = 1.5), so it is <strong>not distinguishable from zero</strong>. You could not have known in advance which would win, and the best-Sharpe profile in Section 2 was not stable across windows. The monthly report’s Sharpe section carries the reference-period version of this comparison and a plot of the two paths.</p>
 <p>How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: a skewed-t with <code>nu =</code>3.5<code>and</code>xi = <code>0.7</code> (set in the inputs). Simulating two providers with the data’s volatilities and correlation but <em>no</em> true difference in mean, the gap between them over the sample has its own spread purely from chance and fat tails.</p>
 <p>The realised gap is <strong>1.3 standard deviations</strong> of that pure-chance distribution. That is even less than the normal-theory t-statistic implies, because the fat tail widens the range of chance outcomes. The realised lead is well within what no edge at all produces, so it is not signal.</p>
 <p>Committing to one provider is thus a bet on an unreadable coin, and the stakes grow with the horizon – increasingly from the <em>estimation</em> uncertainty in the drift (which accumulates linearly) rather than path noise (which accumulates only as √horizon):</p>
@@ -691,19 +691,19 @@ pre code {
 </tr>
 </tbody>
 </table>
-<p>At your risk aversion of 2 and a 20-year horizon, the certainty-equivalent value of holding both providers is about kr 10,347, against kr 14,000 of extra flat fees over that horizon. So the hedge falls short of its cost: for you it is close to a wash. The large realised gap is hindsight, not an expected gain. It would clear only for a more risk-averse saver or a longer horizon. The risk-level choice of Sections 1 and 4 remains the larger lever, and all of this assumes the saver does not chase the apparent drift edge that Section 1 says cannot be trusted.</p>
+<p>At your risk aversion of 2 and a 20-year horizon, the certainty-equivalent value of holding both providers is about kr 10,347, against kr 14,000 of extra flat fees over that horizon. So the hedge falls short of its cost: for you it is close to a wash. The large realised gap is hindsight, not an expected gain. It would clear only for a more risk-averse saver or a longer horizon. The risk-level choice of Sections 2 and 5 remains the larger lever, and all of this assumes the saver does not chase the apparent drift edge that Section 2 says cannot be trusted.</p>
 <p><em>To use this with real numbers, set <code>F2</code> (each provider’s flat fee), the two proportional rates, and your balance / contribution path; the break-evens above then read off directly.</em></p>
 </div>
 <div id="a-second-lens-the-split-as-insurance" class="section level2">
 <h2>A second lens: the split as insurance</h2>
 <p>The certainty equivalent prices the body of the distribution. A complementary view, free of any distributional assumption, treats the split as insurance. A 50/50 buy-and-hold split ends at the average of the two single outcomes, so its terminal wealth always lands between the worse and the better provider. Splitting removes the risk of committing to the worse provider, and pays for it by giving up the better provider’s upside.</p>
 <p>Over the sample, 1 kr grew to about 3.2 kr in PFA-high and about 2.8 kr in Velliv-high. A 50/50 buy-and-hold split would have ended at about 3.0 kr, between the two. The premium is symmetric, and you cannot know in advance which provider will win: the realised drift gap is not distinguishable from zero, as shown above.</p>
-<p>The honest limit of this lens is that the insurance cannot be priced reliably against the flat fee. Its value depends on the dispersion of the provider gap, and under the heavy tails the returns reports document that dispersion is not something the data pin down. The Monte Carlo in Section 4, and the long-horizon simulations in the returns reports, show that compounded outcomes over a long horizon can diverge to an extreme degree. So the mean-variance certainty equivalent gives a point estimate that reads as a close call, while the insurance lens says the protection is real but its price is genuinely uncertain. The decision rests on how much an unquantifiable hedge against picking the worse provider is worth to the saver, set against a known annual flat fee.</p>
+<p>The honest limit of this lens is that the insurance cannot be priced reliably against the flat fee. Its value depends on the dispersion of the provider gap, and under the heavy tails the returns reports document that dispersion is not something the data pin down. The Monte Carlo in Section 5, and the long-horizon simulations in the returns reports, show that compounded outcomes over a long horizon can diverge to an extreme degree. So the mean-variance certainty equivalent gives a point estimate that reads as a close call, while the insurance lens says the protection is real but its price is genuinely uncertain. The decision rests on how much an unquantifiable hedge against picking the worse provider is worth to the saver, set against a known annual flat fee.</p>
 </div>
 </div>
-<div id="does-diversifying-across-providers-help-in-the-tail-a-joint-simulation" class="section level1">
-<h1>4. Does diversifying across providers help in the tail? A joint simulation</h1>
-<p>Sections 1–3 are second-moment – Sharpe, correlation, volatility. The returns reports show the second moment is the wrong lens: the tail index <code>nu</code> is around 3–5, returns are left-skewed, and correlation is itself unstable under fat tails. The decision-relevant question is whether holding two providers protects the <em>tail</em> – a crash – and by how much.</p>
+<div id="does-a-second-provider-help-in-the-tail" class="section level1">
+<h1>5. Does a second provider help in the tail?</h1>
+<p>Sections 2–4 are second-moment – Sharpe, correlation, volatility. The returns reports show the second moment is the wrong lens: the tail index <code>nu</code> is around 3–5, returns are left-skewed, and correlation is itself unstable under fat tails. The decision-relevant question is whether holding two providers protects the <em>tail</em> – a crash – and by how much.</p>
 <p>The data fix each plan’s <em>marginal</em> (mean, volatility, fat-tailed shape) and the <em>linear correlation</em> between providers (about 0.97 for two high-risk plans), but they do <strong>not</strong> fix the <em>tail dependence</em>: whether the two crash <em>together</em> (a systemic equity selloff) or whether one can crash <em>alone</em>. So rather than a single number we simulate three models that <strong>all match the observed means, volatilities and correlation</strong> and differ only in the tail – a <strong>Gaussian</strong> world (no fat tails); the fitted skewed-<span class="math inline">\(t\)</span> marginals with <strong>independent</strong> crashes (a Gaussian copula); and the same marginals with <strong>coincident</strong> crashes (a Student-<span class="math inline">\(t\)</span> copula). For each we compare holding one high-risk plan (100% Velliv high) against a 50/50 provider split (Velliv high + PFA high) over <strong>one year</strong> – the horizon at which a crash actually bites (over twenty years the law of large numbers smooths the monthly tails away and the split’s effect all but vanishes).</p>
 <table>
 <caption>One-year wealth (start = 100): one high-risk plan vs a 50/50 provider split, under three models matched on mean, volatility and correlation.</caption>
@@ -743,26 +743,17 @@ pre code {
 <p>Three things stand out. <strong>Fat tails make the single plan riskier than a Gaussian view admits.</strong> The chance of a one-year loss worse than 10% rises from about 5.9% under the Gaussian to about 6.0% with fat tails, and for deeper losses the gap widens. <strong>Splitting across two same-risk providers helps only modestly.</strong> It trims that probability to about 4.3% and lifts the 5th-percentile floor by about 2.1 points. And crucially, <strong>that modest benefit barely moves between the independent-crash and coincident-crash models</strong>: at a correlation of 0.97 the bulk co-movement already caps the diversification, so the tail dependence we <em>cannot</em> estimate turns out not to change the answer. Provider-splitting at the same risk level is a weak crash hedge, since two equity-dominated providers mostly fall together.</p>
 <p>The far larger lever for crash protection is the <strong>risk level itself</strong>: The bond sleeve of a lower-risk plan cuts the crash probability much more than a second provider does (the flip side of the “Path crossing” result in the returns reports – the lower-risk plan genuinely cushions a drawdown, at the cost of expected return). The one diversification a <em>returns</em> analysis cannot see is <strong>provider-specific operational risk</strong> – a fund or administrator failing on its own – which is the strongest remaining argument for splitting and lies outside this data.</p>
 </div>
-<div id="using-the-tool" class="section level1">
-<h1>5. Using the tool</h1>
-<ul>
-<li><strong>Risk level, Velliv:</strong> A pure risk-appetite dial (one leverage ray). Pick by drawdown tolerance; there is no reward-per-risk to optimise.</li>
-<li><strong>Risk level, PFA:</strong> The menu curves, but the best-Sharpe blend is not identifiable and flips across periods. Default to risk appetite; do not pay to chase a tangency.</li>
-<li><strong>One provider or both:</strong> A small mean-variance diversification (best via PFA-low + Velliv-high), and the joint simulation shows it stays small in the tail too – two equity-heavy providers mostly crash together, so a same-risk split is a weak crash hedge. The real crash lever is the <em>risk level</em>, not the provider. The strongest case for two providers is operational risk, which the return data cannot measure; weigh it against the cost of splitting.</li>
-<li><strong>All of the above rests on a benign, short, fat-tailed sample.</strong> Treat the numbers as direction, not precision – the same discipline the returns reports impose.</li>
-</ul>
-</div>
-<div id="from-a-one-off-decision-to-an-ongoing-monitor" class="section level1">
-<h1>6. From a one-off decision to an ongoing monitor</h1>
+<div id="monitoring-what-has-changed" class="section level1">
+<h1>6. Monitoring: what has changed?</h1>
 <p>These choices are not made once. The data that drive them – the regime, the gap between providers, what each plan holds, the fees – change, and a wrong assumption (“the bull market will continue”) reveals itself only with time. This tool is therefore also meant to be <strong>re-run periodically as a monitor</strong>, flagging when a decision needs revisiting:</p>
 <ul>
 <li><strong>Regime shifts</strong> – a change in the level of returns, in volatility, or in the tail that would alter the <em>risk-level</em> choice (e.g. when staying in a high-risk plan stops looking safe).</li>
 <li><strong>Provider divergence</strong> – a widening gap between the providers’ cumulative outcomes. Over 2012-07 to 2024-04, 1 m DKK in PFA-high grew to about 3.2 m versus about 2.8 m in Velliv-high, a spread of about 0.4 m, with PFA-high compounding about 1.2 pp/year faster. No one could have called this in advance. A monitor shows such a gap opening and forces the question of whether it is signal or luck.</li>
-<li><strong>Composition or fee changes</strong> – e.g. PFA’s 2024 move from four profiles (A–D) to three (Low/Medium/High), or any change in the flat fees that drive the Section 3 arithmetic.</li>
+<li><strong>Composition or fee changes</strong> – e.g. PFA’s 2024 move from four profiles (A–D) to three (Low/Medium/High), or any change in the flat fees that drive the Section 4 arithmetic.</li>
 </ul>
 <div id="distance-to-a-path-crossing" class="section level2">
 <h2>Distance to a path crossing</h2>
-<p>Section 1 showed the high plan is a leverage of the medium plan, and the monthly report shows the flip side: the high plan trails the medium plan exactly while the medium plan sits below its entry value. The distance to a crossing is therefore the cushion the medium plan has built above the chosen entry, and a crossing begins once a drawdown gives that cushion back. The table reads this off for each provider, from the saver’s entry (the start of the supplied data by default) and from the medium plan’s most recent peak.</p>
+<p>Section 2 showed the high plan is a leverage of the medium plan, and the monthly report shows the flip side: the high plan trails the medium plan exactly while the medium plan sits below its entry value. The distance to a crossing is therefore the cushion the medium plan has built above the chosen entry, and a crossing begins once a drawdown gives that cushion back. The table reads this off for each provider, from the saver’s entry (the start of the supplied data by default) and from the medium plan’s most recent peak.</p>
 <table>
 <caption>Distance to a within-provider path crossing. The high plan trails the medium plan once the medium plan falls back to its entry level. ‘Drawdown to a crossing’ is the fall from today, gradual or in a single month, that would trigger it; ‘drawdown from peak now’ is how far the medium plan already sits under its running high; ‘medium return, 6m’ shows whether the cushion is widening (positive) or narrowing.</caption>
 <colgroup>
@@ -854,6 +845,15 @@ pre code {
 </table>
 <p>On the supplied data the structure is broadly stable, and any drift here reflects the market regime rather than a policy change. Run on data that extends past a reweighting, the same check would flag it: fewer streams, a higher volatility and a higher low-to-high correlation in the plans moved toward equities, and a leverage slope pulled toward one. A flag is a prompt to ask which of three causes is at work, market conditions, a change of policy, or a change in the underlying funds and weights, and then to revisit the risk-level and provider decisions above.</p>
 </div>
+</div>
+<div id="verdict" class="section level1">
+<h1>7. Verdict</h1>
+<p>On the loaded data and your inputs:</p>
+<ul>
+<li><strong>Risk level.</strong> Velliv reads as a leverage ray, and PFA’s profiles also read as a ray within the noise. In both, pick the risk level by drawdown tolerance; there is nothing to optimise. The larger lever, for growth and for crash protection alike, is the risk level itself, not the provider.</li>
+<li><strong>One provider or both.</strong> The best cross-provider mix (PFA low (A) + Velliv high) cuts volatility about 2.6%. On diversification grounds one provider is enough at your balance. As insurance against the unreadable provider bet, the certainty equivalent (kr 10,347) falls short of the extra flat fees over your horizon (kr 14,000), and the joint simulation makes a same-risk split a weak crash hedge. The strongest case for a second provider is operational risk, which the return data cannot measure.</li>
+<li><strong>Trust.</strong> The loaded data are heavy-tailed, and the tail is not pinned down at 142 months. Treat every figure here as direction, not precision, and re-run the tool as the data grow.</li>
+</ul>
 </div>
 
 
