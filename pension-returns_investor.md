@@ -10,10 +10,19 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "06:16 24 June 2026"
+date: "06:25 24 June 2026"
 params:
-  start_date: null     ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
-  monitor_months: 36   ## Length (months) of the "recent" window for the structure check in Section 6.
+  start_date: null         ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
+  monitor_months: 36       ## Length (months) of the "recent" window for the structure check.
+  balance: 1000000         ## Current balance (kr) the decision applies to.
+  flat_fee: 700            ## A provider's annual flat administration fee (kr); the marginal cost of a second provider.
+  prop_rate_velliv: 0.007  ## Velliv annual proportional fee (fraction of balance).
+  prop_rate_pfa: 0.007     ## PFA annual proportional fee (fraction of balance).
+  risk_free: 0.0           ## Annual risk-free rate (e.g. 0.03 for a 3% deposit).
+  gamma: 2                 ## Relative risk aversion.
+  horizon: 20              ## Decision horizon in years.
+  assumed_nu: 3.5          ## Assumed skew-t tail index for the stress simulation.
+  assumed_xi: 0.7          ## Assumed skew-t skew for the stress simulation.
 ---
 
 
@@ -33,8 +42,29 @@ The returns reports' central caveat governs everything here: with about 12 years
 data and fat tails, point estimates (means, Sharpe ratios, correlations) are noisy and
 regime-dependent. The tool is therefore built to expose *how robust* each conclusion is,
 not to emit a single "best" plan. Returns are monthly, 142 months
-(2012-07 to 2024-04), PFA at the 30-year horizon; rates over the period are
-near zero, so "Sharpe" is return divided by volatility.
+(2012-07 to 2024-04), PFA at the 30-year horizon. Sharpe ratios use the risk-free rate set in the inputs below.
+
+# Inputs
+
+Every figure below is computed from your data and these settings. Change them in the YAML header at
+the top of this document, or pass them as render parameters.
+
+
+Table: Current inputs. Sharpe ratios, certainty equivalents, fee break-evens and the stress simulation all read from these.
+
+|setting                       |value                  |
+|:-----------------------------|:----------------------|
+|Balance (kr)                  |1,000,000              |
+|Flat fee per provider (kr/yr) |700                    |
+|Proportional fee, Velliv      |0.70%                  |
+|Proportional fee, PFA         |0.70%                  |
+|Risk-free rate (annual)       |0.0%                   |
+|Risk aversion                 |2                      |
+|Horizon (years)               |20                     |
+|Start date                    |full comparable window |
+|Monitor window (months)       |36                     |
+|Assumed tail index            |3.5                    |
+|Assumed skew                  |0.7                    |
 
 # 1. Within a provider: Is a higher-risk plan just more leverage?
 
@@ -160,17 +190,11 @@ Table: Balance above which the cross-provider diversification covers a second pr
 
 | flat fee per year (kr)|break-even balance (kr) |
 |----------------------:|:-----------------------|
-|                    500|942,000                 |
-|                    600|1,130,000               |
+|                    350|659,000                 |
+|                    525|989,000                 |
 |                    700|1,318,000               |
-|                    800|1,507,000               |
-|                    900|1,695,000               |
-|                   1000|1,883,000               |
-|                   1100|2,072,000               |
-|                   1200|2,260,000               |
-|                   1300|2,448,000               |
+|                   1050|1,977,000               |
 |                   1400|2,636,000               |
-|                   1500|2,825,000               |
 
 Because the benefit is only about a basis point a year, the break-even balances run into the
 millions -- for realistic flat fees the diversification never covers them within a normal
@@ -189,26 +213,19 @@ $$\Delta p \;\ge\; \frac{F_2}{W_2}.$$
 
 Table: Proportional-rate discount a second provider must offer to justify its flat fee, by amount placed there (W2).
 
-|              |kr 500,000 |kr 600,000 |kr 700,000 |kr 800,000 |kr 900,000 |
-|:-------------|:----------|:----------|:----------|:----------|:----------|
-|F2 = kr 500   |0.10%      |0.08%      |0.07%      |0.06%      |0.06%      |
-|F2 = kr 600   |0.12%      |0.10%      |0.09%      |0.07%      |0.07%      |
-|F2 = kr 700   |0.14%      |0.12%      |0.10%      |0.09%      |0.08%      |
-|F2 = kr 800   |0.16%      |0.13%      |0.11%      |0.10%      |0.09%      |
-|F2 = kr 900   |0.18%      |0.15%      |0.13%      |0.11%      |0.10%      |
-|F2 = kr 1,000 |0.20%      |0.17%      |0.14%      |0.12%      |0.11%      |
-|F2 = kr 1,100 |0.22%      |0.18%      |0.16%      |0.14%      |0.12%      |
-|F2 = kr 1,200 |0.24%      |0.20%      |0.17%      |0.15%      |0.13%      |
-|F2 = kr 1,300 |0.26%      |0.22%      |0.19%      |0.16%      |0.14%      |
-|F2 = kr 1,400 |0.28%      |0.23%      |0.20%      |0.17%      |0.16%      |
-|F2 = kr 1,500 |0.30%      |0.25%      |0.21%      |0.19%      |0.17%      |
+|              |kr 250,000 |kr 500,000 |kr 750,000 |kr 1,000,000 |
+|:-------------|:----------|:----------|:----------|:------------|
+|F2 = kr 350   |0.14%      |0.07%      |0.05%      |0.04%        |
+|F2 = kr 700   |0.28%      |0.14%      |0.09%      |0.07%        |
+|F2 = kr 1,050 |0.42%      |0.21%      |0.14%      |0.10%        |
+|F2 = kr 1,400 |0.56%      |0.28%      |0.19%      |0.14%        |
 
-A second provider charging kr 1,000/year that receives kr 100,000 of your savings must be a
-full **1 percentage point/year** cheaper just to break even on fees; at kr 1,000,000 placed
-the bar falls to **0.1 pp/year**. The diversification credit (`dg · W`) could be added to the
-left-hand side, but at ~1 bp it barely moves the bar. (If a second provider is *strictly*
-cheaper on both fee types, the question is not whether to *add* it but whether to *switch*
-entirely.)
+At your flat fee of kr 700 and balance of kr
+1,000,000, a second provider must be at least
+**0.07 percentage points/year** cheaper to break even on
+fees. The diversification credit (`dg · W`) could be added to the left-hand side, but at about a
+basis point it barely moves the bar. If a second provider is *strictly* cheaper on both fee types,
+the question is not whether to *add* it but whether to *switch* entirely.
 
 ## The benefit the variance drain misses: Hedging an unreadable provider bet
 

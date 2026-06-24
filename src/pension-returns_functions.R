@@ -1016,8 +1016,9 @@ mix_of_logreturns <- function(logreturns1, logreturns2) {
 ## Annualisation of monthly log returns.
 ann_mean <- function(x) mean(x) * 12
 ann_vol  <- function(x) sd(x) * sqrt(12)
-## Annualised Sharpe. Rates over the sample are ~0, so excess return ~ return.
-ann_sharpe <- function(x) mean(x) / sd(x) * sqrt(12)
+## Annualised Sharpe with an explicit annual risk-free rate (default 0). With rf > 0 the
+## "leverage ray" through the origin becomes a capital allocation line through (0, rf).
+ann_sharpe <- function(x, rf = 0) (mean(x) * 12 - rf) / (sd(x) * sqrt(12))
 
 ## Simple (gross - 1) returns from log returns.
 simple_returns <- function(logreturns) exp(logreturns) - 1

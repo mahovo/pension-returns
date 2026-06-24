@@ -12,12 +12,22 @@ output:
     latex_engine: xelatex
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 params:
-  start_date: null     ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
-  monitor_months: 36   ## Length (months) of the "recent" window for the structure check in Section 6.
+  start_date: null         ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
+  monitor_months: 36       ## Length (months) of the "recent" window for the structure check.
+  balance: 1000000         ## Current balance (kr) the decision applies to.
+  flat_fee: 700            ## A provider's annual flat administration fee (kr); the marginal cost of a second provider.
+  prop_rate_velliv: 0.007  ## Velliv annual proportional fee (fraction of balance).
+  prop_rate_pfa: 0.007     ## PFA annual proportional fee (fraction of balance).
+  risk_free: 0.0           ## Annual risk-free rate (e.g. 0.03 for a 3% deposit).
+  gamma: 2                 ## Relative risk aversion.
+  horizon: 20              ## Decision horizon in years.
+  assumed_nu: 3.5          ## Assumed skew-t tail index for the stress simulation.
+  assumed_xi: 0.7          ## Assumed skew-t skew for the stress simulation.
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+options(scipen = 999)   # never print kroner amounts in scientific notation
 library(here)
 library(jsonlite)
 library(ggplot2)
@@ -64,6 +74,17 @@ R <- M[, c("V_low", "V_med", "V_high", "P_A", "P_B", "P_C", "P_D")]
 plan_labels <- c(V_low = "Velliv low", V_med = "Velliv med", V_high = "Velliv high",
                  P_A = "PFA low (A)", P_B = "PFA B", P_C = "PFA C", P_D = "PFA high (D)")
 provider    <- c(rep("Velliv", 3), rep("PFA", 4))
+
+## --- User inputs (set in the YAML header or via render params) ---
+.p <- function(name, default) if (exists("params") && !is.null(params[[name]])) params[[name]] else default
+balance    <- .p("balance", 1e6)
+flat_fee   <- .p("flat_fee", 700)
+rf         <- .p("risk_free", 0)
+gamma      <- .p("gamma", 2)
+horizon    <- .p("horizon", 20)
+prop_rate  <- c(Velliv = .p("prop_rate_velliv", 0.007), PFA = .p("prop_rate_pfa", 0.007))
+assumed_nu <- .p("assumed_nu", 3.5)
+assumed_xi <- .p("assumed_xi", 0.7)
 ```
 
 # Purpose
@@ -79,8 +100,29 @@ The returns reports' central caveat governs everything here: with about `r round
 data and fat tails, point estimates (means, Sharpe ratios, correlations) are noisy and
 regime-dependent. The tool is therefore built to expose *how robust* each conclusion is,
 not to emit a single "best" plan. Returns are monthly, `r nrow(R)` months
-(`r min(M$ym)` to `r max(M$ym)`), PFA at the 30-year horizon; rates over the period are
-near zero, so "Sharpe" is return divided by volatility.
+(`r min(M$ym)` to `r max(M$ym)`), PFA at the 30-year horizon. Sharpe ratios use the risk-free rate set in the inputs below.
+
+# Inputs
+
+Every figure below is computed from your data and these settings. Change them in the YAML header at
+the top of this document, or pass them as render parameters.
+
+```{r inputs-table}
+.sd <- .p("start_date", NULL)
+knitr::kable(data.frame(
+  setting = c("Balance (kr)", "Flat fee per provider (kr/yr)", "Proportional fee, Velliv",
+              "Proportional fee, PFA", "Risk-free rate (annual)", "Risk aversion", "Horizon (years)",
+              "Start date", "Monitor window (months)", "Assumed tail index", "Assumed skew"),
+  value = c(format(round(balance), big.mark = ",", scientific = FALSE),
+            format(round(flat_fee), big.mark = ","),
+            sprintf("%.2f%%", 100 * prop_rate["Velliv"]),
+            sprintf("%.2f%%", 100 * prop_rate["PFA"]),
+            sprintf("%.1f%%", 100 * rf), gamma, horizon,
+            if (is.null(.sd)) "full comparable window" else as.character(.sd),
+            .p("monitor_months", 36), assumed_nu, assumed_xi),
+  check.names = FALSE),
+  caption = "Current inputs. Sharpe ratios, certainty equivalents, fee break-evens and the stress simulation all read from these.")
+```
 
 # 1. Within a provider: Is a higher-risk plan just more leverage?
 
@@ -95,15 +137,15 @@ sub-periods.
 .k <- length(M$ym); wins <- M$ym[unique(round(c(1, .k / 3, 2 * .k / 3)))]
 tab <- t(sapply(wins, function(w) {
   S <- M[M$ym >= w, names(R)]
-  round(sapply(S, ann_sharpe), 2)
+  round(sapply(S, ann_sharpe, rf = rf), 2)
 }))
 rownames(tab) <- paste0("from ", wins, "  (n=", sapply(wins, function(w) sum(M$ym >= w)), ")")
 colnames(tab) <- plan_labels[colnames(tab)]
 knitr::kable(tab, caption = "Annualised Sharpe ratio by plan and start date.")
 ## Derived figures used in the prose below.
-.vshrp   <- mean(sapply(R[c("V_low", "V_med", "V_high")], ann_sharpe))   # mean Velliv Sharpe
+.vshrp   <- mean(sapply(R[c("V_low", "V_med", "V_high")], ann_sharpe, rf = rf))   # mean Velliv Sharpe
 .pfa     <- c("P_A", "P_B", "P_C", "P_D")
-.bestpfa <- sapply(wins, function(w) { S <- M[M$ym >= w, .pfa]; .pfa[which.max(sapply(S, ann_sharpe))] })
+.bestpfa <- sapply(wins, function(w) { S <- M[M$ym >= w, .pfa]; .pfa[which.max(sapply(S, ann_sharpe, rf = rf))] })
 ```
 
 **Velliv is a leverage ray.** In every sub-period the three Velliv plans have essentially
@@ -127,12 +169,12 @@ mv <- data.frame(
   ret = sapply(R, ann_mean)
 )
 ggplot(mv, aes(vol, ret, colour = provider)) +
-  geom_abline(slope = mean(sapply(R[1:3], ann_sharpe)), intercept = 0,
+  geom_abline(slope = mean(sapply(R[1:3], ann_sharpe, rf = rf)), intercept = rf,
               linetype = 2, colour = "grey60") +
   geom_point(size = 3) +
   ggrepel::geom_text_repel(aes(label = plan), size = 3, show.legend = FALSE) +
   labs(title = "Risk vs return (annualised)",
-       subtitle = "Dashed line: the Velliv 'leverage ray' through the origin",
+       subtitle = "Dashed line: the Velliv leverage ray (capital allocation line from the risk-free rate)",
        x = "volatility", y = "mean return") +
   expand_limits(x = 0, y = 0)
 ```
@@ -227,7 +269,7 @@ year** -- the entire "gain that compounds" from holding two providers. In kroner
 above a break-even balance `W* = F₂ / dg`:
 
 ```{r flatfee-table}
-F2 <- 5:15 * 100
+F2 <- round(flat_fee * c(0.5, 0.75, 1, 1.5, 2))
 knitr::kable(
   data.frame(`flat fee per year (kr)` = F2,
              `break-even balance (kr)` = format(round(F2 / dg, -3), big.mark = ",", scientific = FALSE, trim = TRUE),
@@ -250,19 +292,19 @@ flat fee `F₂`. So a second provider must undercut the first by at least
 $$\Delta p \;\ge\; \frac{F_2}{W_2}.$$
 
 ```{r prop-table}
-W2 <- c(5e5, 6e5, 7e5, 8e5, 9e5); F2v <- 5:15 * 100
+W2 <- round(balance * c(0.25, 0.5, 0.75, 1)); F2v <- round(flat_fee * c(0.5, 1, 1.5, 2))
 tab <- outer(F2v, W2, function(f, w) sprintf("%.2f%%", 100 * f / w))
 dimnames(tab) <- list(paste0("F2 = kr ", format(F2v, big.mark = ",", trim = TRUE)),
                       paste0("kr ", format(W2, big.mark = ",", scientific = FALSE, trim = TRUE)))
 knitr::kable(tab, caption = "Proportional-rate discount a second provider must offer to justify its flat fee, by amount placed there (W2).")
 ```
 
-A second provider charging kr 1,000/year that receives kr 100,000 of your savings must be a
-full **1 percentage point/year** cheaper just to break even on fees; at kr 1,000,000 placed
-the bar falls to **0.1 pp/year**. The diversification credit (`dg · W`) could be added to the
-left-hand side, but at ~1 bp it barely moves the bar. (If a second provider is *strictly*
-cheaper on both fee types, the question is not whether to *add* it but whether to *switch*
-entirely.)
+At your flat fee of kr `r format(round(flat_fee), big.mark = ",")` and balance of kr
+`r format(round(balance), big.mark = ",")`, a second provider must be at least
+**`r sprintf("%.2f", 100 * flat_fee / balance)` percentage points/year** cheaper to break even on
+fees. The diversification credit (`dg · W`) could be added to the left-hand side, but at about a
+basis point it barely moves the bar. If a second provider is *strictly* cheaper on both fee types,
+the question is not whether to *add* it but whether to *switch* entirely.
 
 ## The benefit the variance drain misses: Hedging an unreadable provider bet
 
@@ -274,7 +316,7 @@ what the data cannot pin down.
 ```{r selrisk-setup}
 .d <- R$P_D - R$V_high                 # monthly relative log-return, PFA high minus Velliv high
 .n <- length(.d); .se <- sd(.d) / sqrt(.n)
-.principal <- 1e6; .fee_yr <- 700      # illustrate on kr 1,000,000; second-provider flat fee, kr/yr
+.principal <- balance; .fee_yr <- flat_fee    # the saver's balance and second-provider flat fee
 ```
 
 Over the sample PFA-high out-returned Velliv-high by **`r round(1200 * mean(.d), 1)`
@@ -307,14 +349,16 @@ uncertainty in the relative drift:
 
 ```{r selrisk-ce}
 .ce <- function(H, g) { T <- 12 * H; g * ((T * .se)^2 + T * sd(.d)^2) / 8 }
-.tab <- sapply(c(1, 2, 4), function(g) sapply(c(10, 20), function(H)
+.gv <- sort(unique(c(1, gamma, 4))); .hv <- sort(unique(c(10, horizon)))
+.tab <- sapply(.gv, function(g) sapply(.hv, function(H)
   format(round(.principal * .ce(H, g)), big.mark = ",", trim = TRUE)))
-dimnames(.tab) <- list(paste0(c(10, 20), " yr"), c("RRA 1", "RRA 2", "RRA 4"))
+dimnames(.tab) <- list(paste0(.hv, " yr"), paste0("RRA ", .gv))
 knitr::kable(.tab, caption = paste0(
   "Certainty-equivalent value (kr, on kr ", format(.principal, big.mark = ",", scientific = FALSE),
   ") of holding both providers instead of one, by relative risk aversion (RRA, columns). ",
-  "Compare with the flat fee, kr ", .fee_yr, "/yr: kr ", format(.fee_yr * 10, big.mark = ","),
-  " over 10 yr, kr ", format(.fee_yr * 20, big.mark = ","), " over 20 yr."))
+  "Compare with the flat fee, kr ", .fee_yr, "/yr: kr ", format(.fee_yr * .hv[1], big.mark = ","),
+  " over ", .hv[1], " yr, kr ", format(.fee_yr * .hv[length(.hv)], big.mark = ","),
+  " over ", .hv[length(.hv)], " yr."))
 ```
 
 This is a genuine close call rather than a slam dunk. The certainty-equivalent value of hedging
