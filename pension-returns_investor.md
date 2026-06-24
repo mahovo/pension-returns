@@ -10,7 +10,7 @@ output:
     toc: true
     toc_depth: 3
     latex_engine: xelatex
-date: "06:25 24 June 2026"
+date: "06:35 24 June 2026"
 params:
   start_date: null         ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
   monitor_months: 36       ## Length (months) of the "recent" window for the structure check.
@@ -83,18 +83,16 @@ Table: Annualised Sharpe ratio by plan and start date.
 |from 2016-05  (n=96)  |       0.64|       0.68|        0.67|        0.67|  0.76|  0.80|         0.80|
 |from 2020-05  (n=48)  |       0.66|       0.72|        0.79|        0.48|  0.77|  0.94|         1.02|
 
-**Velliv is a leverage ray.** In every sub-period the three Velliv plans have essentially
-the same Sharpe (about 0.8), so they are scaled versions of one portfolio.
-Choosing a Velliv risk level is a pure risk-appetite decision: more risk buys proportionally
-more expected return, with no change in reward-per-unit-risk and nothing to "optimise."
+**Velliv.** The three plans' Sharpe ratios (around 0.8) span 0.03
+against a sampling error of about 0.29. That spread is within
+the noise, so on this data Velliv behaves as a leverage ray.
+Choosing a Velliv risk level is then a pure risk-appetite decision, with nothing to optimise.
 
-**PFA's menu curves, but the direction is not identifiable.** PFA's profiles do not share a
-single Sharpe, so the menu is a curve rather than a ray. The highest-Sharpe profile by start
-window is PFA B from 2012-07; PFA C from 2016-05; PFA high (D) from 2020-05. These differences
-sit inside the noise the returns reports warn about, so the better end is not reliably
-identifiable. The practical conclusion is the opposite of the textbook "find the tangency
-portfolio": for PFA you cannot reliably pick a best-Sharpe blend, so you should not pay, in risk
-or in fees, to chase one.
+**PFA.** The four profiles' Sharpe ratios span 0.05 against a sampling error of
+about 0.3, so the menu is, within the noise, also a single ray.
+The highest-Sharpe profile by start window is PFA B from 2012-07; PFA C from 2016-05; PFA high (D) from 2020-05,
+and it is not stable across windows.
+So no best-Sharpe blend is reliably identifiable, and you should not pay, in added risk or in fees, to chase one.
 
 ![](pension-returns_investor_files/figure-html/mean-var-plot-1.png)<!-- -->
 
@@ -128,11 +126,10 @@ Table: 50/50 cross-provider mixes: Correlation and volatility reduction vs the w
 |Velliv high + PFA high (D) |0.967       |0.8%          |
 |Velliv med + PFA B         |0.961       |1.0%          |
 
-The largest risk reduction among simple cross-provider mixes is **PFA-low + Velliv-high** --
-consistent with the intuition that pairing the most bond-heavy plan of one provider with the
-most equity-heavy of the other combines the most-different compositions. But the benefit is
-*small*: A few percent of volatility, not a step change. Diversifying across providers does
-something, just not much, in mean-variance terms.
+The largest risk reduction among these cross-provider mixes is **PFA low (A) + Velliv high**, at about
+2.6% of volatility, consistent with the intuition that pairing the
+most bond-heavy plan of one provider with the most equity-heavy of the other combines the
+most-different compositions. But the benefit is small, a few percent of volatility, not a step change. Diversifying across providers does something, just not much, in mean-variance terms.
 
 ## The diversification that *does* work is within a provider
 
@@ -150,11 +147,9 @@ Table: Volatility reduction from a 50/50 blend: within a provider (across asset 
 |Within PFA: Mid-risk plan                                  |        0.59|9%             |
 |Across providers: Velliv-high + PFA-high (same risk level) |        0.97|1%             |
 
-The within-provider blend correlates about 0.6 and cuts volatility several times more than the
-cross-provider split. A single provider's mid-risk plan is therefore already *more*
-diversified than two equity-heavy plans held across providers -- at one set of fees, not two.
-The upshot, reinforcing Sections 1 and 4: **Diversify by lowering your risk level within one
-provider, not by adding a second provider.**
+The within-provider blend correlates about 0.6 and cuts volatility
+several times more than the cross-provider split.
+A single provider's mid-risk plan is therefore already more diversified than two equity-heavy plans held across providers, at one set of fees, not two. The upshot, reinforcing Sections 1 and 4: diversify by lowering your risk level within one provider, not by adding a second.
 
 # 3. Diversification vs. cost: Which fees actually matter
 
@@ -196,11 +191,13 @@ Table: Balance above which the cross-provider diversification covers a second pr
 |                   1050|1,977,000               |
 |                   1400|2,636,000               |
 
-Because the benefit is only about a basis point a year, the break-even balances run into the
-millions -- for realistic flat fees the diversification never covers them within a normal
-saver's balance, and the flat fee is paid in every low-balance year on the way up besides.
-*On diversification grounds: one provider.* (A risk-averse investor values the volatility cut
-somewhat above the pure variance-drain, but not nearly enough to move these thresholds.)
+At your flat fee of kr 700, the diversification covers it
+only above a balance of about kr 1,318,245. Your balance of kr
+1,000,000 is below that, so on pure
+diversification grounds one provider is enough.
+The benefit is only about 5.3 basis points a year, and the flat fee is paid in
+every low-balance year on the way up besides. A risk-averse investor values the volatility cut
+somewhat above the pure variance drain, but not enough to move the threshold much.
 
 ## How much cheaper must a second provider be?
 
@@ -270,12 +267,12 @@ Table: Certainty-equivalent value (kr, on kr 1,000,000) of holding both provider
 |10 yr |1,774 |3,548  |7,097  |
 |20 yr |5,173 |10,347 |20,694 |
 
-This is a genuine close call rather than a slam dunk. The certainty-equivalent value of hedging
-the provider bet is comparable to the flat fee. It falls short for a moderately risk-averse
-saver (`γ ≈ 1–2`) and clears it only for a more risk-averse one (`γ ≳ 2–4`) over a long horizon.
-The large realised gap is hindsight, not an expected gain. The defensible reading is that for a
-sufficiently risk-averse saver with a long horizon a second provider is mild insurance against
-an unreadable bet, worth roughly its flat fee, while for everyone else it is close to a wash.
+At your risk aversion of 2 and a 20-year horizon, the certainty-equivalent value
+of holding both providers is about kr 10,347, against
+kr 14,000 of extra flat fees over that horizon. So the hedge
+falls short of its cost: for you it is close to a wash.
+The large realised gap is hindsight, not an expected gain.
+It would clear only for a more risk-averse saver or a longer horizon.
 The risk-level choice of Sections 1 and 4 remains the larger lever, and all of this assumes the
 saver does not chase the apparent drift edge that Section 1 says cannot be trusted.
 

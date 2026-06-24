@@ -146,20 +146,26 @@ knitr::kable(tab, caption = "Annualised Sharpe ratio by plan and start date.")
 .vshrp   <- mean(sapply(R[c("V_low", "V_med", "V_high")], ann_sharpe, rf = rf))   # mean Velliv Sharpe
 .pfa     <- c("P_A", "P_B", "P_C", "P_D")
 .bestpfa <- sapply(wins, function(w) { S <- M[M$ym >= w, .pfa]; .pfa[which.max(sapply(S, ann_sharpe, rf = rf))] })
+## Leverage-ray verdict per provider: do the plans share a Sharpe within sampling error?
+.ray <- function(plans) {
+  S  <- sapply(R[plans], ann_sharpe, rf = rf)
+  se <- sqrt(12 * (1 + mean(S)^2 / 24) / nrow(R))   # iid-normal SE of an annualised Sharpe
+  list(spread = max(S) - min(S), se = se, ray = (max(S) - min(S)) < se)
+}
+.vr <- .ray(c("V_low", "V_med", "V_high")); .pr <- .ray(.pfa)
+.pfa_stable <- length(unique(.bestpfa)) == 1
 ```
 
-**Velliv is a leverage ray.** In every sub-period the three Velliv plans have essentially
-the same Sharpe (about `r round(.vshrp, 1)`), so they are scaled versions of one portfolio.
-Choosing a Velliv risk level is a pure risk-appetite decision: more risk buys proportionally
-more expected return, with no change in reward-per-unit-risk and nothing to "optimise."
+**Velliv.** The three plans' Sharpe ratios (around `r round(.vshrp, 1)`) span `r round(.vr$spread, 2)`
+against a sampling error of about `r round(.vr$se, 2)`. That spread is `r if (.vr$ray) "within" else "beyond"`
+the noise, so on this data Velliv `r if (.vr$ray) "behaves as a leverage ray" else "shows a genuine reward-per-risk difference across its plans"`.
+`r if (.vr$ray) "Choosing a Velliv risk level is then a pure risk-appetite decision, with nothing to optimise." else "The risk level then carries a reward-per-risk consequence worth weighing, not just a risk-appetite choice."`
 
-**PFA's menu curves, but the direction is not identifiable.** PFA's profiles do not share a
-single Sharpe, so the menu is a curve rather than a ray. The highest-Sharpe profile by start
-window is `r paste0(plan_labels[.bestpfa], " from ", wins, collapse = "; ")`. These differences
-sit inside the noise the returns reports warn about, so the better end is not reliably
-identifiable. The practical conclusion is the opposite of the textbook "find the tangency
-portfolio": for PFA you cannot reliably pick a best-Sharpe blend, so you should not pay, in risk
-or in fees, to chase one.
+**PFA.** The four profiles' Sharpe ratios span `r round(.pr$spread, 2)` against a sampling error of
+about `r round(.pr$se, 2)`, so the menu `r if (.pr$ray) "is, within the noise, also a single ray" else "curves rather than forming a single ray"`.
+The highest-Sharpe profile by start window is `r paste0(plan_labels[.bestpfa], " from ", wins, collapse = "; ")`,
+`r if (.pfa_stable) "the same across windows" else "and it is not stable across windows"`.
+`r if (!.pr$ray && .pfa_stable) "A best-Sharpe end is identifiable here, though the reports caution that such gaps are fragile at this sample size." else "So no best-Sharpe blend is reliably identifiable, and you should not pay, in added risk or in fees, to chase one."`
 
 ```{r mean-var-plot, fig.width = 8, fig.height = 5}
 mv <- data.frame(
@@ -202,13 +208,14 @@ dt <- t(sapply(mixes, function(m) c(
   `vol reduction` = sprintf("%.1f%%", 100 * (divr(R[[m[1]]], R[[m[2]]]) - 1)))))
 rownames(dt) <- sapply(mixes, function(m) paste(plan_labels[m[1]], "+", plan_labels[m[2]]))
 knitr::kable(dt, caption = "50/50 cross-provider mixes: Correlation and volatility reduction vs the weighted-average volatility.")
+.mix_red  <- sapply(mixes, function(m) divr(R[[m[1]]], R[[m[2]]]) - 1)
+.best_mix <- rownames(dt)[which.max(.mix_red)]; .max_red <- max(.mix_red)
 ```
 
-The largest risk reduction among simple cross-provider mixes is **PFA-low + Velliv-high** --
-consistent with the intuition that pairing the most bond-heavy plan of one provider with the
-most equity-heavy of the other combines the most-different compositions. But the benefit is
-*small*: A few percent of volatility, not a step change. Diversifying across providers does
-something, just not much, in mean-variance terms.
+The largest risk reduction among these cross-provider mixes is **`r .best_mix`**, at about
+`r sprintf("%.1f%%", 100 * .max_red)` of volatility, consistent with the intuition that pairing the
+most bond-heavy plan of one provider with the most equity-heavy of the other combines the
+most-different compositions. `r if (.max_red < 0.05) "But the benefit is small, a few percent of volatility, not a step change. Diversifying across providers does something, just not much, in mean-variance terms." else "That is a material reduction, so cross-provider diversification is doing real work in mean-variance terms on this data."`
 
 ## The diversification that *does* work is within a provider
 
@@ -228,13 +235,13 @@ knitr::kable(
     `vol. reduction` = sprintf("%.0f%%", 100 * (c(divr(.L, .H), divr(R$V_high, R$P_D)) - 1)),
     check.names = FALSE),
   caption = "Volatility reduction from a 50/50 blend: within a provider (across asset classes) vs across providers (same risk level).")
+.within_red <- divr(.L, .H) - 1; .cross_red <- divr(R$V_high, R$P_D) - 1
+.ratio <- .within_red / .cross_red
 ```
 
-The within-provider blend correlates about `r round(cor(.L, .H), 1)` and cuts volatility several times more than the
-cross-provider split. A single provider's mid-risk plan is therefore already *more*
-diversified than two equity-heavy plans held across providers -- at one set of fees, not two.
-The upshot, reinforcing Sections 1 and 4: **Diversify by lowering your risk level within one
-provider, not by adding a second provider.**
+The within-provider blend correlates about `r round(cor(.L, .H), 1)` and cuts volatility
+`r if (.ratio >= 2) "several times more than" else "comparably to"` the cross-provider split.
+`r if (.ratio >= 2) "A single provider's mid-risk plan is therefore already more diversified than two equity-heavy plans held across providers, at one set of fees, not two. The upshot, reinforcing Sections 1 and 4: diversify by lowering your risk level within one provider, not by adding a second." else "So on this data the within-provider and cross-provider routes are closer; weigh both against the cost of a second provider."`
 
 # 3. Diversification vs. cost: Which fees actually matter
 
@@ -275,13 +282,16 @@ knitr::kable(
              `break-even balance (kr)` = format(round(F2 / dg, -3), big.mark = ",", scientific = FALSE, trim = TRUE),
              check.names = FALSE),
   caption = "Balance above which the cross-provider diversification covers a second provider's flat fee.")
+.be <- flat_fee / dg; .covers <- balance > .be   # break-even at the user's flat fee; does the balance clear it?
 ```
 
-Because the benefit is only about a basis point a year, the break-even balances run into the
-millions -- for realistic flat fees the diversification never covers them within a normal
-saver's balance, and the flat fee is paid in every low-balance year on the way up besides.
-*On diversification grounds: one provider.* (A risk-averse investor values the volatility cut
-somewhat above the pure variance-drain, but not nearly enough to move these thresholds.)
+At your flat fee of kr `r format(round(flat_fee), big.mark = ",")`, the diversification covers it
+only above a balance of about kr `r format(round(.be), big.mark = ",")`. Your balance of kr
+`r format(round(balance), big.mark = ",")` is `r if (.covers) "above" else "below"` that, so on pure
+diversification grounds `r if (.covers) "a second provider pays for itself here" else "one provider is enough"`.
+The benefit is only about `r round(1e4 * dg, 1)` basis points a year, and the flat fee is paid in
+every low-balance year on the way up besides. A risk-averse investor values the volatility cut
+somewhat above the pure variance drain, but not enough to move the threshold much.
 
 ## How much cheaper must a second provider be?
 
@@ -359,14 +369,15 @@ knitr::kable(.tab, caption = paste0(
   "Compare with the flat fee, kr ", .fee_yr, "/yr: kr ", format(.fee_yr * .hv[1], big.mark = ","),
   " over ", .hv[1], " yr, kr ", format(.fee_yr * .hv[length(.hv)], big.mark = ","),
   " over ", .hv[length(.hv)], " yr."))
+.ce_user <- .principal * .ce(horizon, gamma); .fee_tot <- .fee_yr * horizon; .ce_clears <- .ce_user > .fee_tot
 ```
 
-This is a genuine close call rather than a slam dunk. The certainty-equivalent value of hedging
-the provider bet is comparable to the flat fee. It falls short for a moderately risk-averse
-saver (`γ ≈ 1–2`) and clears it only for a more risk-averse one (`γ ≳ 2–4`) over a long horizon.
-The large realised gap is hindsight, not an expected gain. The defensible reading is that for a
-sufficiently risk-averse saver with a long horizon a second provider is mild insurance against
-an unreadable bet, worth roughly its flat fee, while for everyone else it is close to a wash.
+At your risk aversion of `r gamma` and a `r horizon`-year horizon, the certainty-equivalent value
+of holding both providers is about kr `r format(round(.ce_user), big.mark = ",")`, against
+kr `r format(round(.fee_tot), big.mark = ",")` of extra flat fees over that horizon. So the hedge
+`r if (.ce_clears) "clears its cost: a second provider is worth its flat fee for you" else "falls short of its cost: for you it is close to a wash"`.
+The large realised gap is hindsight, not an expected gain.
+`r if (.ce_clears) "The case only strengthens with more risk aversion or a longer horizon." else "It would clear only for a more risk-averse saver or a longer horizon."`
 The risk-level choice of Sections 1 and 4 remains the larger lever, and all of this assumes the
 saver does not chase the apparent drift edge that Section 1 says cannot be trusted.
 
