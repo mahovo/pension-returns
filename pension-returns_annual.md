@@ -27,7 +27,7 @@ params:
   run_is_sim: TRUE
   run_is_plot: TRUE
   include_long: TRUE
-date: "23:21 20 June 2026"
+date: "07:27 24 June 2026"
 ---
 
 
@@ -62,6 +62,11 @@ date: "23:21 20 June 2026"
 
 
 # Summary
+
+*Role of this report.* This annual report is an artifact, not the substance of the study. Its
+purpose is to show how far inference degrades when only annual data is available. Annual returns
+are too sparse to estimate the distribution, so the report goes no further than establishing that.
+The substance of the study is the monthly report, and the decision companion is the investor tool.
 
 This is a **case study on a deliberately frozen data set** (annual returns 2011-2023),
 not an up-to-date monitor. Fixing the data is what lets us interpret a specific set of
@@ -2200,13 +2205,13 @@ same distribution as a mix of two simulated returns series.
 
 
 ```
-## m(data_x): 0.04687605 
-## s(data_x): 0.4311535 
-## m(data_y): 11.51927 
-## s(data_y): 3.203339 
+## m(data_x): -0.06102962 
+## s(data_x): 0.4340772 
+## m(data_y): 9.541337 
+## s(data_y): 2.380286 
 ## 
-## m(data_x + data_y): 5.783074 
-## s(data_x + data_y): 1.643387
+## m(data_x + data_y): 4.740154 
+## s(data_x + data_y): 1.194826
 ```
 
 m and s of final state of all paths.\
@@ -2214,28 +2219,28 @@ m and s of final state of all paths.\
 `_b` is simulated mixed returns.
 
 
-|     m_a|     m_b|   s_a|   s_b|
-|-------:|-------:|-----:|-----:|
-| 115.816| 115.673| 7.096| 7.340|
-| 115.610| 115.637| 7.369| 7.348|
-| 115.483| 115.427| 7.060| 7.422|
-| 115.726| 115.570| 7.145| 7.463|
-| 115.380| 115.981| 6.999| 7.173|
-| 115.392| 115.943| 7.482| 7.501|
-| 115.708| 116.111| 7.139| 7.432|
-| 115.516| 115.481| 7.286| 7.595|
-| 115.789| 115.780| 7.279| 7.364|
-| 115.718| 115.168| 7.182| 7.525|
+|    m_a|    m_b|   s_a|   s_b|
+|------:|------:|-----:|-----:|
+| 94.853| 94.852| 5.340| 5.381|
+| 94.645| 94.668| 5.627| 5.213|
+| 95.001| 95.069| 5.356| 5.585|
+| 94.759| 94.572| 5.452| 5.051|
+| 94.743| 94.985| 5.429| 5.509|
+| 94.834| 94.998| 5.311| 5.580|
+| 95.071| 94.927| 5.473| 5.263|
+| 94.427| 94.720| 5.193| 5.286|
+| 94.750| 94.874| 5.376| 5.419|
+| 94.894| 94.712| 5.451| 5.344|
 
 
 ```
 ##       m_a             m_b             s_a             s_b       
-##  Min.   :115.4   Min.   :115.2   Min.   :6.999   Min.   :7.173  
-##  1st Qu.:115.5   1st Qu.:115.5   1st Qu.:7.107   1st Qu.:7.352  
-##  Median :115.7   Median :115.7   Median :7.164   Median :7.427  
-##  Mean   :115.6   Mean   :115.7   Mean   :7.204   Mean   :7.416  
-##  3rd Qu.:115.7   3rd Qu.:115.9   3rd Qu.:7.284   3rd Qu.:7.492  
-##  Max.   :115.8   Max.   :116.1   Max.   :7.482   Max.   :7.595
+##  Min.   :94.43   Min.   :94.57   Min.   :5.193   Min.   :5.051  
+##  1st Qu.:94.74   1st Qu.:94.71   1st Qu.:5.344   1st Qu.:5.268  
+##  Median :94.80   Median :94.86   Median :5.402   Median :5.362  
+##  Mean   :94.80   Mean   :94.84   Mean   :5.401   Mean   :5.363  
+##  3rd Qu.:94.88   3rd Qu.:94.97   3rd Qu.:5.452   3rd Qu.:5.486  
+##  Max.   :95.07   Max.   :95.07   Max.   :5.627   Max.   :5.585
 ```
 
 `_a` and `_b` are very close to equal.\
@@ -2288,12 +2293,12 @@ We do this by sampling 13 observations from `vmrl`.
 
 ```
 ##        m                 s          
-##  Min.   :0.05922   Min.   :0.04634  
-##  1st Qu.:0.06617   1st Qu.:0.05993  
-##  Median :0.06990   Median :0.06619  
-##  Mean   :0.07083   Mean   :0.06700  
-##  3rd Qu.:0.07546   3rd Qu.:0.07180  
-##  Max.   :0.08471   Max.   :0.09247
+##  Min.   :0.06037   Min.   :0.04111  
+##  1st Qu.:0.06623   1st Qu.:0.06221  
+##  Median :0.06848   Median :0.06818  
+##  Mean   :0.07002   Mean   :0.06877  
+##  3rd Qu.:0.07372   3rd Qu.:0.07326  
+##  Max.   :0.08551   Max.   :0.09233
 ```
 
 ## The meaning of `xi`

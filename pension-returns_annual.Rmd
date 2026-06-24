@@ -143,6 +143,11 @@ mc_threshold <- 3
 
 # Summary
 
+*Role of this report.* This annual report is an artifact, not the substance of the study. Its
+purpose is to show how far inference degrades when only annual data is available. Annual returns
+are too sparse to estimate the distribution, so the report goes no further than establishing that.
+The substance of the study is the monthly report, and the decision companion is the investor tool.
+
 This is a **case study on a deliberately frozen data set** (annual returns 2011-2023),
 not an up-to-date monitor. Fixing the data is what lets us interpret a specific set of
 numbers and graphs. Three findings stand out.
