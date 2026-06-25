@@ -163,12 +163,12 @@ The analysis also looks at these mixes of plans:
 
 
 
-We observe that
+We observe that  
 1. **The four plans are weighted blends of the same two underlying funds.** A principal
 component analysis gives a first component that explains 97.7% of the variance and loads
 almost equally on all four plans. Within each provider the high-risk plan is a scalar multiple
 of the medium-risk plan in log returns (slope 1.26 for Velliv, 1.60 for PFA, intercept near
-zero, $R^2$ of 0.99 and 0.96). PFA's product description confirms the structure: profiles B
+zero, $R^2$ of 0.99 and 0.96). PFA's product description confirms the structure: Profiles B
 and D are fixed blends of the same low- and high-risk funds. The first decision within a
 provider is how much of one factor to hold, not which portfolio.
 
@@ -1132,7 +1132,7 @@ within Velliv. For PFA the two building blocks recovered from profiles B and D, 
 fund as $D$ and the low-risk fund as $2B-D$, are only moderately correlated (0.59) and differ
 several-fold in volatility (ratio 3.1).
 
-*Analysis.* The single dominant component is an empirical result: the four plans are, to a
+*Analysis.* The single dominant component is an empirical result: The four plans are, to a
 close approximation, one common factor seen at four exposures, and the within-provider scaling
 is the special case of this. The further statement that PFA's profiles are blends of exactly
 two funds, with the high-risk fund equal to $D$ and the low-risk fund equal to $2B-D$, rests
@@ -1147,12 +1147,12 @@ hold, not which portfolio.
 ## 2. "Risk" is leverage on that factor, and within a provider there is nothing to optimise
 
 *Result.* Because the slope exceeds 1 with near-zero intercept, the high-risk plan amplifies
-the common factor symmetrically: higher average growth, but deeper drawdowns (worst monthly
+the common factor symmetrically: Higher average growth, but deeper drawdowns (worst monthly
 peak-to-trough 17.3% against 15.2% for Velliv, 15.9% against 11.9% for PFA) and
 underperformance in flat or falling markets. The much-noted fact that the cumulative high-risk
 path never dips below the medium-risk path holds only for an index started at the 2012 low.
 Rebased to the eve of the COVID drawdown, the high plan trails the medium plan for about nine
-months. The reward-to-risk ratio is near-constant along the menu: the high-plan Sharpe equals
+months. The reward-to-risk ratio is near-constant along the menu: The high-plan Sharpe equals
 the medium-plan Sharpe times their correlation, so Velliv (correlation 0.997) is a
 near-perfect leverage ray and PFA (0.977) bends by about two percent. That bend, and the
 medium-to-high Sharpe gap, are well inside one standard error.
@@ -1182,7 +1182,7 @@ roughly [1.1, 5.7]. That interval straddles nu = 2, below which the variance cea
 and nu = 4, below which the kurtosis does. The skew runs 0.70 to 0.77 with an interval lying
 entirely below 1, about 3.5 standard errors from symmetry. The left skew is statistically
 established; the tail index is not pinned down. The annual report, with 13 observations,
-cannot identify nu at all: the information matrix is singular for three of the four plans, and
+cannot identify nu at all: The information matrix is singular for three of the four plans, and
 xi is driven to a degenerate corner.
 
 *Analysis, why nu and xi are hard while m is easy.* The Gaussian has only m and s. The t adds
@@ -1191,7 +1191,7 @@ lives in them. Taleb's recommended workflow is to estimate the tail exponent by 
 likelihood and then derive the mean analytically by plug-in, because the tail exponent
 captures the low-probability deviations better than the sample mean does. The catch is that
 plug-in presupposes an estimable nu, which we have at best loosely monthly and not at all
-annually. The convergence metric kappa makes the asymmetry precise: for these fits kappa is
+annually. The convergence metric kappa makes the asymmetry precise: For these fits kappa is
 about 0.14, so matching the convergence of 30 Gaussian observations takes about 55
 observations of the fitted t, a threshold the 142 monthly points clear. That metric concerns
 the mean. The tail parameters are harder still, so an adequately converged mean is a floor,
@@ -1233,12 +1233,12 @@ starting value.
 
 *Analysis.* The driver is the established left skew interacting with Velliv's higher
 volatility. The symmetric models hide a downside that the better-fitting and statistically
-established skew reveals. The shape of the wealth distribution is itself worth stating: it is
+established skew reveals. The shape of the wealth distribution is itself worth stating: It is
 right-skewed and bounded below at zero, even though the log-return distribution that generates
 it is left-skewed and unbounded. Because wealth is $100\,e^{R}$, exponentiating never produces
 a negative value, so the heavy left tail in log space becomes a cluster of paths near zero
 rather than a set of negative balances. The same bound is why the plans behave like log-return
-scaling rather than constant financial leverage: they are long-only blends whose weights sum
+scaling rather than constant financial leverage: They are long-only blends whose weights sum
 to one, so they cannot be wiped out.
 
 *Implication.* We report the skewed-t outcome as the operative one. These results carry over
@@ -1267,7 +1267,7 @@ diversifying across the two providers, since the tail-softening from holding bot
 the fatter the assumed idiosyncratic tail. Precaution here is therefore not free, and the
 trade-off is properly weighed in the investor-facing analysis.
 
-*Bottom line.* Qualitatively the conclusions are firm: the plans are leverage on one factor,
+*Bottom line.* Qualitatively the conclusions are firm: The plans are leverage on one factor,
 the tails are fat and left-skewed, drawdowns are asymmetric, and path-dominance is a
 starting-point artefact. Quantitatively, the mean, the scale, and the direction of the skew
 are established monthly, but the tail index is not pinned down at 142 observations and is
@@ -1279,7 +1279,7 @@ flagging that this stance may overstate the benefit of diversifying across provi
 
 ## Infinite variance
 
-Taleb, Statistical Consequences Of Fat Tails, p. 97:  
+Taleb, Statistical Consequences Of Fat Tails, p. 97 
 "the variance of a finite variance random variable with tail exponent $< 4$ will be infinite".
 
 And p. 363:  

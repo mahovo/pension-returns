@@ -1,5 +1,5 @@
 ---
-title: "Choosing a pension plan: an investor's decision tool"
+title: "Choosing a pension plan: An investor's advanced decision tool"
 author: Martin Hoshi Vognsen
 output:
   html_document:
@@ -59,7 +59,7 @@ for (y in j$afkast_maaned$afkast) for (m in y$maaneder) if (m$maaned != "YTD")
 P <- do.call(rbind, rows)
 
 M <- merge(vlr, P, by = "ym"); M <- M[order(M$ym), ]
-## Comparability: each provider's plans must be genuinely distinct over the window. Velliv's
+## Comparability: Each provider's plans must be genuinely distinct over the window. Velliv's
 ## low/medium/high are a single backfilled series until the plans split (here 2012-07, the first
 ## month the three returns differ; they share a common 100 anchor at 2012-06). Earlier months are
 ## degenerate and excluded. PFA's profiles are distinct throughout. The comparable window starts at
@@ -96,7 +96,7 @@ This tool is the decision companion to the diagnostic report *Monthly pension re
 2. **One provider or both** -- is there diversification between PFA and Velliv, and could
    it plausibly beat the cost of splitting?
 
-The returns reports' central caveat governs everything here: with about `r round(nrow(R) / 12)` years of
+The returns reports' central caveat governs everything here: With about `r round(nrow(R) / 12)` years of
 data and fat tails, point estimates (means, Sharpe ratios, correlations) are noisy and
 regime-dependent. The tool is therefore built to expose *how robust* each conclusion is,
 not to emit a single "best" plan. Returns are monthly, `r nrow(R)` months
@@ -128,7 +128,7 @@ knitr::kable(data.frame(
 
 The reports' working model is a heavy-tailed, left-skewed return distribution. Before any
 mean-variance figure can be trusted, check whether the loaded data still look that way or have
-moved toward the Gaussian. A skewed-t fit answers it: a high tail index `nu` with a skew `xi` near 1
+moved toward the Gaussian. A skewed-t fit answers it: A high tail index `nu` with a skew `xi` near 1
 is near-Gaussian; a low `nu`, or a `xi` below 1, is heavy tails and left skew.
 
 ```{r regime-fit}
@@ -153,26 +153,26 @@ The test is deliberately asymmetric. A single extreme month can reveal a fat tai
 calm can prove its absence.
 
 ```{r tail-watch}
-## Record monitor: is the most recent month beyond the fitted 1st/99th percentile of any plan?
+## Record monitor: Is the most recent month beyond the fitted 1st/99th percentile of any plan?
 .extreme <- sapply(names(.rp), function(p) {
   f <- .fits[[p]]; q <- qsstd(c(0.01, 0.99), f$par["m"], f$par["s"], f$par["nu"], f$par["xi"])
   R[[p]][nrow(R)] < q[1] || R[[p]][nrow(R)] > q[2]
 })
-## Data sufficiency: skewed-t observations to match 30 Gaussian observations for the mean.
+## Data sufficiency: Skewed-t observations to match 30 Gaussian observations for the mean.
 .nmin <- tryCatch(round(f_n_min(30, mean = 0, sd_g = 1,
                                 nu = max(2.2, round(.med_nu, 1)), xi = round(.med_xi, 1),
                                 approx = TRUE)),
                   error = function(e) NA)
 ```
 
-`r if (any(.extreme)) paste0("The latest month (", max(M$ym), ") sits beyond the fitted 1-in-100 tail for ", paste(unname(.rp)[.extreme], collapse = " and "), ", a fresh signal that the tail is at least as fat as assumed.") else paste0("The latest month (", max(M$ym), ") is within the fitted tails of every plan: no fresh tail signal, which on its own proves nothing.")`
+`r if (any(.extreme)) paste0("The latest month (", max(M$ym), ") sits beyond the fitted 1-in-100 tail for ", paste(unname(.rp)[.extreme], collapse = " and "), ", a fresh signal that the tail is at least as fat as assumed.") else paste0("The latest month (", max(M$ym), ") is within the fitted tails of every plan: No fresh tail signal, which on its own proves nothing.")`
 Calling the regime Gaussian instead needs far more data than a benign stretch provides. The tail
-parameters are not pinned down at `r nrow(R)` observations: by the reports' analysis, matching even
+parameters are not pinned down at `r nrow(R)` observations: By the reports' analysis, matching even
 30 Gaussian observations for the *mean* takes on the order of
 `r if (is.na(.nmin)) "many more" else .nmin` heavy-tailed observations, and the tail needs more
 still. Treat a quiet tail as unproven, not safe.
 
-# 2. Within a provider: which risk level?
+# 2. Within a provider: Which risk level?
 
 A higher-risk plan is *pure leverage* of a lower-risk one when it has the same
 reward-to-risk (Sharpe) and the same distributional shape, only scaled. If so, choosing a
@@ -181,7 +181,7 @@ test this with the Sharpe ratio of each plan and, crucially, its stability acros
 sub-periods.
 
 ```{r sharpe-windows}
-## Sub-period start dates spanning the supplied window: full, ~1/3 in, ~2/3 in.
+## Sub-period start dates spanning the supplied window: Full, ~1/3 in, ~2/3 in.
 .k <- length(M$ym); wins <- M$ym[unique(round(c(1, .k / 3, 2 * .k / 3)))]
 tab <- t(sapply(wins, function(w) {
   S <- M[M$ym >= w, names(R)]
@@ -194,7 +194,7 @@ knitr::kable(tab, caption = "Annualised Sharpe ratio by plan and start date.")
 .vshrp   <- mean(sapply(R[c("V_low", "V_med", "V_high")], ann_sharpe, rf = rf))   # mean Velliv Sharpe
 .pfa     <- c("P_A", "P_B", "P_C", "P_D")
 .bestpfa <- sapply(wins, function(w) { S <- M[M$ym >= w, .pfa]; .pfa[which.max(sapply(S, ann_sharpe, rf = rf))] })
-## Leverage-ray verdict per provider: do the plans share a Sharpe within sampling error?
+## Leverage-ray verdict per provider: Do the plans share a Sharpe within sampling error?
 .ray <- function(plans) {
   S  <- sapply(R[plans], ann_sharpe, rf = rf)
   se <- sqrt(12 * (1 + mean(S)^2 / 24) / nrow(R))   # iid-normal SE of an annualised Sharpe
@@ -206,7 +206,7 @@ knitr::kable(tab, caption = "Annualised Sharpe ratio by plan and start date.")
 
 The table samples three start dates. The plot below sweeps every start date that leaves at least
 two years of data to the same fixed end, with 95% confidence bands. Look for whether a provider's
-plans have overlapping bands: where they do, the plans cannot be told apart on reward-per-risk.
+plans have overlapping bands: Where they do, the plans cannot be told apart on reward-per-risk.
 
 ```{r sharpe-stability, fig.width = 10, fig.height = 5}
 .starts <- M$ym[seq_len(max(1, length(M$ym) - 24))]   # start dates leaving >= 24 months to the end
@@ -251,14 +251,14 @@ ggplot(mv, aes(vol, ret, colour = provider)) +
   geom_point(size = 3) +
   ggrepel::geom_text_repel(aes(label = plan), size = 3, show.legend = FALSE) +
   labs(title = "Risk vs return by plan (annualised, loaded data)",
-       subtitle = "Dashed line: the Velliv leverage ray from the risk-free rate",
+       subtitle = "Dashed line: The Velliv leverage ray from the risk-free rate",
        x = "volatility", y = "mean return") +
   expand_limits(x = 0, y = 0)
 ```
 
 The derivation of the ray and its sampling error is in the Sharpe ratio section of the diagnostic report.
 
-# 3. Across providers: is there diversification?
+# 3. Across providers: Is there diversification?
 
 ```{r corr-matrix}
 C <- cor(R); dimnames(C) <- list(plan_labels[rownames(C)], plan_labels[colnames(C)])
@@ -287,7 +287,7 @@ knitr::kable(dt, caption = "50/50 cross-provider mixes: Correlation and volatili
 ```
 
 The largest risk reduction among these cross-provider mixes is **`r .best_mix`**, at about
-`r sprintf("%.1f%%", 100 * .max_red)` of volatility. `r if (.max_red < 0.05) "That is small, a few percent, not a step change: cross-provider diversification does something, but little, in mean-variance terms." else "That is a material reduction, so cross-provider diversification is doing real work in mean-variance terms on this data."`
+`r sprintf("%.1f%%", 100 * .max_red)` of volatility. `r if (.max_red < 0.05) "That is small, a few percent, not a step change: Cross-provider diversification does something, but little, in mean-variance terms." else "That is a material reduction, so cross-provider diversification is doing real work in mean-variance terms on this data."`
 The reduction comes from pairing the least-correlated plans; the composition behind those
 correlations is in the Path crossing section of the diagnostic report.
 
@@ -308,16 +308,16 @@ knitr::kable(
     correlation = round(c(cor(.L, .H), cor(R$V_high, R$P_D)), 2),
     `vol. reduction` = sprintf("%.0f%%", 100 * (c(divr(.L, .H), divr(R$V_high, R$P_D)) - 1)),
     check.names = FALSE),
-  caption = "Volatility reduction from a 50/50 blend: within a provider (across asset classes) vs across providers (same risk level).")
+  caption = "Volatility reduction from a 50/50 blend: Within a provider (across asset classes) vs across providers (same risk level).")
 .within_red <- divr(.L, .H) - 1; .cross_red <- divr(R$V_high, R$P_D) - 1
 .ratio <- .within_red / .cross_red
 ```
 
 The within-provider blend correlates about `r round(cor(.L, .H), 1)` and cuts volatility
 `r if (.ratio >= 2) "several times more than" else "comparably to"` the cross-provider split.
-`r if (.ratio >= 2) "A single provider's mid-risk plan is therefore already more diversified than two equity-heavy plans held across providers, at one set of fees, not two. The upshot, reinforcing Sections 2 and 5: diversify by lowering your risk level within one provider, not by adding a second." else "So on this data the within-provider and cross-provider routes are closer; weigh both against the cost of a second provider."`
+`r if (.ratio >= 2) "A single provider's mid-risk plan is therefore already more diversified than two equity-heavy plans held across providers, at one set of fees, not two. The upshot, reinforcing Sections 2 and 5: Diversify by lowering your risk level within one provider, not by adding a second." else "So on this data the within-provider and cross-provider routes are closer; weigh both against the cost of a second provider."`
 
-# 4. One provider or both: the cost
+# 4. One provider or both: The cost
 
 Fees split into two kinds, and only one bears on the *split* decision:
 
@@ -335,7 +335,7 @@ and, separately, on any *difference* in proportional rates between providers.
 ## Is the diversification worth a second flat fee?
 
 Express the diversification benefit the way it actually accrues, as a boost to the **compound**
-growth rate: the variance drain it removes, `Δg = (σ²_single − σ²_split)/2`. The diagnostic report
+growth rate: The variance drain it removes, `Δg = (σ²_single − σ²_split)/2`. The diagnostic report
 derives this variance drain, and the certainty equivalent used later in this section, from the
 return moments.
 
@@ -409,7 +409,7 @@ by **`r round(1200 * abs(mean(.d)), 1)` percentage points a year**, with a stand
 **`r if (abs(mean(.d) / .se) >= 2) "distinguishable from zero" else "not distinguishable from zero"`**.
 `r if (abs(mean(.d) / .se) >= 2) "There is a measurable return edge on this sample, though it remains a single realised path." else "You could not have known in advance which would win, and the best-Sharpe profile in Section 2 was not stable across windows."` The diagnostic report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
 
-How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: a
+How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: A
 skewed-t with `nu = ``r assumed_nu`` and `xi = ``r assumed_xi`` (set in the inputs). Simulating two
 providers with the data's volatilities and correlation but *no* true difference in mean, the gap
 between them over the sample has its own spread purely from chance and fat tails.
@@ -419,7 +419,7 @@ between them over the sample has its own spread purely from chance and fat tails
   set.seed(seed); T <- nrow(R); rho <- cor(R$V_high, R$P_D)
   Z  <- MASS::mvrnorm(n * T, c(0, 0), matrix(c(1, rho, rho, 1), 2)); U <- pnorm(Z)
   cl <- function(u) pmin(pmax(u, 1e-7), 1 - 1e-7)
-  r1 <- qsstd(cl(U[, 1]), 0, sd(R$V_high), assumed_nu, assumed_xi)   # equal means: the null of no edge
+  r1 <- qsstd(cl(U[, 1]), 0, sd(R$V_high), assumed_nu, assumed_xi)   # equal means: The null of no edge
   r2 <- qsstd(cl(U[, 2]), 0, sd(R$P_D),    assumed_nu, assumed_xi)
   dim(r1) <- dim(r2) <- c(T, n)
   colSums(r2) - colSums(r1)                                          # total log gap over the sample
@@ -432,11 +432,11 @@ between them over the sample has its own spread purely from chance and fat tails
 
 Under this fat-tailed null, a gap at least as large as the realised one arises by chance about
 **`r sprintf("%.0f%%", 100 * .p_fat)`** of the time, against `r sprintf("%.0f%%", 100 * .p_norm)`
-under normal theory. `r if (abs(.p_fat - .p_norm) < 0.03) "The two are close: over a multi-year sum the central-limit effect leaves little room for the tail to change the verdict." else if (.p_fat > .p_norm) "The fatter tail makes the realised lead even less surprising than normal theory implies." else "The fatter tail makes the realised lead somewhat more surprising than normal theory implies."`
+under normal theory. `r if (abs(.p_fat - .p_norm) < 0.03) "The two are close: Over a multi-year sum the central-limit effect leaves little room for the tail to change the verdict." else if (.p_fat > .p_norm) "The fatter tail makes the realised lead even less surprising than normal theory implies." else "The fatter tail makes the realised lead somewhat more surprising than normal theory implies."`
 Either way the realised lead is well within what no edge at all produces, so it is not signal.
 
 Committing to one provider is thus a bet on a difference in expected return that the data cannot
-identify: the relative drift is not distinguishable from zero, so there is no statistical basis for
+identify: The relative drift is not distinguishable from zero, so there is no statistical basis for
 predicting which provider will compound higher. The stakes grow with the
 horizon -- increasingly from the *estimation* uncertainty in the drift (which accumulates
 linearly) rather than path noise (which accumulates only as √horizon):
@@ -483,7 +483,7 @@ knitr::kable(.tab, caption = paste0(
 At your risk aversion of `r gamma` and a `r horizon`-year horizon, the certainty-equivalent value
 of holding both providers is about kr `r format(round(.ce_user), big.mark = ",")`, against
 kr `r format(round(.fee_tot), big.mark = ",")` of extra flat fees over that horizon. So the hedge
-`r if (.ce_clears) "clears its cost: a second provider is worth its flat fee for you" else "falls short of its cost: for you it is close to a wash"`.
+`r if (.ce_clears) "clears its cost: A second provider is worth its flat fee for you" else "falls short of its cost: For you it is close to a wash"`.
 The large realised gap is hindsight, not an expected gain.
 `r if (.ce_clears) "The case only strengthens with more risk aversion or a longer horizon." else "It would clear only for a more risk-averse saver or a longer horizon."`
 The risk-level choice of Sections 2 and 5 remains the larger lever, and all of this assumes the
@@ -492,7 +492,7 @@ saver does not chase the apparent drift edge that Section 2 says cannot be trust
 *To use this with real numbers, set `F2` (each provider's flat fee), the two proportional
 rates, and your balance / contribution path; the break-evens above then read off directly.*
 
-## A second lens: the split as insurance
+## A second lens: The split as insurance
 
 The certainty equivalent prices the body of the distribution. A complementary view, free of any
 distributional assumption, treats the split as insurance. A 50/50 buy-and-hold split ends at the
@@ -524,13 +524,13 @@ against picking the worse provider is worth to the saver, set against a known an
 # 5. Does a second provider help in the tail?
 
 Sections 2--4 are second-moment -- Sharpe, correlation, volatility. The returns reports show
-the second moment is the wrong lens: the tail index `nu` is around 3--5, returns are
+the second moment is the wrong lens: The tail index `nu` is around 3--5, returns are
 left-skewed, and correlation is itself unstable under fat tails. The decision-relevant
 question is whether holding two providers protects the *tail* -- a crash -- and by how much.
 
 The data fix each plan's *marginal* (mean, volatility, fat-tailed shape) and the *linear
 correlation* between providers (about `r round(cor(R$V_high, R$P_D), 2)` for two high-risk plans), but they do **not** fix the
-*tail dependence*: whether the two crash *together* (a systemic equity selloff) or whether
+*tail dependence*: Whether the two crash *together* (a systemic equity selloff) or whether
 one can crash *alone*. So rather than a single number we simulate three models that **all
 match the observed means, volatilities and correlation** and differ only in the tail -- a
 **Gaussian** world (no fat tails); the fitted skewed-$t$ marginals with **independent**
@@ -564,7 +564,7 @@ tails away and the split's effect all but vanishes).
 .mods <- c("Gaussian", "Fat, independent crashes", "Fat, coincident crashes")
 .JT <- suppressWarnings(t(sapply(.mods, .simyr)))
 knitr::kable(round(.JT, 2),
-  caption = "One-year wealth (start = 100): one high-risk plan vs a 50/50 provider split, under three models matched on mean, volatility and correlation.")
+  caption = "One-year wealth (start = 100): One high-risk plan vs a 50/50 provider split, under three models matched on mean, volatility and correlation.")
 ```
 
 Three things stand out. **Fat tails make the single plan riskier than a Gaussian view admits.**
@@ -574,7 +574,7 @@ fat tails, and for deeper losses the gap widens. **Splitting across two same-ris
 only modestly.** It trims that probability to about `r sprintf('%.1f', .JT['Fat, independent crashes','split P(loss>10%)'])`%
 and lifts the 5th-percentile floor by about `r sprintf('%.1f', .JT['Fat, independent crashes','split 5th-pct'] - .JT['Fat, independent crashes','single 5th-pct'])`
 points. And crucially, **that modest benefit barely moves between the independent-crash and
-coincident-crash models**: at a correlation of `r round(cor(R$V_high, R$P_D), 2)` the bulk
+coincident-crash models**: At a correlation of `r round(cor(R$V_high, R$P_D), 2)` the bulk
 co-movement already caps the diversification, so the tail dependence we *cannot* estimate turns
 out not to change the answer. Provider-splitting at the same risk level is a weak crash hedge,
 since two highly-correlated providers mostly fall together.
@@ -587,7 +587,7 @@ analysis cannot see is **provider-specific operational risk** -- a fund or admin
 failing on its own -- which is the strongest remaining argument for splitting and lies
 outside this data.
 
-# 6. Monitoring: what has changed?
+# 6. Monitoring: What has changed?
 
 These choices are not made once. The data that drive them -- the regime, the gap between
 providers, what each plan holds, the fees -- change, and a wrong assumption ("the bull market
@@ -618,7 +618,7 @@ will continue") reveals itself only with time. This tool is therefore also meant
 ## Distance to a path crossing
 
 Section 2 showed the high plan is a leverage of the medium plan, and the diagnostic report shows the
-flip side: the high plan trails the medium plan exactly while the medium plan sits below its entry
+flip side: The high plan trails the medium plan exactly while the medium plan sits below its entry
 value. The distance to a crossing is therefore the cushion the medium plan has built above the
 chosen entry, and a crossing begins once a drawdown gives that cushion back. The table reads this
 off for each provider, from the saver's entry (the start of the supplied data by default) and from
@@ -650,7 +650,7 @@ knitr::kable(
 What to read in the table. The **drawdown to a crossing** is how far the medium plan must fall from
 today before the high plan slips behind it. It is large from a long-held entry and small from a
 recent one, because the cushion is whatever the plan has gained since the entry. The **drawdown
-from peak now** is the fragile reading: an entry at the medium plan's most recent peak is closest
+from peak now** is the fragile reading: An entry at the medium plan's most recent peak is closest
 to a crossing, since any further fall puts the plan below its entry. That is the situation the
 diagnostic report illustrates with the COVID-eve example. A positive six-month medium return means
 the cushion is widening and a crossing receding; a negative one means it is narrowing. This is the
@@ -660,7 +660,7 @@ cross-provider spread above.
 ## Has the return structure changed?
 
 The tool monitors *structure*, not only level. The clearest signal is the number of return
-streams: when a provider splits, merges, or renames its profiles, the column count changes, as
+streams: When a provider splits, merges, or renames its profiles, the column count changes, as
 PFA's 2024 move from four profiles to three does. Subtler shifts, a reweighting toward equities or
 a change of underlying funds, leave the count intact but show up as drift in the per-provider
 leverage, the volatility of the lower-risk plans, and the correlations. The check below compares a
@@ -688,13 +688,13 @@ baseline window with the most recent months.
                sprintf("%+.2f", .r[5:6] - .b[5:6])),
   check.names = FALSE)
 knitr::kable(.tab, row.names = FALSE, caption = paste0(
-  "Structure check: baseline window vs the most recent ", .nrec, " months. The data carry ",
+  "Structure check: Baseline window vs the most recent ", .nrec, " months. The data carry ",
   ncol(R), " return streams; a change in that count is itself an obvious structural change."))
 ```
 
 On the supplied data the structure is broadly stable, and any drift here reflects the market
 regime rather than a policy change. Run on data that extends past a reweighting, the same check
-would flag it: fewer streams, a higher volatility and a higher low-to-high correlation in the
+would flag it: Fewer streams, a higher volatility and a higher low-to-high correlation in the
 plans moved toward equities, and a leverage slope pulled toward one. A flag is a prompt to ask
 which of three causes is at work, market conditions, a change of policy, or a change in the
 underlying funds and weights, and then to revisit the risk-level and provider decisions above.

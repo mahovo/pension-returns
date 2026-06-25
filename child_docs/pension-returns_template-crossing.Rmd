@@ -15,6 +15,10 @@ cat(sprintf("PFA     corr(medium, high) = %.3f ;  high = %.4f + %.2f * medium , 
 
 "Approximately" matters: The $R^2$ is below 1, and that residual is where the paths separate. The profiles are not one stream scaled, but blends of two genuinely different funds -- a low-risk and a high-risk building block. Backing PFA's two funds out of the medium and high profiles (high fund $H = D$, low fund $L = 2B - D$, exact for simple returns):
 
+Model each PFA profile as a long-only blend of a low-risk fund $L$ and a high-risk fund $H$, in simple returns: $\text{profile}_X = w_X H + (1-w_X) L$, with $w_X$ the high-risk weight. PFA's product description gives two weights: profile D is 100% the high-risk fund ($w_D=1$) and profile B is a 50/50 blend ($w_B=0.5$). Then  
+$$w_D=1 \Rightarrow H=D, \qquad w_B=\tfrac12 \Rightarrow B=\tfrac12H+\tfrac12L \Rightarrow L=2B-D.$$  
+These are exact identities at the value level, given the two stated weights. They are not estimated. The data only checks that the reconstructed $L$ is coherent, which it is: low volatility, correlation 0.59 with $H$, volatility ratio 3.1.
+
 ```{r}
 .simp <- function(lr) exp(lr) - 1
 .H <- .simp(data_df$phr); .L <- 2 * .simp(data_df$pmr) - .simp(data_df$phr)
@@ -67,7 +71,7 @@ component loads almost equally on all four plans, near 0.50 each, so it is a com
 factor. The second component, under two percent, is a Velliv-versus-PFA contrast. To a close
 approximation the four plans are therefore one factor seen at four exposures, which is the
 structure the leverage reading below assumes. The within-provider relation is the special
-case of this: the high plan is a scaled version of the medium plan, as the regression above
+case of this: The high plan is a scaled version of the medium plan, as the regression above
 shows. PFA's two profiles are in addition fixed blends of the same two building blocks, with
 the high-risk fund equal to profile D and the low-risk fund recovered as $2B-D$. That last
 decomposition rests on PFA's stated profile weights, not on the data, which only confirm that
@@ -115,7 +119,7 @@ sub-window (the COVID rebasing below is one), the partial sum
 $E_t=\sum_{u\le t}\hat\varepsilon_u$ is generally nonzero and is the slack between the clean
 rule and the truth there.
 
-More fundamentally, $\beta$ is the population least-squares slope: minimising
+More fundamentally, $\beta$ is the population least-squares slope: Minimising
 $E\!\left[(r_h-a-b\,r_m)^2\right]$ over $(a,b)$ gives the first-order conditions
 $a=E[r_h]-b\,E[r_m]$ and $E[r_m r_h]=a\,E[r_m]+b\,E[r_m^2]$, which eliminate $a$ to leave
 $\operatorname{Cov}(r_h,r_m)=b\,\operatorname{Var}(r_m)$, hence
@@ -125,7 +129,7 @@ $$
 This is defined only when the second moments are finite, and stably estimable only under
 stronger conditions. The fitted $\nu\approx3$ to $4$ with a confidence interval reaching
 $\nu\le2$, together with the max-sum plots, is precisely the evidence that finite variance
-cannot be assumed: the crossing rule is therefore not a geometric identity but a statement
+cannot be assumed: The crossing rule is therefore not a geometric identity but a statement
 conditional on the existence of the second moments, the same caveat that governs every tail
 estimate in this study.
 
@@ -221,10 +225,10 @@ constant-leverage threshold sits only $\tfrac12\beta\hat\sigma^2\approx0.3\%$ to
 year above zero, because $\beta$ is near $1$; for a genuine 2x or 3x product it would
 dominate. The in-sample Kelly $\hat\beta^\star\approx11$ to $18$ is not a tangency to chase:
 it is $\hat\mu/\hat\sigma^2$ measured on a crash-free window, the ratio of the two
-least-robust quantities: the moment-existence caveat once more.
+least-robust quantities: The moment-existence caveat once more.
   
 June 2012 was a low point just before a long bull market, so the safer plans never
-revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
+revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: Rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
 
 ```{r fig.width=10}
 ## Rebase the cumulative index to 100 at a chosen start month, then plot medium vs high.
@@ -346,7 +350,7 @@ the first month. Read the lead at each terminal month over the entire period.
 
 ```{r high-plan-lead, fig.width=10}
 ## Lead of the high plan over the medium plan by terminal month, entry fixed at the first month.
-## Mirror of the entry-month plot above: invest 100 at the first month and read the value at
+## Mirror of the entry-month plot above: Invest 100 at the first month and read the value at
 ## each terminal month. S_tau = sum_{u=1}^tau r_u, so the value at terminal tau is 100 e^{S_tau}.
 ## The lead is the high value minus the medium value, read across terminal months.
 .prefix <- function(lr) cumsum(lr)                  # S_tau = sum_{u=1}^tau lr_u
@@ -381,7 +385,7 @@ below-zero lead appears whenever the entry sits at an interior peak. The plot be
 example. The entry is the eve of the COVID crash, end-February 2020, a market peak.
 
 ```{r covid-entry-lead, fig.width=10}
-## Example of a below-zero lead: a fixed entry at an interior peak, the eve of the COVID crash.
+## Example of a below-zero lead: A fixed entry at an interior peak, the eve of the COVID crash.
 ## Invest 100 at the entry and follow the lead forward over the holding period. Both indices
 ## rebased to 100 at the entry; the lead dips below zero while the medium plan is below its entry.
 .entry <- as.Date("2020-02-01")
@@ -420,7 +424,7 @@ medium plan, because negating both sides of $h_u=\alpha+\beta m_u$ leaves the sl
 sign of the cumulative return flips.
 
 ```{r cf-entry-month-lead, fig.width=10}
-## Counterfactual plot A: every monthly return reversed. R'_i = sum_{u=i}^t (-r_u), so the
+## Counterfactual plot A: Every monthly return reversed. R'_i = sum_{u=i}^t (-r_u), so the
 ## terminal wealth of 100 entered at month i is W'_i = 100 e^{R'_i}. Lead is high minus medium.
 .suffix <- function(lr) rev(cumsum(rev(lr)))       # sum_{u=i}^t lr_u
 .tw     <- function(lr) 100 * exp(.suffix(lr))     # terminal wealth of 100 entered at month i
@@ -436,7 +440,7 @@ ggplot(.cf_entry_lead, aes(x = date, y = lead, color = provider)) +
   geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
   scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
   labs(
-    title = "Counterfactual: lead by entry month with every monthly return reversed",
+    title = "Counterfactual: Lead by entry month with every monthly return reversed",
     subtitle = "Reversed-return terminal wealth, high minus medium; below zero means the high plan is behind",
     x = "entry month", y = "high minus medium (index points)"
   )
@@ -446,7 +450,7 @@ Now the lead is below zero everywhere. The high plan falls behind at every entry
 view by terminal month agrees.
 
 ```{r cf-terminal-month-lead, fig.width=10}
-## Counterfactual plot B: every monthly return reversed. S'_tau = sum_{u=1}^tau (-r_u), so the
+## Counterfactual plot B: Every monthly return reversed. S'_tau = sum_{u=1}^tau (-r_u), so the
 ## value of 100 invested at the first month is 100 e^{S'_tau}. Lead is high minus medium.
 .prefix <- function(lr) cumsum(lr)                 # sum_{u=1}^tau lr_u
 .idx    <- function(lr) 100 * exp(.prefix(lr))     # value of 100 invested at the first month
@@ -462,7 +466,7 @@ ggplot(.cf_term_lead, aes(x = date, y = lead, color = provider)) +
   geom_hline(yintercept = 0, linetype = 2, colour = "grey50") +
   scale_x_date(breaks = date_breaks("2 years"), labels = date_format("%Y")) +
   labs(
-    title = "Counterfactual: lead by terminal month with every monthly return reversed",
+    title = "Counterfactual: Lead by terminal month with every monthly return reversed",
     subtitle = "Reversed-return value, high minus medium, 100 invested at the first month; below zero means the high plan is behind",
     x = "terminal month", y = "high minus medium (index points)"
   )
@@ -476,7 +480,7 @@ plans.
 ## The downward bound
 
 A pension account cannot fall below zero. In return terms the simple return satisfies
-$s\ge-1$: at worst a period wipes out the capital, but it cannot take more. This bound sits
+$s\ge-1$: At worst a period wipes out the capital, but it cannot take more. This bound sits
 oddly beside a left-skewed and unbounded distribution of log returns. The two are reconciled
 by the way wealth compounds. Wealth is $W=100\,e^{R}=100\prod_u(1+s_u)$, and $e^{R}>0$ for
 every real $R$, so exponentiating a log-return model can never produce a negative value. The
@@ -489,12 +493,12 @@ This also settles which leverage reading applies. Under log-return scaling,
 $1+s_h=(1+s_m)^{\beta}$, so as the medium plan approaches a total loss the high plan does too,
 and neither breaches the bound. Under constant financial leverage, $s_h=\beta s_m$, a loss in
 the medium plan beyond $1/\beta$ would drive the high plan below $-1$ and wipe it out. The
-plans never do this, because they are long-only blends: the weights sum to one and no money is
+plans never do this, because they are long-only blends: The weights sum to one and no money is
 borrowed, so the value is a weighted sum of non-negative fund values and stays non-negative.
 The leverage here is higher exposure to the volatile fund, not borrowed money, which is why
 the data follow the log-scaling relation rather than constant financial leverage.
 
-## The Sharpe ratio: leverage ray or curve?
+## The Sharpe ratio: Leverage ray or curve?
 
 The crossing model $r_{h,u}=\alpha+\beta\,r_{m,u}+\varepsilon_u$ has a second consequence --
 about reward per unit of risk rather than path order.
@@ -510,7 +514,7 @@ origin.
 
 **A ray is the signature of leverage.** Under Model A with a clean fit ($\alpha=0$,
 $\varepsilon_u\equiv0$), scaling the log returns by $\beta$ scales both moments by $\beta$ (so
-$\mu_h=\beta\mu_m$ and $\sigma_h=\beta\sigma_m$), giving $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: the
+$\mu_h=\beta\mu_m$ and $\sigma_h=\beta\sigma_m$), giving $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: The
 two plans share a Sharpe and lie exactly on a ray. This is the same log-scaling that produced
 the clean crossing rule. With a real fit ($\alpha\approx0$, $R^2<1$), let
 $\rho=\operatorname{Cov}(r_h,r_m)/(\sigma_h\sigma_m)$ be the correlation; since
@@ -534,9 +538,9 @@ $$
 \operatorname{Var}(\hat S)\approx\frac1T\left(1+\tfrac12 S^2-\gamma_3 S+\tfrac14(\gamma_4-3)S^2\right),
 $$
 with $\gamma_3$ the skewness and $\gamma_4$ the kurtosis, which is finite only for
-$\nu>4$. The fitted $\nu\approx3.4$ to $4.3$ straddles $4$: the Sharpe is computable, but its own
+$\nu>4$. The fitted $\nu\approx3.4$ to $4.3$ straddles $4$: The Sharpe is computable, but its own
 standard error need not be finite. The figures below use the i.i.d.-normal standard error
-$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound: the sample
+$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound: The sample
 skewness ($\approx-1$) and kurtosis ($\approx6$) inflate it, and the population kurtosis may
 be infinite.
 
@@ -580,11 +584,11 @@ knitr::kable(.stab, align = "r",
   caption = "Within-provider Sharpe decomposition and sampling error (full sample, n = 142; annualised; SE i.i.d.-normal, a lower bound).")
 ```
 
-**Reading.** For Velliv $\hat\rho=0.997$: the medium and high plans are a near-perfect leverage
+**Reading.** For Velliv $\hat\rho=0.997$: The medium and high plans are a near-perfect leverage
 ray, $\hat S_h$ is reproduced by $\hat\rho(\hat S_m+\hat\alpha/(\hat\beta\hat\sigma_m))$ to the
 displayed precision, and the gap $\hat S_m-\hat S_h\approx0.03$ is about $0.1$ of one standard
-error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise: the
-same $\beta$-scaling that gives Velliv's clean crossing rule. For PFA $\hat\rho=0.977$: the
+error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise: The
+same $\beta$-scaling that gives Velliv's clean crossing rule. For PFA $\hat\rho=0.977$: The
 menu is measurably more bent (by about $2\%$), but the Sharpe gap is still only about $0.2$ of
 a standard error, and which profile leads flips with the start date (the by-window table
 above). So although PFA's menu does curve, no best-Sharpe blend is identifiable at this sample
@@ -610,7 +614,7 @@ ggplot(.mv, aes(vol, ret, colour = provider)) +
   geom_point(size = 3) +
   ggrepel::geom_text_repel(aes(label = plan), size = 3, show.legend = FALSE) +
   labs(title = "Risk vs return by plan (annualised, full sample)",
-       subtitle = "Dashed line: the Velliv leverage ray through the origin",
+       subtitle = "Dashed line: The Velliv leverage ray through the origin",
        x = "volatility", y = "mean return") +
   expand_limits(x = 0, y = 0)
 ```
@@ -618,7 +622,7 @@ ggplot(.mv, aes(vol, ret, colour = provider)) +
 The three Velliv plans lie close to one ray, the signature of leverage. PFA's profiles sit a
 little off it, the small bend the decomposition above quantified.
 
-## Diversifying across providers: variance drain and certainty equivalent
+## Diversifying across providers: Variance drain and certainty equivalent
 
 The crossing and Sharpe results concern one provider's menu. A separate question is what the
 return moments say about holding *both* providers at one risk level, for example Velliv high
@@ -628,7 +632,7 @@ derive its value here from the moments alone, and the tool applies it to costs.
 **Variance drain.** Compound growth sits below the arithmetic mean by half the variance. If a
 plan's simple returns have arithmetic mean $a$ and variance $\sigma^2$, wealth compounds at
 about $g\approx a-\tfrac12\sigma^2$ per period. Cutting variance therefore lifts the compound
-rate one part in two: a reduction $\Delta\sigma^2$ raises $g$ by $\Delta\sigma^2/2$.
+rate one part in two: A reduction $\Delta\sigma^2$ raises $g$ by $\Delta\sigma^2/2$.
 
 **A 50/50 blend cuts variance.** Take two plans of equal variance $\sigma^2$ and correlation
 $\rho$. The equal-weight blend has variance $\tfrac12\sigma^2(1+\rho)$, a reduction of
@@ -681,7 +685,7 @@ takes it up with a joint simulation.
 ### The provider gap is one realised path
 
 The certainty equivalent above prices the uncertainty about *which* provider compounds faster.
-That uncertainty is real: over the sample the two high-risk plans drift apart, but by a margin the
+That uncertainty is real: Over the sample the two high-risk plans drift apart, but by a margin the
 data cannot distinguish from zero.
 
 ```{r provider-drift}

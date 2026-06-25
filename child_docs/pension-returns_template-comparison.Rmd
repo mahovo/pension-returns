@@ -388,7 +388,7 @@ The fits in this section are based on **n = `r length(fits[[1]]$data)`** observa
 
 Standard errors for the skewed-$t$ parameters, from the observed Fisher information (the
 inverse Hessian of the log-likelihood at the maximum). An entry of `NaN`/`NA` flags a
-non-positive or singular information matrix: the parameter is then not locally identified
+non-positive or singular information matrix: The parameter is then not locally identified
 at this sample size.
 
 ```{r}
@@ -511,7 +511,7 @@ knitr::kable(ad_p_df, digits = 3)
 ```
 
 Where AIC and BIC only *rank* the three candidates, Anderson-Darling asks whether the chosen
-one is actually adequate in the tail: a distribution that AIC prefers can still be rejected
+one is actually adequate in the tail: A distribution that AIC prefers can still be rejected
 here if it misfits where the weight is. Read it together with the max-sum plots below, which
 test the stronger question of whether the relevant moments exist at all.
 
@@ -519,11 +519,11 @@ test the stronger question of whether the relevant moments exist at all.
 
 The max-sum plot, shown per series in the individual reports, is the most direct
 goodness-of-fit check for fat tails -- and it asks the question that *precedes* the
-comparisons above. For each moment $p$ it tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
+comparisons above. For each moment $p$ it tracks $\max_{i\le n}|X_i|^p \big/ \sum_{i\le n}|X_i|^p$ 
+as the sample grows: If the $p$-th moment is finite the ratio must fall toward zero, 
+because no single observation can dominate the sum; if a new extreme keeps overwhelming 
+the running total the ratio refuses to settle, and any statistic that assumes that 
+moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
 something that is not defined. Where the PPCC and AIC/BIC compare only the *shape* of a
 distribution, this asks whether the moments those comparisons lean on exist at all.
 

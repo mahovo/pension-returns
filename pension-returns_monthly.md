@@ -25,7 +25,7 @@ params:
   run_is_sim: TRUE
   run_is_plot: TRUE
   include_long: TRUE
-date: "06:42 24 June 2026"
+date: "21:52 25 June 2026"
 ---
 
 
@@ -81,12 +81,12 @@ The analysis also looks at these mixes of plans:
 
 
 
-We observe that
+We observe that  
 1. **The four plans are weighted blends of the same two underlying funds.** A principal
 component analysis gives a first component that explains 97.7% of the variance and loads
 almost equally on all four plans. Within each provider the high-risk plan is a scalar multiple
 of the medium-risk plan in log returns (slope 1.26 for Velliv, 1.60 for PFA, intercept near
-zero, $R^2$ of 0.99 and 0.96). PFA's product description confirms the structure: profiles B
+zero, $R^2$ of 0.99 and 0.96). PFA's product description confirms the structure: Profiles B
 and D are fixed blends of the same low- and high-risk funds. The first decision within a
 provider is how much of one factor to hold, not which portfolio.
 
@@ -359,6 +359,10 @@ The observation does not generalise: It is an artefact of **where the index star
 
 "Approximately" matters: The $R^2$ is below 1, and that residual is where the paths separate. The profiles are not one stream scaled, but blends of two genuinely different funds -- a low-risk and a high-risk building block. Backing PFA's two funds out of the medium and high profiles (high fund $H = D$, low fund $L = 2B - D$, exact for simple returns):
 
+Model each PFA profile as a long-only blend of a low-risk fund $L$ and a high-risk fund $H$, in simple returns: $\text{profile}_X = w_X H + (1-w_X) L$, with $w_X$ the high-risk weight. PFA's product description gives two weights: profile D is 100% the high-risk fund ($w_D=1$) and profile B is a 50/50 blend ($w_B=0.5$). Then  
+$$w_D=1 \Rightarrow H=D, \qquad w_B=\tfrac12 \Rightarrow B=\tfrac12H+\tfrac12L \Rightarrow L=2B-D.$$  
+These are exact identities at the value level, given the two stated weights. They are not estimated. The data only checks that the reconstructed $L$ is coherent, which it is: low volatility, correlation 0.59 with $H$, volatility ratio 3.1.
+
 ```
 ## PFA building blocks (simple returns): corr(low fund, high fund) = 0.59 ; volatility ratio high/low = 3.1
 ```
@@ -396,7 +400,7 @@ component loads almost equally on all four plans, near 0.50 each, so it is a com
 factor. The second component, under two percent, is a Velliv-versus-PFA contrast. To a close
 approximation the four plans are therefore one factor seen at four exposures, which is the
 structure the leverage reading below assumes. The within-provider relation is the special
-case of this: the high plan is a scaled version of the medium plan, as the regression above
+case of this: The high plan is a scaled version of the medium plan, as the regression above
 shows. PFA's two profiles are in addition fixed blends of the same two building blocks, with
 the high-risk fund equal to profile D and the low-risk fund recovered as $2B-D$. That last
 decomposition rests on PFA's stated profile weights, not on the data, which only confirm that
@@ -444,7 +448,7 @@ sub-window (the COVID rebasing below is one), the partial sum
 $E_t=\sum_{u\le t}\hat\varepsilon_u$ is generally nonzero and is the slack between the clean
 rule and the truth there.
 
-More fundamentally, $\beta$ is the population least-squares slope: minimising
+More fundamentally, $\beta$ is the population least-squares slope: Minimising
 $E\!\left[(r_h-a-b\,r_m)^2\right]$ over $(a,b)$ gives the first-order conditions
 $a=E[r_h]-b\,E[r_m]$ and $E[r_m r_h]=a\,E[r_m]+b\,E[r_m^2]$, which eliminate $a$ to leave
 $\operatorname{Cov}(r_h,r_m)=b\,\operatorname{Var}(r_m)$, hence
@@ -454,7 +458,7 @@ $$
 This is defined only when the second moments are finite, and stably estimable only under
 stronger conditions. The fitted $\nu\approx3$ to $4$ with a confidence interval reaching
 $\nu\le2$, together with the max-sum plots, is precisely the evidence that finite variance
-cannot be assumed: the crossing rule is therefore not a geometric identity but a statement
+cannot be assumed: The crossing rule is therefore not a geometric identity but a statement
 conditional on the existence of the second moments, the same caveat that governs every tail
 estimate in this study.
 
@@ -529,10 +533,10 @@ constant-leverage threshold sits only $\tfrac12\beta\hat\sigma^2\approx0.3\%$ to
 year above zero, because $\beta$ is near $1$; for a genuine 2x or 3x product it would
 dominate. The in-sample Kelly $\hat\beta^\star\approx11$ to $18$ is not a tangency to chase:
 it is $\hat\mu/\hat\sigma^2$ measured on a crash-free window, the ratio of the two
-least-robust quantities: the moment-existence caveat once more.
+least-robust quantities: The moment-existence caveat once more.
   
 June 2012 was a low point just before a long bull market, so the safer plans never
-revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
+revisited 100 and the paths never crossed. Start the index instead just before a drawdown and the high-risk path falls below. The COVID crash is a clean realised example: Rebasing every plan to 100 at the end of February 2020, the high-risk plans drop **below** the medium-risk plans through the March-2020 trough -- and stay there for about nine months -- before recovering.  
 
 ![](pension-returns_monthly_files/figure-html/unnamed-chunk-140-1.png)<!-- -->
 
@@ -608,7 +612,7 @@ plans.
 ## The downward bound
 
 A pension account cannot fall below zero. In return terms the simple return satisfies
-$s\ge-1$: at worst a period wipes out the capital, but it cannot take more. This bound sits
+$s\ge-1$: At worst a period wipes out the capital, but it cannot take more. This bound sits
 oddly beside a left-skewed and unbounded distribution of log returns. The two are reconciled
 by the way wealth compounds. Wealth is $W=100\,e^{R}=100\prod_u(1+s_u)$, and $e^{R}>0$ for
 every real $R$, so exponentiating a log-return model can never produce a negative value. The
@@ -621,12 +625,12 @@ This also settles which leverage reading applies. Under log-return scaling,
 $1+s_h=(1+s_m)^{\beta}$, so as the medium plan approaches a total loss the high plan does too,
 and neither breaches the bound. Under constant financial leverage, $s_h=\beta s_m$, a loss in
 the medium plan beyond $1/\beta$ would drive the high plan below $-1$ and wipe it out. The
-plans never do this, because they are long-only blends: the weights sum to one and no money is
+plans never do this, because they are long-only blends: The weights sum to one and no money is
 borrowed, so the value is a weighted sum of non-negative fund values and stays non-negative.
 The leverage here is higher exposure to the volatile fund, not borrowed money, which is why
 the data follow the log-scaling relation rather than constant financial leverage.
 
-## The Sharpe ratio: leverage ray or curve?
+## The Sharpe ratio: Leverage ray or curve?
 
 The crossing model $r_{h,u}=\alpha+\beta\,r_{m,u}+\varepsilon_u$ has a second consequence --
 about reward per unit of risk rather than path order.
@@ -642,7 +646,7 @@ origin.
 
 **A ray is the signature of leverage.** Under Model A with a clean fit ($\alpha=0$,
 $\varepsilon_u\equiv0$), scaling the log returns by $\beta$ scales both moments by $\beta$ (so
-$\mu_h=\beta\mu_m$ and $\sigma_h=\beta\sigma_m$), giving $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: the
+$\mu_h=\beta\mu_m$ and $\sigma_h=\beta\sigma_m$), giving $S_h=\beta\mu_m/(\beta\sigma_m)=S_m$: The
 two plans share a Sharpe and lie exactly on a ray. This is the same log-scaling that produced
 the clean crossing rule. With a real fit ($\alpha\approx0$, $R^2<1$), let
 $\rho=\operatorname{Cov}(r_h,r_m)/(\sigma_h\sigma_m)$ be the correlation; since
@@ -666,9 +670,9 @@ $$
 \operatorname{Var}(\hat S)\approx\frac1T\left(1+\tfrac12 S^2-\gamma_3 S+\tfrac14(\gamma_4-3)S^2\right),
 $$
 with $\gamma_3$ the skewness and $\gamma_4$ the kurtosis, which is finite only for
-$\nu>4$. The fitted $\nu\approx3.4$ to $4.3$ straddles $4$: the Sharpe is computable, but its own
+$\nu>4$. The fitted $\nu\approx3.4$ to $4.3$ straddles $4$: The Sharpe is computable, but its own
 standard error need not be finite. The figures below use the i.i.d.-normal standard error
-$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound: the sample
+$\operatorname{SE}(\hat S)\approx\sqrt{12\,(1+S^2/24)/n}$, which is a lower bound: The sample
 skewness ($\approx-1$) and kurtosis ($\approx6$) inflate it, and the population kurtosis may
 be infinite.
 
@@ -692,11 +696,11 @@ Table: Within-provider Sharpe decomposition and sampling error (full sample, n =
 |Velliv |  0.997|  0.84|  0.81|       0.84|             0.29|     0.11|
 |PFA    |  0.977|  1.06|  1.01|       1.03|             0.30|     0.17|
 
-**Reading.** For Velliv $\hat\rho=0.997$: the medium and high plans are a near-perfect leverage
+**Reading.** For Velliv $\hat\rho=0.997$: The medium and high plans are a near-perfect leverage
 ray, $\hat S_h$ is reproduced by $\hat\rho(\hat S_m+\hat\alpha/(\hat\beta\hat\sigma_m))$ to the
 displayed precision, and the gap $\hat S_m-\hat S_h\approx0.03$ is about $0.1$ of one standard
-error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise: the
-same $\beta$-scaling that gives Velliv's clean crossing rule. For PFA $\hat\rho=0.977$: the
+error. Choosing the Velliv risk level is pure risk appetite, with nothing to optimise: The
+same $\beta$-scaling that gives Velliv's clean crossing rule. For PFA $\hat\rho=0.977$: The
 menu is measurably more bent (by about $2\%$), but the Sharpe gap is still only about $0.2$ of
 a standard error, and which profile leads flips with the start date (the by-window table
 above). So although PFA's menu does curve, no best-Sharpe blend is identifiable at this sample
@@ -713,7 +717,7 @@ difference.
 The three Velliv plans lie close to one ray, the signature of leverage. PFA's profiles sit a
 little off it, the small bend the decomposition above quantified.
 
-## Diversifying across providers: variance drain and certainty equivalent
+## Diversifying across providers: Variance drain and certainty equivalent
 
 The crossing and Sharpe results concern one provider's menu. A separate question is what the
 return moments say about holding *both* providers at one risk level, for example Velliv high
@@ -723,7 +727,7 @@ derive its value here from the moments alone, and the tool applies it to costs.
 **Variance drain.** Compound growth sits below the arithmetic mean by half the variance. If a
 plan's simple returns have arithmetic mean $a$ and variance $\sigma^2$, wealth compounds at
 about $g\approx a-\tfrac12\sigma^2$ per period. Cutting variance therefore lifts the compound
-rate one part in two: a reduction $\Delta\sigma^2$ raises $g$ by $\Delta\sigma^2/2$.
+rate one part in two: A reduction $\Delta\sigma^2$ raises $g$ by $\Delta\sigma^2/2$.
 
 **A 50/50 blend cuts variance.** Take two plans of equal variance $\sigma^2$ and correlation
 $\rho$. The equal-weight blend has variance $\tfrac12\sigma^2(1+\rho)$, a reduction of
@@ -765,7 +769,7 @@ takes it up with a joint simulation.
 ### The provider gap is one realised path
 
 The certainty equivalent above prices the uncertainty about *which* provider compounds faster.
-That uncertainty is real: over the sample the two high-risk plans drift apart, but by a margin the
+That uncertainty is real: Over the sample the two high-risk plans drift apart, but by a margin the
 data cannot distinguish from zero.
 
 
@@ -1274,7 +1278,7 @@ The fits in this section are based on **n = 142** observations.
 
 Standard errors for the skewed-$t$ parameters, from the observed Fisher information (the
 inverse Hessian of the log-likelihood at the maximum). An entry of `NaN`/`NA` flags a
-non-positive or singular information matrix: the parameter is then not locally identified
+non-positive or singular information matrix: The parameter is then not locally identified
 at this sample size.
 
 
@@ -1379,7 +1383,7 @@ Parametric-bootstrap p-value (small = reject the distribution):
 |normal | 0.000| 0.000| 0.000| 0.002| 0.000| 0.000|   0.000|   0.000|
 
 Where AIC and BIC only *rank* the three candidates, Anderson-Darling asks whether the chosen
-one is actually adequate in the tail: a distribution that AIC prefers can still be rejected
+one is actually adequate in the tail: A distribution that AIC prefers can still be rejected
 here if it misfits where the weight is. Read it together with the max-sum plots below, which
 test the stronger question of whether the relevant moments exist at all.
 
@@ -1387,11 +1391,11 @@ test the stronger question of whether the relevant moments exist at all.
 
 The max-sum plot, shown per series in the individual reports, is the most direct
 goodness-of-fit check for fat tails -- and it asks the question that *precedes* the
-comparisons above. For each moment $p$ it tracks $\max_{i\le n}|X_i|^p \big/
-\sum_{i\le n}|X_i|^p$ as the sample grows: if the $p$-th moment is finite the ratio must fall
-toward zero, because no single observation can dominate the sum; if a new extreme keeps
-overwhelming the running total the ratio refuses to settle, and any statistic that assumes
-that moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
+comparisons above. For each moment $p$ it tracks $\max_{i\le n}|X_i|^p \big/ \sum_{i\le n}|X_i|^p$ 
+as the sample grows: If the $p$-th moment is finite the ratio must fall toward zero, 
+because no single observation can dominate the sum; if a new extreme keeps overwhelming 
+the running total the ratio refuses to settle, and any statistic that assumes that 
+moment -- the variance, the kurtosis, the Gaussian-likelihood AIC -- is then estimating
 something that is not defined. Where the PPCC and AIC/BIC compare only the *shape* of a
 distribution, this asks whether the moments those comparisons lean on exist at all.
 
@@ -2512,7 +2516,7 @@ within Velliv. For PFA the two building blocks recovered from profiles B and D, 
 fund as $D$ and the low-risk fund as $2B-D$, are only moderately correlated (0.59) and differ
 several-fold in volatility (ratio 3.1).
 
-*Analysis.* The single dominant component is an empirical result: the four plans are, to a
+*Analysis.* The single dominant component is an empirical result: The four plans are, to a
 close approximation, one common factor seen at four exposures, and the within-provider scaling
 is the special case of this. The further statement that PFA's profiles are blends of exactly
 two funds, with the high-risk fund equal to $D$ and the low-risk fund equal to $2B-D$, rests
@@ -2527,12 +2531,12 @@ hold, not which portfolio.
 ## 2. "Risk" is leverage on that factor, and within a provider there is nothing to optimise
 
 *Result.* Because the slope exceeds 1 with near-zero intercept, the high-risk plan amplifies
-the common factor symmetrically: higher average growth, but deeper drawdowns (worst monthly
+the common factor symmetrically: Higher average growth, but deeper drawdowns (worst monthly
 peak-to-trough 17.3% against 15.2% for Velliv, 15.9% against 11.9% for PFA) and
 underperformance in flat or falling markets. The much-noted fact that the cumulative high-risk
 path never dips below the medium-risk path holds only for an index started at the 2012 low.
 Rebased to the eve of the COVID drawdown, the high plan trails the medium plan for about nine
-months. The reward-to-risk ratio is near-constant along the menu: the high-plan Sharpe equals
+months. The reward-to-risk ratio is near-constant along the menu: The high-plan Sharpe equals
 the medium-plan Sharpe times their correlation, so Velliv (correlation 0.997) is a
 near-perfect leverage ray and PFA (0.977) bends by about two percent. That bend, and the
 medium-to-high Sharpe gap, are well inside one standard error.
@@ -2562,7 +2566,7 @@ roughly [1.1, 5.7]. That interval straddles nu = 2, below which the variance cea
 and nu = 4, below which the kurtosis does. The skew runs 0.70 to 0.77 with an interval lying
 entirely below 1, about 3.5 standard errors from symmetry. The left skew is statistically
 established; the tail index is not pinned down. The annual report, with 13 observations,
-cannot identify nu at all: the information matrix is singular for three of the four plans, and
+cannot identify nu at all: The information matrix is singular for three of the four plans, and
 xi is driven to a degenerate corner.
 
 *Analysis, why nu and xi are hard while m is easy.* The Gaussian has only m and s. The t adds
@@ -2571,7 +2575,7 @@ lives in them. Taleb's recommended workflow is to estimate the tail exponent by 
 likelihood and then derive the mean analytically by plug-in, because the tail exponent
 captures the low-probability deviations better than the sample mean does. The catch is that
 plug-in presupposes an estimable nu, which we have at best loosely monthly and not at all
-annually. The convergence metric kappa makes the asymmetry precise: for these fits kappa is
+annually. The convergence metric kappa makes the asymmetry precise: For these fits kappa is
 about 0.14, so matching the convergence of 30 Gaussian observations takes about 55
 observations of the fitted t, a threshold the 142 monthly points clear. That metric concerns
 the mean. The tail parameters are harder still, so an adequately converged mean is a floor,
@@ -2613,12 +2617,12 @@ starting value.
 
 *Analysis.* The driver is the established left skew interacting with Velliv's higher
 volatility. The symmetric models hide a downside that the better-fitting and statistically
-established skew reveals. The shape of the wealth distribution is itself worth stating: it is
+established skew reveals. The shape of the wealth distribution is itself worth stating: It is
 right-skewed and bounded below at zero, even though the log-return distribution that generates
 it is left-skewed and unbounded. Because wealth is $100\,e^{R}$, exponentiating never produces
 a negative value, so the heavy left tail in log space becomes a cluster of paths near zero
 rather than a set of negative balances. The same bound is why the plans behave like log-return
-scaling rather than constant financial leverage: they are long-only blends whose weights sum
+scaling rather than constant financial leverage: They are long-only blends whose weights sum
 to one, so they cannot be wiped out.
 
 *Implication.* We report the skewed-t outcome as the operative one. These results carry over
@@ -2647,7 +2651,7 @@ diversifying across the two providers, since the tail-softening from holding bot
 the fatter the assumed idiosyncratic tail. Precaution here is therefore not free, and the
 trade-off is properly weighed in the investor-facing analysis.
 
-*Bottom line.* Qualitatively the conclusions are firm: the plans are leverage on one factor,
+*Bottom line.* Qualitatively the conclusions are firm: The plans are leverage on one factor,
 the tails are fat and left-skewed, drawdowns are asymmetric, and path-dominance is a
 starting-point artefact. Quantitatively, the mean, the scale, and the direction of the skew
 are established monthly, but the tail index is not pinned down at 142 observations and is
@@ -2659,7 +2663,7 @@ flagging that this stance may overstate the benefit of diversifying across provi
 
 ## Infinite variance
 
-Taleb, Statistical Consequences Of Fat Tails, p. 97:  
+Taleb, Statistical Consequences Of Fat Tails, p. 97 
 "the variance of a finite variance random variable with tail exponent $< 4$ will be infinite".
 
 And p. 363:  
@@ -2804,13 +2808,13 @@ same distribution as a mix of two simulated returns series.
 
 
 ```
-## m(data_x): -0.01246035 
-## s(data_x): 0.3284963 
-## m(data_y): 10.66759 
-## s(data_y): 2.71343 
+## m(data_x): 0.07743984 
+## s(data_x): 0.3969865 
+## m(data_y): 9.371997 
+## s(data_y): 2.545459 
 ## 
-## m(data_x + data_y): 5.327564 
-## s(data_x + data_y): 1.337732
+## m(data_x + data_y): 4.724718 
+## s(data_x + data_y): 1.303076
 ```
 
 m and s of final state of all paths.\
@@ -2818,28 +2822,28 @@ m and s of final state of all paths.\
 `_b` is simulated mixed returns.
 
 
-|     m_a|     m_b|   s_a|   s_b|
-|-------:|-------:|-----:|-----:|
-| 106.829| 106.496| 6.262| 5.941|
-| 106.330| 106.519| 6.021| 5.994|
-| 106.865| 106.744| 6.079| 5.823|
-| 106.468| 106.781| 6.159| 5.926|
-| 106.954| 106.668| 6.305| 5.949|
-| 106.668| 106.671| 6.081| 5.851|
-| 106.378| 106.176| 6.195| 6.007|
-| 106.334| 106.547| 6.379| 5.803|
-| 106.424| 106.546| 6.025| 6.092|
-| 106.804| 106.467| 6.027| 5.970|
+|    m_a|    m_b|   s_a|   s_b|
+|------:|------:|-----:|-----:|
+| 94.377| 94.438| 5.612| 5.774|
+| 94.799| 94.801| 5.703| 5.873|
+| 94.208| 94.689| 5.876| 5.804|
+| 94.402| 94.395| 5.904| 5.978|
+| 94.474| 94.401| 5.866| 5.777|
+| 94.456| 94.442| 5.792| 5.897|
+| 94.302| 94.373| 5.594| 5.815|
+| 94.594| 94.268| 5.773| 5.749|
+| 94.087| 94.258| 5.823| 5.970|
+| 94.776| 94.200| 5.906| 5.828|
 
 
 ```
 ##       m_a             m_b             s_a             s_b       
-##  Min.   :106.3   Min.   :106.2   Min.   :6.021   Min.   :5.803  
-##  1st Qu.:106.4   1st Qu.:106.5   1st Qu.:6.040   1st Qu.:5.869  
-##  Median :106.6   Median :106.5   Median :6.120   Median :5.945  
-##  Mean   :106.6   Mean   :106.6   Mean   :6.153   Mean   :5.936  
-##  3rd Qu.:106.8   3rd Qu.:106.7   3rd Qu.:6.245   3rd Qu.:5.988  
-##  Max.   :107.0   Max.   :106.8   Max.   :6.379   Max.   :6.092
+##  Min.   :94.09   Min.   :94.20   Min.   :5.594   Min.   :5.749  
+##  1st Qu.:94.32   1st Qu.:94.29   1st Qu.:5.721   1st Qu.:5.784  
+##  Median :94.43   Median :94.40   Median :5.808   Median :5.822  
+##  Mean   :94.45   Mean   :94.43   Mean   :5.785   Mean   :5.847  
+##  3rd Qu.:94.56   3rd Qu.:94.44   3rd Qu.:5.873   3rd Qu.:5.891  
+##  Max.   :94.80   Max.   :94.80   Max.   :5.906   Max.   :5.978
 ```
 
 `_a` and `_b` are very close to equal.\
@@ -2893,12 +2897,12 @@ We do this by sampling 142 observations from the long series `vmrl`
 
 ```
 ##        m                  s          
-##  Min.   :0.005517   Min.   :0.01670  
-##  1st Qu.:0.006232   1st Qu.:0.01789  
-##  Median :0.006550   Median :0.01861  
-##  Mean   :0.006576   Mean   :0.01857  
-##  3rd Qu.:0.006837   3rd Qu.:0.01919  
-##  Max.   :0.007453   Max.   :0.02026
+##  Min.   :0.005381   Min.   :0.01631  
+##  1st Qu.:0.005941   1st Qu.:0.01796  
+##  Median :0.006464   Median :0.01839  
+##  Mean   :0.006528   Mean   :0.01842  
+##  3rd Qu.:0.006988   3rd Qu.:0.01902  
+##  Max.   :0.007831   Max.   :0.02040
 ```
 
 ## The meaning of `xi`
