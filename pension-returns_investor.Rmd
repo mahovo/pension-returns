@@ -12,13 +12,15 @@ output:
     latex_engine: xelatex
 date: "`r format(Sys.time(), '%H:%M %d %B %Y')`"
 params:
+  data_dir: latest         ## Folder under data/: "latest" (refreshed by src/fetch_latest_data.R) or "monthly" (the reports' frozen case study).
   start_date: null         ## NULL = use the full comparable window (latest genuine common start); else a later "YYYY-MM-DD".
   monitor_months: 36       ## Length (months) of the "recent" window for the structure check.
   balance: 1000000         ## Current balance (kr) the decision applies to.
-  flat_fee: 700            ## A provider's annual flat administration fee (kr); the marginal cost of a second provider.
-  prop_rate_velliv: 0.007  ## Velliv annual proportional fee (fraction of balance).
-  prop_rate_pfa: 0.007     ## PFA annual proportional fee (fraction of balance).
-  risk_free: 0.0           ## Annual risk-free rate (e.g. 0.03 for a 3% deposit).
+  flat_fee_velliv: 984     ## Velliv's flat annual fee (kr): The VækstPension policy fee, 82 kr/month in 2025 (84 in 2026).
+  flat_fee_pfa: 807        ## PFA's flat annual fee (kr): PFA Plus administration, a fixed amount, not a share of savings (2025).
+  prop_rate_velliv: 0.0117 ## Velliv proportional cost (fraction of balance): Investment costs 0.94% (2025 ÅOP, Aktiv high risk) plus the variable administration, about 0.23%.
+  prop_rate_pfa: 0.0028    ## PFA proportional cost (fraction of balance): Indirect investment costs, 0.28% ÅOP (2025).
+  risk_free: 0.02          ## Annual risk-free rate (e.g. 0.03 for a 3% deposit).
   gamma: 2                 ## Relative risk aversion.
   horizon: 20              ## Decision horizon in years.
   assumed_nu: 3.5          ## Assumed skew-t tail index for the stress simulation.
@@ -38,8 +40,12 @@ source(here("src", "pension-returns_functions.R"))
 ```
 
 ```{r load-data}
+.p <- function(name, default) if (exists("params") && !is.null(params[[name]])) params[[name]] else default
+.data_dir <- .p("data_dir", "latest")   # "latest" (src/fetch_latest_data.R) or "monthly" (frozen case study)
+.kr <- function(x) format(round(x), big.mark = ",", scientific = FALSE, trim = TRUE)
+
 ## --- Velliv: low/medium/high price index -> monthly log-returns ---
-v <- read.csv(here("data", "monthly", "velliv_monthly_prices.csv"))
+v <- read.csv(here("data", .data_dir, "velliv_monthly_prices.csv"))
 v$date <- as.Date(v$date); v <- v[order(v$date), ]; v$ym <- format(v$date, "%Y-%m")
 vlr <- data.frame(
   ym     = v$ym[-1],
@@ -48,14 +54,22 @@ vlr <- data.frame(
   V_high = diff(log(v$high_risk))
 )
 
-## --- PFA: profiles A/B/C/D at the 30y horizon (a30), % -> monthly log-returns ---
-j <- fromJSON(here("data", "monthly", "pfa_monthly.json"), simplifyVector = FALSE)
+## --- PFA: profiles A/B/C/D at 30 years to pension -> monthly log-returns ---
+## Two feed formats, both Kundeafkast incl. KundeKapital under afkast_maaned: The frozen file keys the
+## profiles a/b/c/d, horizon a30, in percent; PFA's current feed keys them forsigtig/lav/medium/hoej
+## (the former A/B/C/D), horizon "tredive", as a fraction.
+j <- fromJSON(here("data", .data_dir, "pfa_monthly.json"), simplifyVector = FALSE)
+.pfa_ret <- function(m, p) {
+  x <- if (is.null(m$risiko)) m[[c(forsigtig = "a", lav = "b", medium = "c", hoej = "d")[[p]]]]$a30 / 100
+       else m$risiko[[p]]$aarTilPension$tredive
+  if (is.null(x)) NA_real_ else x
+}
 rows <- list()
 for (y in j$afkast_maaned$afkast) for (m in y$maaneder) if (m$maaned != "YTD")
   rows[[length(rows) + 1]] <- data.frame(
-    ym  = sprintf("%d-%02d", y$aar, as.integer(m$maaned)),
-    P_A = log(1 + m$a$a30 / 100), P_B = log(1 + m$b$a30 / 100),
-    P_C = log(1 + m$c$a30 / 100), P_D = log(1 + m$d$a30 / 100))
+    ym  = sprintf("%d-%02d", as.integer(y$aar), as.integer(m$maaned)),
+    P_A = log(1 + .pfa_ret(m, "forsigtig")), P_B = log(1 + .pfa_ret(m, "lav")),
+    P_C = log(1 + .pfa_ret(m, "medium")),    P_D = log(1 + .pfa_ret(m, "hoej")))
 P <- do.call(rbind, rows)
 
 M <- merge(vlr, P, by = "ym"); M <- M[order(M$ym), ]
@@ -72,17 +86,16 @@ if (exists("params") && !is.null(params$start_date))
 M <- M[M$ym >= .cmp_start, ]
 R <- M[, c("V_low", "V_med", "V_high", "P_A", "P_B", "P_C", "P_D")]
 plan_labels <- c(V_low = "Velliv low", V_med = "Velliv med", V_high = "Velliv high",
-                 P_A = "PFA low (A)", P_B = "PFA B", P_C = "PFA C", P_D = "PFA high (D)")
+                 P_A = "PFA A", P_B = "PFA B", P_C = "PFA C", P_D = "PFA D")
 provider    <- c(rep("Velliv", 3), rep("PFA", 4))
 
 ## --- User inputs (set in the YAML header or via render params) ---
-.p <- function(name, default) if (exists("params") && !is.null(params[[name]])) params[[name]] else default
 balance    <- .p("balance", 1e6)
-flat_fee   <- .p("flat_fee", 700)
+flat_fee   <- c(Velliv = .p("flat_fee_velliv", 984), PFA = .p("flat_fee_pfa", 807))
 rf         <- .p("risk_free", 0)
 gamma      <- .p("gamma", 2)
 horizon    <- .p("horizon", 20)
-prop_rate  <- c(Velliv = .p("prop_rate_velliv", 0.007), PFA = .p("prop_rate_pfa", 0.007))
+prop_rate  <- c(Velliv = .p("prop_rate_velliv", 0.0117), PFA = .p("prop_rate_pfa", 0.0028))
 assumed_nu <- .p("assumed_nu", 3.5)
 assumed_xi <- .p("assumed_xi", 0.7)
 ```
@@ -101,6 +114,9 @@ data and fat tails, point estimates (means, Sharpe ratios, correlations) are noi
 regime-dependent. The tool is therefore built to expose *how robust* each conclusion is,
 not to emit a single "best" plan. Returns are monthly, `r nrow(R)` months
 (`r min(M$ym)` to `r max(M$ym)`). Sharpe ratios use the risk-free rate set in the inputs below.
+`r if (max(vlr$ym) != max(P$ym)) paste0("The comparison needs both providers, so it ends at the last month both have published: Velliv's index runs to ", max(vlr$ym), " and PFA's returns to ", max(P$ym), ".")`
+PFA's profiles appear by letter: A to D are today's Forsigtig, Lav, Middel and Høj, from lowest to
+highest risk.
 
 # Inputs
 
@@ -110,11 +126,12 @@ the top of this document, or pass them as render parameters.
 ```{r inputs-table}
 .sd <- .p("start_date", NULL)
 knitr::kable(data.frame(
-  setting = c("Balance (kr)", "Flat fee per provider (kr/yr)", "Proportional fee, Velliv",
-              "Proportional fee, PFA", "Risk-free rate (annual)", "Risk aversion", "Horizon (years)",
-              "Start date", "Monitor window (months)", "Assumed tail index", "Assumed skew"),
-  value = c(format(round(balance), big.mark = ",", scientific = FALSE),
-            format(round(flat_fee), big.mark = ","),
+  setting = c("Data folder", "Balance (kr)", "Flat fee, Velliv (kr/yr)", "Flat fee, PFA (kr/yr)",
+              "Proportional fee, Velliv", "Proportional fee, PFA", "Risk-free rate (annual)",
+              "Risk aversion", "Horizon (years)", "Start date", "Monitor window (months)",
+              "Assumed tail index", "Assumed skew"),
+  value = c(paste0("data/", .data_dir),
+            .kr(balance), .kr(flat_fee["Velliv"]), .kr(flat_fee["PFA"]),
             sprintf("%.2f%%", 100 * prop_rate["Velliv"]),
             sprintf("%.2f%%", 100 * prop_rate["PFA"]),
             sprintf("%.1f%%", 100 * rf), gamma, horizon,
@@ -124,15 +141,20 @@ knitr::kable(data.frame(
   caption = "Current inputs. Sharpe ratios, certainty equivalents, fee break-evens and the stress simulation all read from these.")
 ```
 
+The flat fees are each provider's fixed yearly charge, paid whatever the balance. The proportional
+fees scale with the balance and are mostly investment costs. Both providers publish returns after
+investment costs, so that part is already inside every return figure below. The flat fees come on
+top, and they drive the cost arithmetic of Section 4.
+
 # 1. Current regime check
 
 The reports' working model is a heavy-tailed, left-skewed return distribution. Before any
 mean-variance figure can be trusted, check whether the loaded data still look that way or have
-moved toward the Gaussian. A skewed-t fit answers it: A high tail index `nu` with a skew `xi` near 1
-is near-Gaussian; a low `nu`, or a `xi` below 1, is heavy tails and left skew.
+moved toward the Gaussian. A skewed-$t$ fit answers it: A high tail index $\nu$ with a skew $\xi$ near 1
+is near-Gaussian; a low $\nu$, or a $\xi$ below 1, is heavy tails and left skew.
 
 ```{r regime-fit}
-.rp   <- c(V_med = "Velliv medium", V_high = "Velliv high", P_B = "PFA B", P_D = "PFA high (D)")
+.rp   <- c(V_med = "Velliv medium", V_high = "Velliv high", P_B = "PFA B", P_D = "PFA D")
 .fits <- lapply(names(.rp), function(p) sstd_se(R[[p]])); names(.fits) <- names(.rp)
 .nus  <- sapply(.fits, function(f) f$par["nu"]); .xis <- sapply(.fits, function(f) f$par["xi"])
 knitr::kable(data.frame(
@@ -142,7 +164,7 @@ knitr::kable(data.frame(
   "skew $\\xi$"       = sprintf("%.2f", .xis),
   "$\\xi$ SE"         = sprintf("%.2f", sapply(.fits, function(f) f$se["xi"])),
   check.names = FALSE), row.names = FALSE,
-  caption = "Skewed-t fit per plan on the loaded data. A low tail index (heavy tails) or a skew below 1 (left skew) is the reports' regime; a high tail index with skew near 1 is near-Gaussian.")
+  caption = "Skewed-$t$ fit per plan on the loaded data. A low tail index (heavy tails) or a skew below 1 (left skew) is the reports' regime; a high tail index with skew near 1 is near-Gaussian.")
 .med_nu <- median(.nus, na.rm = TRUE); .med_xi <- median(.xis, na.rm = TRUE)
 ```
 
@@ -233,9 +255,8 @@ the noise, so on this data Velliv `r if (.vr$ray) "behaves as a leverage ray" el
 
 **PFA.** The four profiles' Sharpe ratios span `r round(.pr$spread, 2)` against a sampling error of
 about `r round(.pr$se, 2)`, so the menu `r if (.pr$ray) "is, within the noise, also a single ray" else "curves rather than forming a single ray"`.
-The highest-Sharpe profile by start window is `r paste0(plan_labels[.bestpfa], " from ", wins, collapse = "; ")`,
-`r if (.pfa_stable) "the same across windows" else "and it is not stable across windows"`.
-`r if (!.pr$ray && .pfa_stable) "A best-Sharpe end is identifiable here, though the reports caution that such gaps are fragile at this sample size." else "So no best-Sharpe blend is reliably identifiable, and you should not pay, in added risk or in fees, to chase one."`
+`r if (.pfa_stable) paste0("The highest-Sharpe profile is ", plan_labels[.bestpfa[1]], " from every start date in the table.") else paste0("The highest-Sharpe profile by start window is ", paste0(plan_labels[.bestpfa], " from ", wins, collapse = "; "), ", and it is not stable across windows.")`
+`r if (!.pr$ray && .pfa_stable) "A best-Sharpe end is identifiable here, though the reports caution that such gaps are fragile at this sample size." else if (.pfa_stable) "But the spread is within the noise, so no best-Sharpe profile is reliably identifiable, and you should not pay, in added risk or in fees, to chase one." else "So no best-Sharpe blend is reliably identifiable, and you should not pay, in added risk or in fees, to chase one."`
 
 The same test reads off the risk-return map. Each plan sits at its annualised volatility and mean
 return; plans on one line from the risk-free rate share a Sharpe ratio, and a plan off that line
@@ -295,12 +316,14 @@ correlations is in the Path crossing section of the diagnostic report.
 
 Splitting across providers pairs equity with equity. The diversification that actually
 reduces risk is across *asset classes* -- bonds with equity -- and it lives inside a single
-provider, harvested simply by choosing a risk level. Backing PFA's two building-block funds
-out of its profiles (equity fund `H = D`, bond-like fund `L = 2B − D`, exact for simple
-returns) and comparing the two kinds of 50/50 blend:
+provider, harvested simply by choosing a risk level. PFA's profiles are fixed blends of two
+building-block funds, which can be backed out of the returns: The equity fund is $H = D$ and the
+bond-like fund is $L = (4A - D)/3$. Both are exact for simple returns, since A holds a quarter in
+the equity fund and D all of it, and neither weight changed in PFA's 2025 restructuring. Comparing
+the two kinds of 50/50 blend:
 
 ```{r within-divers}
-.H <- simple_returns(R$P_D); .L <- 2 * simple_returns(R$P_B) - simple_returns(R$P_D)
+.H <- simple_returns(R$P_D); .L <- (4 * simple_returns(R$P_A) - .H) / 3   # A = H/4 + 3L/4, D = H
 knitr::kable(
   data.frame(
     blend = c("Within PFA: Mid-risk plan",
@@ -322,73 +345,86 @@ The within-provider blend correlates about `r round(cor(.L, .H), 1)` and cuts vo
 Fees split into two kinds, and only one bears on the *split* decision:
 
 - **Proportional fees** (a percentage of assets under management). If both providers charge
-  the same rate they are *split-neutral*: `p` on the whole pot costs the same whether it sits
-  in one plan or two (`p·W = p·W₁ + p·W₂`). Equal proportional fees therefore drop out of the
+  the same rate they are *split-neutral*: A rate $p$ on the whole pot costs the same whether it
+  sits in one plan or two ($pW = pW_1 + pW_2$). Equal proportional fees therefore drop out of the
   one-vs-two decision entirely.
 - **Flat fees** (a fixed kr/year administration charge, independent of balance). These are
-  paid *per provider*, so a second provider adds its flat fee `F₂` every year, however little
+  paid *per provider*, so a second provider adds its flat fee $F_2$ every year, however little
   you place there.
 
 The split decision thus turns on flat fees -- weighed against the diversification benefit --
-and, separately, on any *difference* in proportional rates between providers.
+and, separately, on any *difference* in proportional rates between providers. Holding both
+providers instead of one costs the flat fee of the one you would otherwise drop: kr
+`r .kr(flat_fee["Velliv"])` a year for Velliv and kr `r .kr(flat_fee["PFA"])` for PFA. Both values
+of $F_2$ are carried through below.
 
 ## Is the diversification worth a second flat fee?
 
 Express the diversification benefit the way it actually accrues, as a boost to the **compound**
-growth rate: The variance drain it removes, `Δg = (σ²_single − σ²_split)/2`. The diagnostic report
-derives this variance drain, and the certainty equivalent used later in this section, from the
-return moments.
+growth rate: The variance drain it removes,
+$\Delta g = (\sigma^2_{\text{single}} - \sigma^2_{\text{split}})/2$, where $\sigma^2_{\text{single}}$
+is the average variance of the two single plans. The diagnostic report derives this variance drain,
+and the certainty equivalent used later in this section, from the return moments.
 
 ```{r dg-chunk}
 .av <- function(x) sd(x) * sqrt(12)
-dg  <- (.av(R$V_high)^2 - .av(0.5 * R$V_high + 0.5 * R$P_D)^2) / 2
+## Variance drain of a 50/50 split against the average single plan; equals sigma^2_gap / 8,
+## as derived in the diagnostic report.
+dg  <- ((.av(R$V_high)^2 + .av(R$P_D)^2) / 2 - .av(0.5 * R$V_high + 0.5 * R$P_D)^2) / 2
 ```
 
-For a cross-provider same-risk split this is **`r round(1e4 * dg, 1)` basis points per
+For a cross-provider same-risk split this is **`r sprintf("%.1f", 1e4 * dg)` basis points per
 year** -- the entire "gain that compounds" from holding two providers. In kroner it is
-`dg · W`, while the flat fee `F₂` is paid every year regardless of `W`. The split pays only
-above a break-even balance `W* = F₂ / dg`:
+$\Delta g \cdot W$, while the flat fee $F_2$ is paid every year regardless of $W$. The split pays only
+above a break-even balance $W^* = F_2/\Delta g$:
 
 ```{r flatfee-table}
-F2 <- round(flat_fee * c(0.5, 0.75, 1, 1.5, 2))
+F2   <- sort(unique(round(c(0.5 * min(flat_fee), flat_fee, 2 * max(flat_fee)))))
+.who <- function(f) ifelse(f %in% round(flat_fee),
+                           paste0(" (", names(flat_fee)[match(f, round(flat_fee))], ")"), "")
 knitr::kable(
-  data.frame(`flat fee per year (kr)` = F2,
-             `break-even balance (kr)` = format(round(F2 / dg, -3), big.mark = ",", scientific = FALSE, trim = TRUE),
+  data.frame(`flat fee per year (kr)` = paste0(.kr(F2), .who(F2)),
+             `break-even balance (kr)` = .kr(round(F2 / dg, -3)),
              check.names = FALSE),
-  caption = "Balance above which the cross-provider diversification covers a second provider's flat fee.")
-.be <- flat_fee / dg; .covers <- balance > .be   # break-even at the user's flat fee; does the balance clear it?
+  caption = "Balance above which the cross-provider diversification covers a second provider's flat fee. The rows marked with a provider are its flat fee.")
+.be   <- flat_fee / dg; .covers <- balance > .be   # break-even with each provider as the second
+.be_g <- .be / gamma;   .covers_g <- balance > .be_g   # the same, valued at the saver's risk aversion
+.cheap <- names(which.min(flat_fee))
 ```
 
-At your flat fee of kr `r format(round(flat_fee), big.mark = ",")`, the diversification covers it
-only above a balance of about kr `r format(round(.be), big.mark = ",")`. Your balance of kr
-`r format(round(balance), big.mark = ",")` is `r if (.covers) "above" else "below"` that, so on pure
-diversification grounds `r if (.covers) "a second provider pays for itself here" else "one provider is enough"`.
-The benefit is only about `r round(1e4 * dg, 1)` basis points a year, and the flat fee is paid in
-every low-balance year on the way up besides. A risk-averse investor values the volatility cut
-somewhat above the pure variance drain, but not enough to move the threshold much.
+With PFA as the second provider, the diversification covers its flat fee only above a balance of
+about kr `r .kr(round(.be["PFA"], -3))`. With Velliv it takes about kr `r .kr(round(.be["Velliv"], -3))`. Your balance of
+kr `r .kr(balance)` is `r if (all(.covers)) "above both" else if (!any(.covers)) "below both" else "between the two"`,
+so on pure diversification grounds `r if (all(.covers)) "a second provider pays for itself here" else if (!any(.covers)) "one provider is enough" else paste0("a second provider pays for itself only if it is ", .cheap)`.
+The benefit is only about `r sprintf("%.1f", 1e4 * dg)` basis points a year, and the flat fee is paid in
+every low-balance year on the way up besides. A risk-averse investor values the volatility cut at
+$\gamma$ times the variance drain in the mean-variance view, which divides the threshold by $\gamma$.
+At your risk aversion of `r gamma` it falls to about kr `r .kr(round(min(.be_g), -3))` to kr `r .kr(round(max(.be_g), -3))`,
+`r if (all(.covers_g)) "which your balance clears" else if (!any(.covers_g)) "still above your balance" else paste0("which your balance clears only with ", .cheap, " as the second provider")`.
 
 ## How much cheaper must a second provider be?
 
 The other reason to add a provider is that it is *cheaper proportionally*. Moving an amount
-`W₂` to a provider whose rate is `Δp` lower saves `Δp · W₂` per year, which must cover its
-flat fee `F₂`. So a second provider must undercut the first by at least
+$W_2$ to a provider whose rate is $\Delta p$ lower saves $\Delta p \cdot W_2$ per year, which must cover its
+flat fee $F_2$. So a second provider must undercut the first by at least
 
 $$\Delta p \;\ge\; \frac{F_2}{W_2}.$$
 
 ```{r prop-table}
-W2 <- round(balance * c(0.25, 0.5, 0.75, 1)); F2v <- round(flat_fee * c(0.5, 1, 1.5, 2))
+W2 <- round(balance * c(0.25, 0.5, 0.75, 1)); F2v <- sort(unique(round(c(flat_fee, 2 * max(flat_fee)))))
 tab <- outer(F2v, W2, function(f, w) sprintf("%.2f%%", 100 * f / w))
-dimnames(tab) <- list(paste0("F2 = kr ", format(F2v, big.mark = ",", trim = TRUE)),
-                      paste0("kr ", format(W2, big.mark = ",", scientific = FALSE, trim = TRUE)))
-knitr::kable(tab, caption = "Proportional-rate discount a second provider must offer to justify its flat fee, by amount placed there (W2).")
+dimnames(tab) <- list(paste0("$F_2$ = kr ", .kr(F2v), .who(F2v)), paste0("kr ", .kr(W2)))
+knitr::kable(tab, caption = "Proportional-rate discount a second provider must offer to justify its flat fee, by amount placed there ($W_2$).")
 ```
 
-At your flat fee of kr `r format(round(flat_fee), big.mark = ",")` and balance of kr
-`r format(round(balance), big.mark = ",")`, a second provider must be at least
-**`r sprintf("%.2f", 100 * flat_fee / balance)` percentage points/year** cheaper to break even on
-fees. The diversification credit (`dg · W`) could be added to the left-hand side, but at about a
-basis point it barely moves the bar. If a second provider is *strictly* cheaper on both fee types,
-the question is not whether to *add* it but whether to *switch* entirely.
+At your balance of kr `r .kr(balance)`, a second provider must be at least
+**`r sprintf("%.2f", 100 * min(flat_fee) / balance)` to `r sprintf("%.2f", 100 * max(flat_fee) / balance)`
+percentage points/year** cheaper to break even on fees, the first figure for
+`r .cheap`'s flat fee and the second for `r names(which.max(flat_fee))`'s. The diversification
+credit $\Delta g \cdot W$, about kr `r .kr(dg * balance)` a year at your balance, could be added to
+the left-hand side. `r if (dg * balance < 0.25 * min(flat_fee)) "It barely moves the bar." else "It lowers the bar noticeably, but it covers a flat fee on its own only above the break-even balance found above."`
+If a second provider is *strictly* cheaper on both fee types, the question is not whether to *add*
+it but whether to *switch* entirely.
 
 ## The benefit the variance drain misses: Hedging an unidentifiable provider difference
 
@@ -400,17 +436,17 @@ what the data cannot pin down.
 ```{r selrisk-setup}
 .d <- R$P_D - R$V_high                 # monthly relative log-return, PFA high minus Velliv high
 .n <- length(.d); .se <- sd(.d) / sqrt(.n)
-.principal <- balance; .fee_yr <- flat_fee    # the saver's balance and second-provider flat fee
+.principal <- balance; .fee_yr <- flat_fee    # the saver's balance and the flat fee of each provider as the second
 ```
 
 Over the sample `r if (mean(.d) >= 0) "PFA-high out-returned Velliv-high" else "Velliv-high out-returned PFA-high"`
 by **`r round(1200 * abs(mean(.d)), 1)` percentage points a year**, with a standard error of
 `r round(1200 * .se, 1)` pp/yr (t = `r round(mean(.d) / .se, 1)`), so it is
 **`r if (abs(mean(.d) / .se) >= 2) "distinguishable from zero" else "not distinguishable from zero"`**.
-`r if (abs(mean(.d) / .se) >= 2) "There is a measurable return edge on this sample, though it remains a single realised path." else "You could not have known in advance which would win, and the best-Sharpe profile in Section 2 was not stable across windows."` The diagnostic report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
+`r if (abs(mean(.d) / .se) >= 2) "There is a measurable return edge on this sample, though it remains a single realised path." else if (.pfa_stable) "You could not have known in advance which would win." else "You could not have known in advance which would win, and the best-Sharpe profile in Section 2 was not stable across windows."` The diagnostic report's Sharpe section carries the reference-period version of this comparison and a plot of the two paths.
 
 How much of that realised edge is chance? The data cannot pin down the tail, so we assume one: A
-skewed-t with `nu = ``r assumed_nu`` and `xi = ``r assumed_xi`` (set in the inputs). Simulating two
+skewed-$t$ with $\nu = `r assumed_nu`$ and $\xi = `r assumed_xi`$, set in the inputs. Simulating two
 providers with the data's volatilities and correlation but *no* true difference in mean, the gap
 between them over the sample has its own spread purely from chance and fat tails.
 
@@ -433,24 +469,23 @@ between them over the sample has its own spread purely from chance and fat tails
 Under this fat-tailed null, a gap at least as large as the realised one arises by chance about
 **`r sprintf("%.0f%%", 100 * .p_fat)`** of the time, against `r sprintf("%.0f%%", 100 * .p_norm)`
 under normal theory. `r if (abs(.p_fat - .p_norm) < 0.03) "The two are close: Over a multi-year sum the central-limit effect leaves little room for the tail to change the verdict." else if (.p_fat > .p_norm) "The fatter tail makes the realised lead even less surprising than normal theory implies." else "The fatter tail makes the realised lead somewhat more surprising than normal theory implies."`
-Either way the realised lead is well within what no edge at all produces, so it is not signal.
+`r if (.p_fat >= 0.10) "Either way the realised lead is well within what no edge at all produces, so it is not signal." else if (.p_fat >= 0.05) "Either way the realised lead is within what no edge at all produces, if only just, so it is weak evidence at best." else "The realised lead is rare under no edge at all, though one realised path is still thin evidence."`
 
 Committing to one provider is thus a bet on a difference in expected return that the data cannot
-identify: The relative drift is not distinguishable from zero, so there is no statistical basis for
-predicting which provider will compound higher. The stakes grow with the
+`r if (abs(mean(.d) / .se) >= 2) "pin down: Even a measurable edge on one realised path is a weak basis for predicting which provider will compound higher." else "identify: The relative drift is not distinguishable from zero, so there is no statistical basis for predicting which provider will compound higher."`
+The stakes grow with the
 horizon -- increasingly from the *estimation* uncertainty in the drift (which accumulates
 linearly) rather than path noise (which accumulates only as √horizon):
 
 ```{r selrisk-horizon}
 .row <- function(H) { T <- 12 * H; par <- T * .se; tot <- sqrt(par^2 + T * sd(.d)^2)
-  data.frame(horizon = paste0(H, " yr"),
-    `provider gap (1-sd)` = sprintf("%.0f%%", 100 * (exp(tot) - 1)),
-    `share from estimation` = sprintf("%.0f%%", 100 * par^2 / tot^2),
-    `gap on kr 1,000,000` = format(round(.principal * (exp(tot) - 1)), big.mark = ",", trim = TRUE),
-    `flat fee over horizon` = format(.fee_yr * H, big.mark = ",", trim = TRUE),
-    check.names = FALSE) }
+  setNames(data.frame(paste0(H, " yr"), sprintf("%.0f%%", 100 * (exp(tot) - 1)),
+                      sprintf("%.0f%%", 100 * par^2 / tot^2), .kr(.principal * (exp(tot) - 1)),
+                      paste(.kr(min(.fee_yr) * H), "to", .kr(max(.fee_yr) * H))),
+           c("horizon", "provider gap (1-sd)", "share from estimation",
+             paste0("gap on kr ", .kr(.principal)), "flat fee over horizon")) }
 knitr::kable(do.call(rbind, lapply(c(5, 10, 20, 30), .row)),
-  caption = "Dispersion between the two providers' cumulative outcomes by horizon, vs the second provider's flat fee.")
+  caption = paste0("Dispersion between the two providers' cumulative outcomes by horizon, vs the second provider's flat fee over the horizon (", .cheap, "'s the lower figure, ", names(which.max(flat_fee)), "'s the higher)."))
 ```
 
 The **provider gap (1-sd)** column is one standard deviation of the spread between the two
@@ -460,10 +495,10 @@ relative drift (which grows with the horizon), as opposed to ordinary path noise
 
 In kroner the gap dwarfs the flat fee. But the gap is symmetric, since you might land on either
 side, so what justifies hedging is its **risk-adjusted** value, not its raw size. For a saver with
-constant relative risk aversion `γ`, the certainty-equivalent value of holding both, agnostic
-about which is better, is about `γ · σ²gap / 8`, the result derived in the diagnostic report. Here
-`σ²gap` is the variance of the cumulative provider gap, combining path noise with the estimation
-uncertainty in the relative drift:
+constant relative risk aversion $\gamma$, the certainty-equivalent value of holding both, agnostic
+about which is better, is about $\gamma\,\sigma^2_{\text{gap}}/8$, the result derived in the
+diagnostic report. Here $\sigma^2_{\text{gap}}$ is the variance of the cumulative provider gap,
+combining path noise with the estimation uncertainty in the relative drift:
 
 ```{r selrisk-ce}
 .ce <- function(H, g) { T <- 12 * H; g * ((T * .se)^2 + T * sd(.d)^2) / 8 }
@@ -471,26 +506,26 @@ uncertainty in the relative drift:
 .tab <- sapply(.gv, function(g) sapply(.hv, function(H)
   format(round(.principal * .ce(H, g)), big.mark = ",", trim = TRUE)))
 dimnames(.tab) <- list(paste0(.hv, " yr"), paste0("RRA ", .gv))
+.fs <- sort(.fee_yr)
 knitr::kable(.tab, caption = paste0(
-  "Certainty-equivalent value (kr, on kr ", format(.principal, big.mark = ",", scientific = FALSE),
+  "Certainty-equivalent value (kr, on kr ", .kr(.principal),
   ") of holding both providers instead of one, by relative risk aversion (RRA, columns). ",
-  "Compare with the flat fee, kr ", .fee_yr, "/yr: kr ", format(.fee_yr * .hv[1], big.mark = ","),
-  " over ", .hv[1], " yr, kr ", format(.fee_yr * .hv[length(.hv)], big.mark = ","),
-  " over ", .hv[length(.hv)], " yr."))
+  "Compare with the flat fees, ", paste0("kr ", .kr(.fs), "/yr (", names(.fs), ")", collapse = " and "), ": ",
+  paste0("kr ", .kr(min(.fs) * .hv), " to ", .kr(max(.fs) * .hv), " over ", .hv, " yr", collapse = ", "), "."))
 .ce_user <- .principal * .ce(horizon, gamma); .fee_tot <- .fee_yr * horizon; .ce_clears <- .ce_user > .fee_tot
+.ce_ratio <- .ce_user / .fee_tot   # share of the extra flat fees the certainty equivalent covers
 ```
 
 At your risk aversion of `r gamma` and a `r horizon`-year horizon, the certainty-equivalent value
-of holding both providers is about kr `r format(round(.ce_user), big.mark = ",")`, against
-kr `r format(round(.fee_tot), big.mark = ",")` of extra flat fees over that horizon. So the hedge
-`r if (.ce_clears) "clears its cost: A second provider is worth its flat fee for you" else "falls short of its cost: For you it is close to a wash"`.
+of holding both providers is about kr `r .kr(.ce_user)`, against kr `r .kr(min(.fee_tot))` to
+kr `r .kr(max(.fee_tot))` of extra flat fees over that horizon, depending on which provider is the
+second. So the hedge `r if (all(.ce_clears)) "clears its cost either way: A second provider is worth its flat fee for you" else if (!any(.ce_clears)) paste0("falls short of its cost either way, covering about ", round(100 * .ce_user / max(.fee_tot)), "% to ", round(100 * .ce_user / min(.fee_tot)), "% of it") else paste0("clears its cost only with ", .cheap, " as the second provider")`.
 The large realised gap is hindsight, not an expected gain.
-`r if (.ce_clears) "The case only strengthens with more risk aversion or a longer horizon." else "It would clear only for a more risk-averse saver or a longer horizon."`
+`r if (all(.ce_clears)) "The case only strengthens with more risk aversion or a longer horizon." else "It would clear only for a more risk-averse saver or a longer horizon."`
 The risk-level choice of Sections 2 and 5 remains the larger lever, and all of this assumes the
 saver does not chase the apparent drift edge that Section 2 says cannot be trusted.
 
-*To use this with real numbers, set `F2` (each provider's flat fee), the two proportional
-rates, and your balance / contribution path; the break-evens above then read off directly.*
+*The break-evens above read off the flat fees and the balance set in the Inputs section.*
 
 ## A second lens: The split as insurance
 
@@ -517,14 +552,14 @@ fee. Its value depends on the dispersion of the provider gap, and under the heav
 returns reports document that dispersion is not something the data pin down. The Monte Carlo in
 Section 5, and the long-horizon simulations in the returns reports, show that compounded outcomes
 over a long horizon can diverge to an extreme degree. So the mean-variance certainty equivalent
-gives a point estimate that reads as a close call, while the insurance lens says the protection is
-real but its price is genuinely uncertain. The decision rests on how much an unquantifiable hedge
+gives a point estimate that `r if (all(.ce_ratio > 1.3)) "clears the flat fees comfortably" else if (all(.ce_ratio < 0.7)) paste0("covers only ", round(100 * min(.ce_ratio)), "% to ", round(100 * max(.ce_ratio)), "% of the flat fees") else "reads as a close call"`,
+while the insurance lens says the protection is real but its price is genuinely uncertain. The decision rests on how much an unquantifiable hedge
 against picking the worse provider is worth to the saver, set against a known annual flat fee.
 
 # 5. Does a second provider help in the tail?
 
 Sections 2--4 are second-moment -- Sharpe, correlation, volatility. The returns reports show
-the second moment is the wrong lens: The tail index `nu` is around 3--5, returns are
+the second moment is the wrong lens: The tail index $\nu$ is around 3--5, returns are
 left-skewed, and correlation is itself unstable under fat tails. The decision-relevant
 question is whether holding two providers protects the *tail* -- a crash -- and by how much.
 
@@ -612,8 +647,9 @@ will continue") reveals itself only with time. This tool is therefore also meant
   `r sprintf("%.1f", .whi - .wlo)` m, with `r .hi` compounding about `r sprintf("%.1f", .gap_pp)` pp/year
   faster. No one could have called this in advance. A monitor shows such a gap opening and forces
   the question of whether it is signal or luck.
-- **Composition or fee changes** -- e.g. PFA's 2024 move from four profiles (A--D) to three
-  (Low/Medium/High), or any change in the flat fees that drive the Section 4 arithmetic.
+- **Composition or fee changes** -- e.g. PFA's restructuring of 1 April 2025, which renamed its
+  profiles and moved B and C toward equities, or any change in the flat fees that drive the
+  Section 4 arithmetic.
 
 ## Distance to a path crossing
 
@@ -659,12 +695,13 @@ cross-provider spread above.
 
 ## Has the return structure changed?
 
-The tool monitors *structure*, not only level. The clearest signal is the number of return
-streams: When a provider splits, merges, or renames its profiles, the column count changes, as
-PFA's 2024 move from four profiles to three does. Subtler shifts, a reweighting toward equities or
-a change of underlying funds, leave the count intact but show up as drift in the per-provider
-leverage, the volatility of the lower-risk plans, and the correlations. The check below compares a
-baseline window with the most recent months.
+The tool monitors *structure*, not only level. The bluntest signal is the number of return
+streams: When a provider splits or merges its profiles, the column count changes. A reweighting
+leaves the count intact. PFA's April 2025 restructuring is an example: Its feed kept all four
+profiles under new names, but two of them took on more equity. Such subtler shifts, and a change of
+underlying funds, show up as drift in the per-provider leverage, the volatility of the lower-risk
+plans, and the correlations. The check below compares a baseline window with the most recent
+months.
 
 ```{r structure-check}
 .mm   <- if (exists("params") && !is.null(params$monitor_months)) params$monitor_months else 36
@@ -692,17 +729,41 @@ knitr::kable(.tab, row.names = FALSE, caption = paste0(
   ncol(R), " return streams; a change in that count is itself an obvious structural change."))
 ```
 
-On the supplied data the structure is broadly stable, and any drift here reflects the market
-regime rather than a policy change. Run on data that extends past a reweighting, the same check
-would flag it: Fewer streams, a higher volatility and a higher low-to-high correlation in the
-plans moved toward equities, and a leverage slope pulled toward one. A flag is a prompt to ask
-which of three causes is at work, market conditions, a change of policy, or a change in the
-underlying funds and weights, and then to revisit the risk-level and provider decisions above.
+These drifts mix market conditions with policy. PFA's profiles allow a sharper test, because each
+is a fixed blend of the two funds of Section 3, $H = D$ and $L = (4A - D)/3$. A profile's share in
+the high-risk fund changes only when PFA reweights it, whatever the market does. The scan below
+finds, for B and C, the month that best splits the window into two constant shares.
+
+```{r reweight-scan}
+## B and C are fixed blends of H and L (Section 3), so x - L = w (H - L) exactly, KundeKapital
+## included. Scan each for the month that best splits the window into two constant shares w.
+.w_fit <- function(x, i) { z <- .H[i] - .L[i]; w <- sum((x[i] - .L[i]) * z) / sum(z^2)
+  c(w = w, rss = sum((x[i] - .L[i] - w * z)^2)) }
+.rw <- do.call(rbind, lapply(c("P_B", "P_C"), function(p) {
+  x <- simple_returns(R[[p]]); n <- length(x); ks <- 25:(n - 5)   # at least 24 months before, 6 after
+  rss0 <- .w_fit(x, 1:n)[["rss"]]
+  gain <- sapply(ks, function(k) rss0 - .w_fit(x, 1:(k - 1))[["rss"]] - .w_fit(x, k:n)[["rss"]])
+  k <- ks[which.max(gain)]
+  data.frame(profile = plan_labels[[p]], from = M$ym[k], n_after = n - k + 1,
+             before = .w_fit(x, 1:(k - 1))[["w"]], after = .w_fit(x, k:n)[["w"]], gain = max(gain) / rss0)
+}))
+.rw_flag <- abs(.rw$after - .rw$before) > 0.05 & .rw$gain > 0.5   # a material shift that fits well
+knitr::kable(data.frame(profile = .rw$profile, `best split` = .rw$from,
+  `high-risk share before` = sprintf("%.0f%%", 100 * .rw$before),
+  `high-risk share after`  = sprintf("%.0f%%", 100 * .rw$after),
+  `misfit removed` = sprintf("%.0f%%", 100 * .rw$gain), check.names = FALSE),
+  row.names = FALSE, caption = "Reweighting scan for PFA's middle profiles: The share of the high-risk fund before and after the best single split of the window, and how much of a constant-share fit's misfit that split removes.")
+```
+
+`r if (any(.rw_flag)) { .f <- .rw[.rw_flag, ]; .mv <- paste0(.f$profile, " moved from ", round(100 * .f$before), "% to ", round(100 * .f$after), "%"); paste0("The scan flags a reweighting: ", if (length(unique(.f$from)) == 1) paste0("From ", .f$from[1], ", ", paste(.mv, collapse = " and "), " high-risk fund") else paste(paste0(.mv, " high-risk fund from ", .f$from), collapse = ", and "), ". That is a change of policy, not of market conditions. Only the last ", max(.rw$n_after[.rw_flag]), " months carry the new weights, so the full-window figures above still mostly describe the old profiles. Going forward, judge these profiles by their new weights, not by their history.") } else "The scan finds no material reweighting: Both profiles kept their shares in the high-risk fund over the window. Drift in the table above therefore reflects market conditions or a change in the underlying funds, not a change of weights."`
+A flag is a prompt to ask which of three causes is at work, market conditions, a change of policy,
+or a change in the underlying funds and weights, and then to revisit the risk-level and provider
+decisions above.
 
 # 7. Verdict
 
 On the loaded data and your inputs:
 
-- **Risk level.** `r if (.vr$ray) "Velliv reads as a leverage ray" else "Velliv shows a reward-per-risk difference across its plans"`, and `r if (.pr$ray) "PFA's profiles also read as a ray within the noise" else "PFA's menu curves"`. `r if (.vr$ray && .pr$ray) "In both, pick the risk level by drawdown tolerance; there is nothing to optimise." else "Weigh the reward-per-risk where the menu bends, but treat the gap as fragile at this sample size."` The larger lever, for growth and for crash protection alike, is the risk level itself, not the provider.
-- **One provider or both.** The best cross-provider mix (`r .best_mix`) cuts volatility about `r sprintf("%.1f%%", 100 * .max_red)`. On diversification grounds `r if (.covers) "a second provider pays for itself at your balance" else "one provider is enough at your balance"`. As insurance against the unidentifiable provider difference, the certainty equivalent (kr `r format(round(.ce_user), big.mark = ",")`) `r if (.ce_clears) "clears" else "falls short of"` the extra flat fees over your horizon (kr `r format(round(.fee_tot), big.mark = ",")`), and the joint simulation makes a same-risk split a weak crash hedge. The strongest case for a second provider is operational risk, which the return data cannot measure.
+- **Risk level.** `r if (.vr$ray) "Velliv reads as a leverage ray" else "Velliv shows a reward-per-risk difference across its plans"`, and `r if (.pr$ray) "PFA's profiles also read as a ray within the noise" else "PFA's menu curves"`. `r if (.vr$ray && .pr$ray) "In both, pick the risk level by drawdown tolerance; there is nothing to optimise." else "Weigh the reward-per-risk where the menu bends, but treat the gap as fragile at this sample size."` The larger lever, for growth and for crash protection alike, is the risk level itself, not the provider.`r if (any(.rw_flag)) paste0(" PFA reweighted ", paste(sub("^PFA ", "", .rw$profile[.rw_flag]), collapse = " and "), " from ", min(.rw$from[.rw_flag]), ", so choose among its profiles by their new weights.")`
+- **One provider or both.** The best cross-provider mix (`r .best_mix`) cuts volatility about `r sprintf("%.1f%%", 100 * .max_red)`. On diversification grounds `r if (all(.covers)) "a second provider pays for itself at your balance" else if (!any(.covers)) "one provider is enough at your balance" else paste0("a second provider pays for itself at your balance only if it is ", .cheap)`. As insurance against the unidentifiable provider difference, the certainty equivalent (kr `r .kr(.ce_user)`) `r if (all(.ce_clears)) "clears" else if (!any(.ce_clears)) "falls short of" else "sits between"` the extra flat fees over your horizon (kr `r .kr(min(.fee_tot))` to kr `r .kr(max(.fee_tot))`), and the joint simulation makes a same-risk split a weak crash hedge. The strongest case for a second provider is operational risk, which the return data cannot measure.
 - **Trust.** `r if (!is.na(.med_nu) && .med_nu < 6) "The loaded data are heavy-tailed" else "The loaded data's tail is not clearly heavy"`, and the tail is not pinned down at `r nrow(R)` months. Treat every figure here as direction, not precision, and re-run the tool as the data grow.
