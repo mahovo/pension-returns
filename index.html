@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pension returns</title>
+<meta name="description" content="Return analyses of the pension plans at Velliv and PFA, a decision tool for choosing between them, a Danish payout calculator, and working notes on fat-tailed statistics.">
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --panel: #ffffff;
+    --ink: #14161a;
+    --ink-soft: #4a515c;
+    --ink-faint: #767e8b;
+    --rule: #e3e1dc;
+    --accent: #1c5cab;
+    --accent-soft: #e4edf8;
+    --tag: #f1efea;
+    --shadow: 0 1px 2px rgba(20,22,26,.05), 0 6px 18px rgba(20,22,26,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101215;
+      --panel: #171a1e;
+      --ink: #eceef1;
+      --ink-soft: #b2b9c3;
+      --ink-faint: #838b96;
+      --rule: #272b31;
+      --accent: #6da7ec;
+      --accent-soft: #1a2a3d;
+      --tag: #21252a;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101215;
+    --panel: #171a1e;
+    --ink: #eceef1;
+    --ink-soft: #b2b9c3;
+    --ink-faint: #838b96;
+    --rule: #272b31;
+    --accent: #6da7ec;
+    --accent-soft: #1a2a3d;
+    --tag: #21252a;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-feature-settings: "kern" 1;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 0 24px 96px; }
+  @media (max-width: 520px) { .wrap { padding: 0 16px 72px; } }
+
+  header { padding: 72px 0 40px; border-bottom: 1px solid var(--rule); }
+  @media (max-width: 520px) { header { padding-top: 48px; } }
+  h1 {
+    margin: 0 0 14px;
+    font-size: clamp(1.9rem, 5vw, 2.9rem);
+    line-height: 1.15;
+    letter-spacing: -.02em;
+    font-weight: 660;
+  }
+  .credits { margin: 0; color: var(--ink-soft); font-size: .96rem; }
+  .lede {
+    margin: 26px 0 0;
+    max-width: 62ch;
+    color: var(--ink-soft);
+    font-size: 1.06rem;
+  }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  h2 {
+    margin: 56px 0 6px;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  h2 + .sub { margin: 0 0 20px; color: var(--ink-faint); font-size: .9rem; max-width: 60ch; }
+
+  .grid { display: grid; gap: 14px; }
+  @media (min-width: 700px) { .grid { grid-template-columns: 1fr 1fr; } }
+
+  a.card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px 22px 18px;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  a.card:hover, a.card:focus-visible {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    outline: none;
+  }
+  a.card h3 {
+    margin: 0;
+    font-size: 1.06rem;
+    font-weight: 620;
+    letter-spacing: -.01em;
+    color: var(--ink);
+  }
+  a.card p { margin: 0; color: var(--ink-soft); font-size: .93rem; }
+  a.card:hover h3 { color: var(--accent); }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 4px; }
+  .tag {
+    font-size: .72rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    font-weight: 640;
+    color: var(--ink-faint);
+    background: var(--tag);
+    border-radius: 5px;
+    padding: 3px 7px;
+  }
+  .tag.lang { color: var(--accent); background: var(--accent-soft); }
+
+  .note {
+    margin: 44px 0 0;
+    padding: 18px 20px;
+    border-left: 3px solid var(--rule);
+    color: var(--ink-soft);
+    font-size: .92rem;
+  }
+  .note p { margin: 0 0 10px; }
+  .note p:last-child { margin-bottom: 0; }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-faint);
+    font-size: .88rem;
+  }
+  footer a { color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) { a.card { transition: none; } a.card:hover, a.card:focus-visible { transform: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Pension returns</h1>
+  <p class="credits">Martin Hoshi Vognsen</p>
+  <p class="lede">
+    Return analyses of the pension plans at <strong>Velliv and PFA</strong>, and
+    tools for deciding what to do with the savings. The history is short and the
+    tails are fat. Each analysis therefore says how far its conclusions can be
+    trusted.
+  </p>
+</header>
+
+<h2>Decision tools</h2>
+<p class="sub">Which plan to save in, and how to take the money out.</p>
+<div class="grid">
+
+  <a class="card" href="pension-returns_investor.html">
+    <h3>Choosing a pension plan: An investor’s advanced decision tool</h3>
+    <p>Which risk level, and one provider or both? The tool answers both
+       questions from the latest monthly returns and each provider’s fees. It
+       shows how robust each answer is rather than naming a single best plan.</p>
+    <div class="meta"><span class="tag lang">English</span><span class="tag">Monthly data</span><span class="tag">Fees</span></div>
+  </a>
+
+  <a class="card" href="kapital-eller-rate.html">
+    <h3 lang="da">Kapital eller rate</h3>
+    <p lang="da">Hvad er en kapitalpension værd, hvis den laves om til
+       ratepension? Beregneren regner skat og folkepension år for år, med og
+       uden raten. Resultatet sammenlignes med de 60 %, kapitalpensionen giver
+       efter afgift. Satser for 2026.</p>
+    <div class="meta"><span class="tag lang">Dansk</span><span class="tag">Calculator</span><span class="tag">Tax</span></div>
+  </a>
+
+</div>
+
+<h2>Analysis</h2>
+<p class="sub">What thirteen years of annual returns can and cannot tell you.</p>
+<div class="grid">
+
+  <a class="card" href="pension-returns_annual.html">
+    <h3>Annual pension returns analysis</h3>
+    <p>A case study on a frozen data set of annual returns from 2011 to 2023. It
+       shows how far inference degrades when only annual data is available. The
+       sample is far too short to estimate the tail, and it contains no
+       crash.</p>
+    <div class="meta"><span class="tag lang">English</span><span class="tag">Annual data</span><span class="tag">Case study</span></div>
+  </a>
+
+</div>
+
+<h2>Notes</h2>
+<p class="sub">Working notes on the fat-tailed statistics behind the analyses.</p>
+<div class="grid">
+
+  <a class="card" href="misc_docs/taleb_kappa.pdf">
+    <h3>Notes on Taleb’s kappa</h3>
+    <p>How many Student t summands does it take to match the convergence of n
+       Gaussian ones? Works through Taleb’s convergence metric κ from
+       <em>The Statistical Consequences of Fat Tails</em>, computed by
+       simulation for the skewed t.</p>
+    <div class="meta"><span class="tag lang">English</span><span class="tag">PDF</span><span class="tag">7 pages</span></div>
+  </a>
+
+  <a class="card" href="misc_docs/sgt.pdf">
+    <h3>A study of the skewed generalized t-distribution</h3>
+    <p>How the four parameters of a skewed t change when returns are summed
+       over many periods. Estimated by simulation, with the analytical moments
+       and a comparison of estimation packages.</p>
+    <div class="meta"><span class="tag lang">English</span><span class="tag">PDF</span><span class="tag">29 pages</span></div>
+  </a>
+
+  <a class="card" href="misc_docs/pensionsafkast_IS.pdf">
+    <h3>Importance sampling of return paths</h3>
+    <p>Working notes on importance sampling for simulated return paths. A
+       skewed t target, a normal proposal tuned for minimum variance, and the
+       open problem of the skewed t’s self-convolution.</p>
+    <div class="meta"><span class="tag lang">English</span><span class="tag">PDF</span><span class="tag">15 pages</span></div>
+  </a>
+
+</div>
+
+<div class="note">
+  <p><strong>A note on the pages.</strong> The two reports are single
+     self-contained HTML files with their figures embedded. The annual analysis
+     is about 7 MB, so it loads slowly on a phone connection.</p>
+  <p><strong>A note on the numbers.</strong> These are working analyses, not
+     financial advice.</p>
+</div>
+
+<footer>
+  <p>Source and data: <a href="https://github.com/mahovo/pension-returns">github.com/mahovo/pension-returns</a>.
+     Licensed under the GNU GPL v3.</p>
+</footer>
+
+</div>
+</body>
+</html>

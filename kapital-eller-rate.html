@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="da">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kapital eller rate</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+/* Layout: indtastning i en smal kolonne til venstre, resultatet i en bred kolonne til højre; én kolonne på telefon. */
+:root {
+  --bg: #f3f5f5;
+  --surface: #fdfdfc;
+  --field: #ffffff;
+  --ink: #12181b;
+  --ink-2: #4b5458;
+  --muted: #737c80;
+  --line: #e0e4e4;
+  --line-strong: #c4cbcc;
+  --accent: #1c5cab;
+  --accent-wash: #e4edf8;
+  --s-net: #2a78d6;
+  --s-tax: #1baf7a;
+  --s-till: #eb6834;
+  --pos-ink: #184f95;
+  --pos-bg: #e3edf9;
+  --neg-ink: #a32e2a;
+  --neg-bg: #f9e4e2;
+  --div-mid: #e9e8e4;
+  --pos-1: #d3e4f9; --pos-2: #a9caf2; --pos-3: #77a9ea; --pos-4: #3f86dc; --pos-5: #1c5cab;
+  --neg-1: #f7d9d6; --neg-2: #efb2ab; --neg-3: #e5867d; --neg-4: #d5584f; --neg-5: #ac322d;
+  --hover: rgba(18, 24, 27, 0.05);
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-head: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1213; --surface: #181b1d; --field: #121516; --ink: #eef1f1; --ink-2: #b7bfc1; --muted: #8a9295;
+    --line: #2a2f31; --line-strong: #3b4245; --accent: #6da7ec; --accent-wash: #1a2a3d;
+    --s-net: #3987e5; --s-tax: #199e70; --s-till: #d95926;
+    --pos-ink: #9ec5f4; --pos-bg: #1b2a3e; --neg-ink: #f2a39d; --neg-bg: #3a2120;
+    --div-mid: #33383a;
+    --pos-1: #1f2f45; --pos-2: #21426d; --pos-3: #275c9a; --pos-4: #357bd0; --pos-5: #6da7ec;
+    --neg-1: #3d2523; --neg-2: #5d2c29; --neg-3: #853633; --neg-4: #b5453f; --neg-5: #e67b78;
+    --hover: rgba(238, 241, 241, 0.06);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1213; --surface: #181b1d; --field: #121516; --ink: #eef1f1; --ink-2: #b7bfc1; --muted: #8a9295;
+  --line: #2a2f31; --line-strong: #3b4245; --accent: #6da7ec; --accent-wash: #1a2a3d;
+  --s-net: #3987e5; --s-tax: #199e70; --s-till: #d95926;
+  --pos-ink: #9ec5f4; --pos-bg: #1b2a3e; --neg-ink: #f2a39d; --neg-bg: #3a2120;
+  --div-mid: #33383a;
+  --pos-1: #1f2f45; --pos-2: #21426d; --pos-3: #275c9a; --pos-4: #357bd0; --pos-5: #6da7ec;
+  --neg-1: #3d2523; --neg-2: #5d2c29; --neg-3: #853633; --neg-4: #b5453f; --neg-5: #e67b78;
+  --hover: rgba(238, 241, 241, 0.06);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-ui); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.top { display: grid; gap: 6px; margin-bottom: 24px; max-width: 760px; }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+h1 { font-family: var(--font-head); font-weight: 600; font-size: clamp(28px, 4vw, 38px); line-height: 1.12; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-head); font-weight: 600; font-size: 19px; line-height: 1.25; margin: 0; text-wrap: balance; }
+.lede { color: var(--ink-2); font-size: 15px; margin: 4px 0 0; max-width: 66ch; }
+
+.layout { display: grid; grid-template-columns: 344px minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 940px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.inputs { padding: 6px 18px 18px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); max-height: calc(100vh - 32px); overflow: auto; }
+@media (max-width: 940px) { .inputs { position: static; max-height: none; overflow: visible; } }
+
+fieldset { border: 0; margin: 0; padding: 14px 0 4px; border-top: 1px solid var(--line); display: grid; gap: 10px; min-width: 0; }
+fieldset:first-of-type { border-top: 0; }
+legend { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0; margin-bottom: 4px; float: left; width: 100%; }
+legend + * { clear: both; }
+.row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.row.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.f { display: grid; gap: 3px; min-width: 0; }
+.f label { font-size: 12.5px; color: var(--ink-2); line-height: 1.3; }
+.f input { width: 100%; font: inherit; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--field); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 9px; min-width: 0; }
+.f input:focus-visible, .seg input:focus-visible + label, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.4; margin: 0; }
+.sub { font-size: 13px; font-weight: 600; color: var(--ink); margin: 2px 0 -2px; }
+.row { grid-auto-flow: row dense; }
+.row .f { align-content: end; }
+.labrow { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.labrow label { flex: 0 1 auto; min-width: 0; }
+.info { position: relative; flex: none; width: 16px; height: 16px; margin-top: 1px; padding: 0; border-radius: 50%; border: 1px solid var(--muted); background: transparent; color: var(--ink-2); font: 600 10.5px/1 var(--font-head); display: inline-grid; place-items: center; cursor: pointer; }
+.info::after { content: ""; position: absolute; inset: -6px; }
+.info:hover, .info[aria-expanded="true"] { background: var(--accent-wash); border-color: var(--accent); color: var(--accent); }
+.info-text { grid-column: 1 / -1; margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); background: var(--accent-wash); border-radius: 6px; padding: 8px 10px; }
+
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line-strong); border-radius: 7px; overflow: hidden; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { text-align: center; padding: 7px 4px; cursor: pointer; font-size: 13px; color: var(--ink-2); border-left: 1px solid var(--line-strong); user-select: none; }
+.seg label:first-of-type { border-left: 0; }
+.seg input:checked + label { background: var(--accent-wash); color: var(--ink); font-weight: 600; }
+
+details.rates { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 4px; }
+details.rates summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+details.rates[open] summary { margin-bottom: 10px; }
+details.rates .grid { display: grid; gap: 10px; }
+.btn { font: inherit; font-size: 13px; color: var(--ink-2); background: transparent; border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.btn:hover { background: var(--hover); color: var(--ink); }
+.actions { display: flex; gap: 8px; padding-top: 14px; }
+
+.results { display: grid; gap: 18px; min-width: 0; }
+.card { padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.card-head { display: grid; gap: 4px; }
+.card-head p { margin: 0; color: var(--ink-2); font-size: 13.5px; max-width: 72ch; }
+
+.verdict { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; }
+.fig { padding: 4px 18px 4px 0; display: grid; gap: 2px; align-content: start; }
+.fig + .fig { padding-left: 18px; border-left: 1px solid var(--line); }
+.fig .lab { font-size: 13px; color: var(--ink-2); }
+.fig .val { font-size: 30px; font-weight: 600; line-height: 1.15; letter-spacing: -.01em; }
+.fig .note { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 620px) {
+  .verdict { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .fig, .fig + .fig { padding: 0; border-left: 0; }
+  .fig + .fig { padding-top: 12px; border-top: 1px solid var(--line); }
+}
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 2px 10px; border-radius: 999px; width: fit-content; }
+.pill.pos { color: var(--pos-ink); background: var(--pos-bg); }
+.pill.neg { color: var(--neg-ink); background: var(--neg-bg); }
+.pill.neu { color: var(--ink-2); background: var(--hover); }
+.pill .mk { font-size: 11px; }
+.summary { margin: 0; font-size: 14.5px; color: var(--ink); max-width: 75ch; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw.line { width: 16px; height: 0; border-top: 2px solid var(--ink-2); border-radius: 0; }
+.chart { position: relative; width: 100%; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-family: var(--font-ui); }
+.tick { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.axis-title { font-size: 11.5px; fill: var(--ink-2); }
+.gridline { stroke: var(--line); stroke-width: 1; }
+.baseline { stroke: var(--line-strong); stroke-width: 1; }
+.refline { stroke: var(--ink-2); stroke-width: 1.5; }
+.reflabel { font-size: 11px; fill: var(--ink-2); font-weight: 500; }
+.s-net { fill: var(--s-net); } .s-tax { fill: var(--s-tax); } .s-till { fill: var(--s-till); }
+.hit { fill: transparent; cursor: crosshair; }
+.hit.on { fill: var(--hover); }
+.c-mid { fill: var(--div-mid); }
+.c-pos-1 { fill: var(--pos-1); } .c-pos-2 { fill: var(--pos-2); } .c-pos-3 { fill: var(--pos-3); } .c-pos-4 { fill: var(--pos-4); } .c-pos-5 { fill: var(--pos-5); }
+.c-neg-1 { fill: var(--neg-1); } .c-neg-2 { fill: var(--neg-2); } .c-neg-3 { fill: var(--neg-3); } .c-neg-4 { fill: var(--neg-4); } .c-neg-5 { fill: var(--neg-5); }
+.cell { cursor: pointer; }
+.cell:hover { stroke: var(--ink); stroke-width: 1; }
+.sel { fill: none; stroke: var(--ink); stroke-width: 2; pointer-events: none; }
+.best { fill: var(--ink); stroke: var(--surface); stroke-width: 1.5; pointer-events: none; }
+.tip { position: absolute; z-index: 5; pointer-events: none; background: var(--ink); color: var(--bg); border-radius: 7px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; min-width: 180px; max-width: 260px; font-variant-numeric: tabular-nums; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.tip b { font-weight: 600; }
+.tip .k { display: grid; grid-template-columns: 10px 1fr auto; gap: 6px; align-items: center; }
+.tip .k i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.scale { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); flex-wrap: wrap; }
+.scale .bar { display: flex; gap: 2px; }
+.scale .bar i { width: 16px; height: 10px; border-radius: 2px; display: block; }
+.best-line { margin: 0; font-size: 13.5px; }
+
+.zones { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.zones td { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); vertical-align: middle; }
+.zones tr:first-child td { border-top: 0; }
+.zones td.rate { width: 180px; font-variant-numeric: tabular-nums; }
+.zones .meter { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: center; }
+.zones .track { position: relative; height: 8px; background: var(--hover); border-radius: 4px; }
+.zones .track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.zones .track i.pos { background: var(--pos-4); } .zones .track i.neg { background: var(--neg-4); } .zones .track i.ref { background: var(--ink-2); }
+.zones .track b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); border-radius: 1px; }
+.zones tr.ref td { color: var(--ink-2); }
+.zones td.st { width: 112px; text-align: right; padding-right: 0; }
+@media (max-width: 620px) { .zones td.rate { width: 120px; } .zones .meter { grid-template-columns: 1fr; gap: 4px; } .zones td.st { display: none; } }
+.foot { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+.tablebox { overflow-x: auto; }
+table.years { border-collapse: collapse; font-size: 13px; width: 100%; min-width: 760px; font-variant-numeric: tabular-nums; }
+table.years th { text-align: right; font-weight: 600; font-size: 12px; color: var(--ink-2); padding: 6px 8px; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+table.years td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.years th:first-child, table.years td:first-child { text-align: left; padding-left: 0; }
+table.years td.l, table.years th.l { text-align: left; }
+table.years tr.sum td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--line-strong); }
+.over { color: var(--neg-ink); font-weight: 600; }
+.chip { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; background: var(--hover); color: var(--ink-2); }
+
+.notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .notes { grid-template-columns: minmax(0, 1fr); } }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; color: var(--ink-2); font-size: 13px; }
+.notes a { color: var(--accent); }
+.warn { color: var(--neg-ink); font-size: 12.5px; margin: 0; }
+.notes > div { display: grid; gap: 10px; align-content: start; min-width: 0; }
+[hidden] { display: none !important; }
+@media (max-width: 620px) { .f input { font-size: 16px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Pensionsbeskatning · satser 2026</div>
+    <h1>Kapital eller rate</h1>
+    <p class="lede">Hvad er en kapitalpension værd, hvis den laves om til ratepension? Beregneren lægger den nye rate oven i opsparerens andre indtægter år for år. For hvert år regner den skat og folkepension med og uden raten og lægger forskellen sammen.</p>
+  </header>
+
+  <div class="layout">
+    <form class="panel inputs" id="form" autocomplete="off">
+      <fieldset>
+        <legend>Husstand</legend>
+        <div class="seg" role="radiogroup" aria-label="Husstand">
+          <input type="radio" name="civil" id="civilEnlig" value="enlig" checked><label for="civilEnlig">Enlig</label>
+          <input type="radio" name="civil" id="civilGift" value="gift"><label for="civilGift">Gift</label>
+          <input type="radio" name="civil" id="civilSamlevende" value="samlevende"><label for="civilSamlevende">Samlevende</label>
+        </div>
+        <p class="hint" id="civilHint">Pensionstillæg for enlige: 30,9 % aftrapning over 99.200 kr.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Kapitalpensionen</legend>
+        <div class="row two">
+          <div class="f"><label for="kapital">Saldo (kr.)</label><input id="kapital" inputmode="numeric"></div>
+          <div class="f"><label for="earliest">Tidligst udbetaling (alder)</label><input id="earliest" type="number" min="55" max="80" step="1"></div>
+        </div>
+        <p class="sub">Hvis den laves om til ratepension</p>
+        <div class="row two">
+          <div class="f"><label for="convStart">Udbetaling fra alder</label><input id="convStart" type="number" min="55" max="95" step="1"></div>
+          <div class="f"><label for="convYears">Over antal år (10–30)</label><input id="convYears" type="number" min="10" max="30" step="1"></div>
+        </div>
+        <div class="f"><label for="fee">Gebyr ved overførsel (kr.)</label><input id="fee" inputmode="numeric"></div>
+        <p class="hint">Velliv tager 2.165 kr. for at overføre til PFA. Gebyret trækkes fra opsparingen, før raterne beregnes. Sæt 0, hvis kapitalpensionen omdannes uden at flytte.</p>
+        <p class="warn" id="convWarn" hidden></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Andre ratepensioner</legend>
+        <p class="sub">Ratepension hos Velliv</p>
+        <div class="row">
+          <div class="f"><label for="r1saldo">Saldo (kr.)</label><input id="r1saldo" inputmode="numeric"></div>
+          <div class="f"><label for="r1start">Fra alder</label><input id="r1start" type="number" min="55" max="95" step="1"></div>
+          <div class="f"><label for="r1years">Over år</label><input id="r1years" type="number" min="10" max="30" step="1"></div>
+        </div>
+        <p class="sub">Ratepension hos PFA</p>
+        <div class="row">
+          <div class="f"><label for="r2saldo">Saldo (kr.)</label><input id="r2saldo" inputmode="numeric"></div>
+          <div class="f"><label for="r2start">Fra alder</label><input id="r2start" type="number" min="55" max="95" step="1"></div>
+          <div class="f"><label for="r2years">Over år</label><input id="r2years" type="number" min="10" max="30" step="1"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Opspareren</legend>
+        <div class="f"><label for="aFp">Folkepensionsalder</label><input id="aFp" type="number" min="65" max="75" step="1"></div>
+        <div class="row two">
+          <div class="f"><label for="aOther">Anden pension (kr./år)</label><input id="aOther" inputmode="numeric"></div>
+          <div class="f"><label for="aOtherFrom">Fra alder</label><input id="aOtherFrom" type="number" min="55" max="95" step="1"></div>
+        </div>
+        <p class="hint">ATP, livrenter og andre løbende pensioner. Tæller med i pensionstillægget.</p>
+        <div class="row two">
+          <div class="f"><label for="aWork">Arbejdsindkomst (kr./år)</label><input id="aWork" inputmode="numeric"></div>
+          <div class="f"><label for="aWorkEnd">Indtil alder</label><input id="aWorkEnd" type="number" min="50" max="95" step="1"></div>
+        </div>
+      </fieldset>
+
+      <fieldset id="partnerSet" hidden>
+        <legend>Partneren</legend>
+        <div class="row two">
+          <div class="f"><label for="bAgeDiff">År ældre end opspareren</label><input id="bAgeDiff" type="number" min="-25" max="25" step="1"></div>
+          <div class="f"><label for="bFp">Folkepensionsalder</label><input id="bFp" type="number" min="65" max="75" step="1"></div>
+        </div>
+        <p class="hint">Negativt tal, hvis partneren er yngre. Partnerens aldre nedenfor er partnerens egen alder.</p>
+        <div class="row two">
+          <div class="f"><label for="bOther">Pension (kr./år)</label><input id="bOther" inputmode="numeric"></div>
+          <div class="f"><label for="bOtherFrom">Fra alder</label><input id="bOtherFrom" type="number" min="55" max="95" step="1"></div>
+        </div>
+        <div class="row two">
+          <div class="f"><label for="bWork">Arbejdsindkomst (kr./år)</label><input id="bWork" inputmode="numeric"></div>
+          <div class="f"><label for="bWorkEnd">Indtil alder</label><input id="bWorkEnd" type="number" min="50" max="95" step="1"></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Skat og afkast</legend>
+        <div class="row">
+          <div class="f"><label for="kommune">Kommuneskat (%)</label><input id="kommune" inputmode="decimal"></div>
+          <div class="f"><label for="kirke">Kirkeskat (%)</label><input id="kirke" inputmode="decimal"></div>
+          <div class="f"><label for="realafkast">Realafkast (%)</label><input id="realafkast" inputmode="decimal"></div>
+        </div>
+        <p class="hint">Gennemsnitlig kommuneskat 2026 er ca. 25,05 %. Kirkeskat er 0, hvis man ikke er medlem. Realafkastet er efter PAL-skat og omkostninger og bruges både til raterne og til at tilbagediskontere.</p>
+      </fieldset>
+
+      <details class="rates" id="ratesBox">
+        <summary>Satser for 2026</summary>
+        <div class="grid">
+          <div class="row two">
+            <div class="f"><label for="sGrund">Grundbeløb (kr./år)</label><input id="sGrund" inputmode="numeric"></div>
+            <div class="f"><label for="sAfgift">Afgift på kapital (%)</label><input id="sAfgift" inputmode="decimal"></div>
+          </div>
+          <div class="row two">
+            <div class="f"><label for="sTillEnlig">Tillæg, enlig (kr./år)</label><input id="sTillEnlig" inputmode="numeric"></div>
+            <div class="f"><label for="sTillPar">Tillæg, par (kr./år pr. person)</label><input id="sTillPar" inputmode="numeric"></div>
+          </div>
+          <div class="row two">
+            <div class="f"><label for="sFradragEnlig">Fradragsbeløb, enlig</label><input id="sFradragEnlig" inputmode="numeric"></div>
+            <div class="f"><label for="sFradragPar">Fradragsbeløb, par</label><input id="sFradragPar" inputmode="numeric"></div>
+          </div>
+          <div class="row">
+            <div class="f"><label for="sAftrapEnlig">Aftrapning, enlig (%)</label><input id="sAftrapEnlig" inputmode="decimal"></div>
+            <div class="f"><label for="sAftrapBegge">Begge pensionister (%)</label><input id="sAftrapBegge" inputmode="decimal"></div>
+            <div class="f"><label for="sAftrapEn">Én pensionist (%)</label><input id="sAftrapEn" inputmode="decimal"></div>
+          </div>
+          <div class="f"><label for="sAndel">Andel af ikke-pensionists indkomst, der tæller (%)</label><input id="sAndel" inputmode="decimal"></div>
+          <div class="row two">
+            <div class="f"><label for="sPf">Personfradrag (kr.)</label><input id="sPf" inputmode="numeric"></div>
+            <div class="f"><label for="sBund">Bundskat (%)</label><input id="sBund" inputmode="decimal"></div>
+          </div>
+          <div class="row two">
+            <div class="f"><label for="sMellem">Mellemskat (%)</label><input id="sMellem" inputmode="decimal"></div>
+            <div class="f"><label for="sMellemGr">Mellemskat over (kr.)</label><input id="sMellemGr" inputmode="numeric"></div>
+          </div>
+          <div class="row two">
+            <div class="f"><label for="sTop">Topskat (%)</label><input id="sTop" inputmode="decimal"></div>
+            <div class="f"><label for="sTopGr">Topskat over (kr.)</label><input id="sTopGr" inputmode="numeric"></div>
+          </div>
+          <div class="row two">
+            <div class="f"><label for="sToptop">Toptopskat (%)</label><input id="sToptop" inputmode="decimal"></div>
+            <div class="f"><label for="sToptopGr">Toptopskat over (kr.)</label><input id="sToptopGr" inputmode="numeric"></div>
+          </div>
+          <div class="row two">
+            <div class="f"><label for="sLoft">Skatteloft (%)</label><input id="sLoft" inputmode="decimal"></div>
+            <div class="f"><label for="sAm">AM-bidrag (%)</label><input id="sAm" inputmode="decimal"></div>
+          </div>
+        </div>
+      </details>
+
+      <div class="actions"><button type="button" class="btn" id="reset">Nulstil til eksemplet</button></div>
+    </form>
+
+    <main class="results">
+      <section class="panel card" aria-labelledby="hRes">
+        <div class="card-head"><h2 id="hRes">Resultat</h2></div>
+        <div class="verdict">
+          <div class="fig"><span class="lab">Som kapitalpension</span><span class="val" id="vKap">–</span><span class="note" id="vKapNote">netto efter 40 % afgift</span></div>
+          <div class="fig"><span class="lab">Som ratepension</span><span class="val" id="vRate">–</span><span class="note" id="vRateNote">netto efter skat og modregning</span></div>
+          <div class="fig"><span class="lab">Forskel</span><span class="val" id="vDiff">–</span><span class="pill neu" id="vPill">–</span></div>
+        </div>
+        <p class="summary" id="summary"></p>
+      </section>
+
+      <section class="panel card" aria-labelledby="hStack">
+        <div class="card-head">
+          <h2 id="hStack">Hvor går hver rate hen?</h2>
+          <p>Den omdannede rate år for år, delt op i det, husstanden beholder, ekstra skat og mistet pensionstillæg. Stregen viser de 60 %, kapitalpensionen giver.</p>
+        </div>
+        <div class="legend" id="stackLegend">
+          <span><i class="sw" style="background:var(--s-net)"></i>Beholdes netto</span>
+          <span><i class="sw" style="background:var(--s-tax)"></i>Ekstra skat</span>
+          <span><i class="sw" style="background:var(--s-till)"></i>Mistet pensionstillæg</span>
+          <span><i class="sw line"></i><span id="refKey">Kapitalpension: 60 % netto</span></span>
+        </div>
+        <div class="chart" id="stackChart"><div class="tip" id="stackTip" hidden></div></div>
+      </section>
+
+      <section class="panel card" aria-labelledby="hHeat">
+        <div class="card-head">
+          <h2 id="hHeat">Andre valg af start og periode</h2>
+          <p>Forskellen mellem rate og kapital for hver kombination af startalder og udbetalingsperiode for den omdannede rate. De andre pensioner ligger fast som valgt. Klik på en celle for at vælge den.</p>
+        </div>
+        <div class="scale" id="heatScale"></div>
+        <div class="chart" id="heatChart"><div class="tip" id="heatTip" hidden></div></div>
+        <p class="best-line" id="bestLine"></p>
+      </section>
+
+      <section class="panel card" aria-labelledby="hZones">
+        <div class="card-head">
+          <h2 id="hZones">Hvad koster den sidste krone?</h2>
+          <p id="zonesLede">Effektiv skat på en ekstra krone ratepension, med de valgte skattesatser. Den lodrette streg er kapitalpensionens afgift.</p>
+        </div>
+        <table class="zones" id="zones"></table>
+        <p class="foot" id="zonesFoot"></p>
+      </section>
+
+      <section class="panel card" aria-labelledby="hYears">
+        <div class="card-head">
+          <h2 id="hYears">År for år</h2>
+          <p>Grundlaget er den indkomst, pensionstillægget beregnes af, uden og med den omdannede rate. Rødt betyder, at grundlaget er over fradragsbeløbet, så tillægget bliver sat ned.</p>
+        </div>
+        <div class="tablebox"><table class="years" id="years"></table></div>
+      </section>
+
+      <section class="panel card notes" aria-label="Forudsætninger og kilder">
+        <div>
+          <h2>Forudsætninger</h2>
+          <ul>
+            <li>Satser for 2026 i faste priser. Tillæg og grænser holdes faste i alle år.</li>
+            <li>Kapitalpensionens afgift er 40 %, uanset hvornår den hæves. Beløbet tæller ikke som indkomst.</li>
+            <li>Ratepensioner udbetales med lige store rater. Ved realafkast over 0 % som annuitet.</li>
+            <li>Arbejdsindkomst (både egen og partnerens) modregnes ikke i pensionstillægget. Den tæller kun i skatten efter AM-bidrag.</li>
+            <li>Er partneren ikke pensionist, tæller 46 % af partnerens øvrige indkomst med i den pensioneredes tillæg, og omvendt.</li>
+            <li>Gifte kan overføre uudnyttet personfradrag til hinanden. Ugifte samlevende kan ikke. Begge regnes med samme kommune- og kirkeskat.</li>
+            <li>Ikke med: ældrecheck, helbreds- og varmetillæg, boligstøtte, formue og kapitalindkomst, beskæftigelsesfradrag og overgangsregler for samlevende, der blev pensionister før 1999.</li>
+            <li>Skatten er den samme, uanset om ratepensionen ligger hos Velliv eller PFA. Overførselsgebyret er med. Løbende omkostninger og forskelle i afkast er ikke.</li>
+          </ul>
+        </div>
+        <div>
+          <h2>Kilder</h2>
+          <ul>
+            <li><a href="https://www.aeldresagen.dk/viden-og-raadgivning/vaerd-at-vide/f/folkepension-og-foertidspension/folkepension/beregning-af-folkepension" target="_blank" rel="noopener">Ældre Sagen: Beregning af folkepension</a></li>
+            <li><a href="https://www.aeldresagen.dk/viden-og-raadgivning/penge-og-pension/folkepension/folkepensionist/folkepension-2026" target="_blank" rel="noopener">Ældre Sagen: Folkepension 2026</a></li>
+            <li><a href="https://www.aeldresagen.dk/viden-og-raadgivning/penge-og-pension/folkepension/folkepensionist/din-aegtefaelles-indtaegt-paavirker-ikke-din-folkepension" target="_blank" rel="noopener">Ældre Sagen: Ægtefællens indtægt og folkepensionen</a></li>
+            <li><a href="https://danskelove.dk/pensionsloven/31" target="_blank" rel="noopener">Pensionsloven § 31</a></li>
+            <li><a href="https://skat.dk/hjaelp/bundskat-mellemskat-topskat-og-toptopskat" target="_blank" rel="noopener">skat.dk: Bundskat, mellemskat, topskat og toptopskat</a></li>
+            <li><a href="https://tax.dk/skat/personfradrag.htm" target="_blank" rel="noopener">tax.dk: Personfradrag</a></li>
+          </ul>
+          <p class="foot" style="margin-top:10px">Beregneren viser regnemetoden. Den er ikke personlig rådgivning.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+// ENGINE START
+function ann(saldo, n, r) { return r === 0 ? saldo / n : saldo * r / (1 - Math.pow(1 + r, -n)); }
+
+function reduceTill(max, pct, basis, fradrag) { return Math.max(0, max - pct * Math.max(0, basis - fradrag)); }
+
+// Én kalenderår for husstanden, med (conv=true) eller uden den omdannede rate.
+function yearCalc(q, S, a, conv) {
+  const couple = q.civil !== 'enlig', r = q.realafkast, b = a + q.ageDiff;
+  let rateA = 0;
+  for (const x of q.rates) if (x.saldo > 0 && a >= x.start && a < x.start + x.years) rateA += ann(x.saldo, x.years, r);
+  const convPay = (a >= q.convStart && a < q.convStart + q.convYears) ? ann(q.convSaldo, q.convYears, r) : 0;
+  if (conv) rateA += convPay;
+  const A = q.A, B = q.B;
+  const nwA = rateA + (a >= A.otherFrom ? A.other : 0);
+  const workA = a < A.workEnd ? A.work : 0;
+  const pA = a >= A.fp;
+  let nwB = 0, workB = 0, pB = false;
+  if (couple) { nwB = b >= B.otherFrom ? B.other : 0; workB = b < B.workEnd ? B.work : 0; pB = b >= B.fp; }
+  let tA = 0, tB = 0, basis = null, fradrag = null;
+  if (!couple) {
+    if (pA) { basis = nwA; fradrag = S.fradragEnlig; tA = reduceTill(S.tillEnlig, S.aftrapEnlig, basis, fradrag); }
+  } else if (pA && pB) {
+    basis = nwA + nwB; fradrag = S.fradragPar; tA = tB = reduceTill(S.tillPar, S.aftrapBegge, basis, fradrag);
+  } else if (pA) {
+    basis = nwA + S.andel * nwB; fradrag = S.fradragPar; tA = reduceTill(S.tillPar, S.aftrapEn, basis, fradrag);
+  } else if (pB) {
+    basis = nwB + S.andel * nwA; fradrag = S.fradragPar; tB = reduceTill(S.tillPar, S.aftrapEn, basis, fradrag);
+  }
+  const PA = nwA + (1 - S.am) * workA + (pA ? S.grund + tA : 0);
+  const PB = couple ? nwB + (1 - S.am) * workB + (pB ? S.grund + tB : 0) : 0;
+  const rbk = S.bund + q.kommune + q.kirke;
+  let tax = q.civil === 'gift'
+    ? rbk * Math.max(0, PA + PB - 2 * S.pf)
+    : rbk * Math.max(0, PA - S.pf) + (couple ? rbk * Math.max(0, PB - S.pf) : 0);
+  const me = Math.max(0, Math.min(S.mellem, S.loft - S.bund - q.kommune));
+  for (const P of couple ? [PA, PB] : [PA]) {
+    tax += me * Math.max(0, P - S.mellemGr) + S.top * Math.max(0, P - S.topGr) + S.toptop * Math.max(0, P - S.toptopGr);
+  }
+  return { a, b, convPay, pA, pB, basis, fradrag, till: tA + tB, tax, net: PA + PB - tax };
+}
+
+// Nutidsværdi (ved tidligste udbetalingsalder) af det ekstra netto, raten giver, mod 60 % som kapital.
+function evaluate(inp, S, convStart, convYears) {
+  convStart = convStart ?? inp.convStart; convYears = convYears ?? inp.convYears;
+  const r = inp.realafkast;
+  const q = Object.assign({}, inp, { convStart, convYears, convSaldo: Math.max(0, inp.kapital - (inp.fee || 0)) * Math.pow(1 + r, convStart - inp.earliest) });
+  const rows = []; let pv = 0;
+  for (let a = convStart; a < convStart + convYears; a++) {
+    const w = yearCalc(q, S, a, true), o = yearCalc(q, S, a, false);
+    const dNet = w.net - o.net;
+    pv += dNet / Math.pow(1 + r, a - inp.earliest);
+    rows.push({ a, b: w.b, pA: w.pA, pB: w.pB, pay: w.convPay, basisWithout: o.basis, basisWith: w.basis,
+                fradrag: w.fradrag, dTax: w.tax - o.tax, dTill: o.till - w.till, dNet });
+  }
+  const kapital = (1 - S.afgift) * inp.kapital;
+  return { rows, pv, kapital, diff: pv - kapital, effTax: inp.kapital > 0 ? 1 - pv / inp.kapital : 0 };
+}
+// ENGINE END
+
+const $ = id => document.getElementById(id);
+const nf0 = new Intl.NumberFormat('da-DK', { maximumFractionDigits: 0 });
+const kr = v => nf0.format(Math.round(v)) + ' kr.';
+const num = v => nf0.format(Math.round(v));
+const skr = v => (Math.round(v) > 0 ? '+' : Math.round(v) < 0 ? '−' : '') + nf0.format(Math.abs(Math.round(v))) + ' kr.';
+const pct = (v, d = 1) => (v * 100).toLocaleString('da-DK', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' %';
+const pctIn = v => (Math.round(v * 1e6) / 1e4).toLocaleString('da-DK', { maximumFractionDigits: 2 });
+const round100 = v => Math.round(v / 100) * 100;
+
+const FIELDS = {
+  kapital: ['kr', 275000], earliest: ['int', 67], convStart: ['int', 67], convYears: ['int', 10], fee: ['kr', 2165],
+  r1saldo: ['kr', 225000], r1start: ['int', 67], r1years: ['int', 10],
+  r2saldo: ['kr', 500000], r2start: ['int', 70], r2years: ['int', 10],
+  aFp: ['int', 70], aOther: ['kr', 0], aOtherFrom: ['int', 70], aWork: ['kr', 0], aWorkEnd: ['int', 67],
+  bAgeDiff: ['int', 0], bFp: ['int', 70], bOther: ['kr', 0], bOtherFrom: ['int', 70], bWork: ['kr', 0], bWorkEnd: ['int', 67],
+  kommune: ['pct', 0.2505], kirke: ['pct', 0], realafkast: ['pct', 0],
+  sGrund: ['kr', 90528], sTillEnlig: ['kr', 104748], sTillPar: ['kr', 53604], sFradragEnlig: ['kr', 99200], sFradragPar: ['kr', 198800],
+  sAftrapEnlig: ['pct', 0.309], sAftrapBegge: ['pct', 0.16], sAftrapEn: ['pct', 0.32], sAndel: ['pct', 0.46],
+  sPf: ['kr', 54100], sBund: ['pct', 0.1201], sMellem: ['pct', 0.075], sMellemGr: ['kr', 641200],
+  sTop: ['pct', 0.075], sTopGr: ['kr', 777900], sToptop: ['pct', 0.05], sToptopGr: ['kr', 2592700],
+  sLoft: ['pct', 0.4457], sAm: ['pct', 0.08], sAfgift: ['pct', 0.40],
+};
+const STORE = 'kapital-eller-rate-v1';
+
+function fmtField(type, v) { return type === 'kr' ? num(v) : type === 'pct' ? pctIn(v) : String(v); }
+function parseField(type, s) {
+  s = String(s).replace(/−/g, '-').trim();
+  if (type === 'kr') { const n = Number(s.replace(/[^\d-]/g, '')); return Number.isFinite(n) ? n : 0; }
+  if (type === 'pct') { const n = Number(s.replace(/[\s%]/g, '').replace(',', '.')); return Number.isFinite(n) ? n / 100 : 0; }
+  const n = parseInt(s, 10); return Number.isFinite(n) ? n : 0;
+}
+function setAll(values) {
+  for (const [id, [type, def]] of Object.entries(FIELDS)) $(id).value = fmtField(type, values && id in values ? values[id] : def);
+  const civil = (values && values.civil) || 'enlig';
+  document.querySelector(`input[name="civil"][value="${civil}"]`).checked = true;
+}
+function readAll() {
+  const v = {};
+  for (const [id, [type]] of Object.entries(FIELDS)) v[id] = parseField(type, $(id).value);
+  v.civil = document.querySelector('input[name="civil"]:checked').value;
+  return v;
+}
+const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+
+function build(v) {
+  const earliest = clamp(v.earliest, 50, 90);
+  const inp = {
+    civil: v.civil, kapital: Math.max(0, v.kapital), earliest, fee: clamp(v.fee, 0, Math.max(0, v.kapital)),
+    convStart: Math.max(earliest, clamp(v.convStart, 50, 100)), convYears: clamp(v.convYears, 10, 30),
+    realafkast: clamp(v.realafkast, -0.05, 0.1),
+    rates: [
+      { saldo: Math.max(0, v.r1saldo), start: v.r1start, years: clamp(v.r1years, 1, 30) },
+      { saldo: Math.max(0, v.r2saldo), start: v.r2start, years: clamp(v.r2years, 1, 30) },
+    ],
+    A: { fp: v.aFp, other: Math.max(0, v.aOther), otherFrom: v.aOtherFrom, work: Math.max(0, v.aWork), workEnd: v.aWorkEnd },
+    B: { fp: v.bFp, other: Math.max(0, v.bOther), otherFrom: v.bOtherFrom, work: Math.max(0, v.bWork), workEnd: v.bWorkEnd },
+    ageDiff: clamp(v.bAgeDiff, -30, 30), kommune: v.kommune, kirke: v.kirke,
+  };
+  const S = {
+    grund: v.sGrund, tillEnlig: v.sTillEnlig, tillPar: v.sTillPar, fradragEnlig: v.sFradragEnlig, fradragPar: v.sFradragPar,
+    aftrapEnlig: v.sAftrapEnlig, aftrapBegge: v.sAftrapBegge, aftrapEn: v.sAftrapEn, andel: v.sAndel,
+    pf: v.sPf, bund: v.sBund, mellem: v.sMellem, mellemGr: v.sMellemGr, top: v.sTop, topGr: v.sTopGr,
+    toptop: v.sToptop, toptopGr: v.sToptopGr, loft: v.sLoft, am: v.sAm, afgift: v.sAfgift,
+  };
+  return { inp, S };
+}
+
+/* ---------- Resultat ---------- */
+function renderVerdict(res, inp, S) {
+  $('vKap').textContent = kr(res.kapital);
+  $('vKapNote').textContent = `netto efter ${pct(S.afgift, 0)} afgift`;
+  $('vRate').textContent = kr(res.pv);
+  $('vRateNote').textContent = `effektiv skat ${pct(res.effTax)}` + (inp.fee > 0 ? ' inkl. gebyr' : '') + (inp.realafkast !== 0 ? ', nutidsværdi' : '');
+  $('vDiff').textContent = skr(res.diff);
+  const pill = $('vPill'), small = Math.abs(res.diff) < Math.max(1000, 0.005 * inp.kapital);
+  pill.className = 'pill ' + (small ? 'neu' : res.diff > 0 ? 'pos' : 'neg');
+  pill.innerHTML = small ? '<span class="mk">●</span>Næsten lige gode' : res.diff > 0 ? '<span class="mk">▲</span>Ratepension bedst' : '<span class="mk">▼</span>Kapitalpension bedst';
+  const who = inp.civil === 'enlig' ? 'opspareren' : 'husstanden';
+  const lead = `Laves de ${kr(inp.kapital)} om til en ratepension fra ${inp.convStart} år over ${inp.convYears} år, beholder ${who} ${kr(res.pv)} efter ${inp.fee > 0 ? 'gebyr, skat' : 'skat'} og modregning.`;
+  const tail = small ? ` Det er stort set det samme som de ${kr(res.kapital)}, kapitalpensionen giver.`
+    : res.diff > 0 ? ` Det er ${kr(res.diff)} mere end kapitalpensionen. Den effektive skat er ${pct(res.effTax)} mod ${pct(S.afgift, 0)}.`
+    : ` Det er ${kr(-res.diff)} mindre end kapitalpensionen. Den effektive skat er ${pct(res.effTax)} mod ${pct(S.afgift, 0)}.`;
+  const feeTxt = res.feeCost > 0.5 ? ` Overførselsgebyret på ${kr(inp.fee)} trækker ${kr(res.feeCost)} fra efter skat.` : '';
+  $('summary').textContent = lead + tail + feeTxt;
+}
+
+/* ---------- Søjlediagram: hvor går raten hen ---------- */
+function topRounded(x, y, w, h, cls) {
+  const r = Math.min(4, h, w / 2);
+  return `<path class="${cls}" d="M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z"/>`;
+}
+let stackRows = [];
+function renderStack(res, inp, S) {
+  const box = $('stackChart');
+  const W = Math.max(300, box.clientWidth), H = 268;
+  const m = { l: 42, r: 62, t: 12, b: 40 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const n = res.rows.length, band = pw / n, bw = Math.min(24, band * 0.62);
+  const y = v => m.t + ph * (1 - v);
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Fordeling af den omdannede rate pr. år">`;
+  for (const v of [0, 0.25, 0.5, 0.75, 1]) {
+    s += `<line class="${v === 0 ? 'baseline' : 'gridline'}" x1="${m.l}" x2="${m.l + pw}" y1="${y(v)}" y2="${y(v)}"/>`;
+    s += `<text class="tick" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v * 100} %</text>`;
+  }
+  const step = Math.max(1, Math.ceil(28 / band));
+  res.rows.forEach((row, i) => {
+    const x = m.l + band * i + (band - bw) / 2, p = row.pay || 1;
+    const parts = [['s-net', Math.max(0, row.dNet) / p], ['s-tax', Math.max(0, row.dTax) / p], ['s-till', Math.max(0, row.dTill) / p]]
+      .filter(q => q[1] > 0.0005);
+    let acc = 0;
+    parts.forEach(([cls, share], j) => {
+      const top = y(acc + share), bottom = y(acc) - (j > 0 ? 2 : 0); acc += share;
+      const h = bottom - top; if (h <= 0.3) return;
+      s += j === parts.length - 1 ? topRounded(x, top, bw, h, cls) : `<rect class="${cls}" x="${x}" y="${top}" width="${bw}" height="${h}"/>`;
+    });
+    if (i % step === 0 || i === n - 1) s += `<text class="tick" x="${m.l + band * (i + 0.5)}" y="${m.t + ph + 16}" text-anchor="middle">${row.a}</text>`;
+    s += `<rect class="hit" data-i="${i}" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ph}"/>`;
+  });
+  const yr = y(1 - S.afgift);
+  s += `<line class="refline" x1="${m.l}" x2="${m.l + pw + 6}" y1="${yr}" y2="${yr}"/>`;
+  s += `<text class="reflabel" x="${m.l + pw + 10}" y="${yr - 3}">Kapital</text><text class="reflabel" x="${m.l + pw + 10}" y="${yr + 11}">${pct(1 - S.afgift, 0)}</text>`;
+  s += `<text class="axis-title" x="${m.l + pw / 2}" y="${H - 4}" text-anchor="middle">Opsparerens alder</text>`;
+  s += '</svg>';
+  const tip = $('stackTip');
+  box.innerHTML = s; box.appendChild(tip); tip.hidden = true;
+  stackRows = res.rows;
+  $('refKey').textContent = `Kapitalpension: ${pct(1 - S.afgift, 0)} netto`;
+}
+function stackTipHtml(row, couple) {
+  const p = row.pay || 1;
+  const line = (c, l, v) => `<div class="k"><i style="background:var(${c})"></i><span>${l}</span><span>${num(v)} kr.</span></div>`;
+  return `<b>Alder ${row.a}</b>${couple ? ` · partner ${row.b}` : ''}<br>Rate ${kr(row.pay)} · beholdes ${pct(row.dNet / p)}` +
+    line('--s-net', 'Beholdes', row.dNet) + line('--s-tax', 'Ekstra skat', row.dTax) + line('--s-till', 'Mistet tillæg', row.dTill);
+}
+
+/* ---------- Varmekort: start × periode ---------- */
+let heatData = null;
+function levelClass(v, maxAbs, tiny) {
+  if (Math.abs(v) < tiny || maxAbs === 0) return 'c-mid';
+  const lv = Math.min(5, Math.max(1, Math.ceil(Math.abs(v) / maxAbs * 5)));
+  return (v > 0 ? 'c-pos-' : 'c-neg-') + lv;
+}
+function renderHeat(inp, S) {
+  const starts = [], years = [];
+  for (let a = inp.earliest; a <= inp.earliest + 13; a++) starts.push(a);
+  for (let n = 10; n <= 30; n++) years.push(n);
+  const grid = starts.map(a => years.map(n => evaluate(inp, S, a, n)));
+  let maxAbs = 0, best = { i: 0, j: 0, v: -Infinity };
+  grid.forEach((r, i) => r.forEach((c, j) => { maxAbs = Math.max(maxAbs, Math.abs(c.diff)); if (c.diff > best.v + 0.5) best = { i, j, v: c.diff }; }));
+  const tiny = Math.max(1000, 0.005 * inp.kapital);
+  const box = $('heatChart');
+  const W = Math.max(300, box.clientWidth);
+  const m = { l: 48, r: 6, t: 6, b: 40 };
+  const cw = (W - m.l - m.r) / years.length, ch = W < 480 ? 16 : 20;
+  const H = m.t + ch * starts.length + m.b;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Forskel mellem rate og kapital for startalder og udbetalingsperiode">`;
+  grid.forEach((r, i) => {
+    r.forEach((c, j) => {
+      s += `<rect class="cell ${levelClass(c.diff, maxAbs, tiny)}" data-i="${i}" data-j="${j}" x="${m.l + j * cw + 1}" y="${m.t + i * ch + 1}" width="${Math.max(1, cw - 2)}" height="${ch - 2}" rx="2"/>`;
+    });
+    if (ch >= 18 || i % 2 === 0) s += `<text class="tick" x="${m.l - 8}" y="${m.t + i * ch + ch / 2 + 4}" text-anchor="end">${starts[i]}</text>`;
+  });
+  years.forEach((n, j) => { if (n % 5 === 0) s += `<text class="tick" x="${m.l + j * cw + cw / 2}" y="${m.t + ch * starts.length + 15}" text-anchor="middle">${n}</text>`; });
+  const si = starts.indexOf(inp.convStart), sj = years.indexOf(inp.convYears);
+  if (si >= 0 && sj >= 0) s += `<rect class="sel" x="${m.l + sj * cw}" y="${m.t + si * ch}" width="${cw}" height="${ch}" rx="3"/>`;
+  s += `<circle class="best" cx="${m.l + best.j * cw + cw / 2}" cy="${m.t + best.i * ch + ch / 2}" r="3.5"/>`;
+  s += `<text class="axis-title" x="${m.l + (W - m.l - m.r) / 2}" y="${H - 4}" text-anchor="middle">Udbetalingsperiode (år)</text>`;
+  s += `<text class="axis-title" transform="translate(10 ${m.t + ch * starts.length / 2}) rotate(-90)" text-anchor="middle">Startalder</text>`;
+  s += '</svg>';
+  const tip = $('heatTip');
+  box.innerHTML = s; box.appendChild(tip); tip.hidden = true;
+  heatData = { starts, years, grid };
+
+  const sw = k => `<i style="background:var(--${k})"></i>`;
+  $('heatScale').innerHTML = `<span>Kapital bedst</span><span class="bar">${[5, 4, 3, 2, 1].map(k => sw('neg-' + k)).join('')}${sw('div-mid')}${[1, 2, 3, 4, 5].map(k => sw('pos-' + k)).join('')}</span><span>Rate bedst</span><span style="color:var(--muted)">· mørkeste felt ≈ ${skr(maxAbs).replace('+', '±')} · ● bedste valg · ramme = dit valg</span>`;
+  const b = grid[best.i][best.j];
+  const isCur = starts[best.i] === inp.convStart && years[best.j] === inp.convYears;
+  $('bestLine').innerHTML = best.v > tiny
+    ? `<b>Bedst i oversigten:</b> start ved ${starts[best.i]} år over ${years[best.j]} år giver ${skr(b.diff)} mod kapitalpensionen (effektiv skat ${pct(b.effTax)}).` + (isCur ? ' Det er det, du har valgt.' : '')
+    : `<b>Ingen kombination slår kapitalpensionen tydeligt.</b> Den bedste er start ved ${starts[best.i]} år over ${years[best.j]} år med ${skr(b.diff)}.`;
+}
+
+/* ---------- Zoner ---------- */
+function renderZones(inp, S) {
+  const t = S.bund + inp.kommune + inp.kirke, af = S.afgift;
+  const z = (lab, rate) => ({ lab, rate });
+  let rows;
+  if (inp.civil === 'enlig') {
+    const stop = S.fradragEnlig + S.tillEnlig / S.aftrapEnlig;
+    rows = [
+      z(`Samlet indkomst under personfradraget (${num(S.pf)} kr.)`, 0),
+      z(`Før folkepension, eller anden indkomst under ${num(S.fradragEnlig)} kr.`, t),
+      z(`Anden indkomst ${num(S.fradragEnlig)}–${num(round100(stop))} kr. (tillægget falder ${pct(S.aftrapEnlig)})`, 1 - (1 - S.aftrapEnlig) * (1 - t)),
+      z(`Anden indkomst over ${num(round100(stop))} kr. (intet tillæg tilbage)`, t),
+    ];
+  } else {
+    const stopBoth = S.fradragPar + S.tillPar / S.aftrapBegge, stopOne = S.fradragPar + S.tillPar / S.aftrapEn;
+    rows = [
+      z(inp.civil === 'gift' ? `Begge har tilsammen under ${num(2 * S.pf)} kr. (to personfradrag)` : `Opspareren har under ${num(S.pf)} kr. (eget personfradrag)`, 0),
+      z(`Ingen er pensionister, eller fælles grundlag under ${num(S.fradragPar)} kr.`, t),
+      z(`Kun partneren er pensionist: ${pct(S.andel, 0)} af opsparerens indkomst tæller, tillægget falder ${pct(S.aftrapEn, 0)}`, t + S.andel * S.aftrapEn * (1 - t)),
+      z(`Begge er pensionister, grundlag ${num(S.fradragPar)}–${num(round100(stopBoth))} kr. (${pct(S.aftrapBegge, 0)} i hvert tillæg)`, 1 - (1 - 2 * S.aftrapBegge) * (1 - t)),
+      z(`Kun opspareren er pensionist, grundlag ${num(S.fradragPar)}–${num(round100(stopOne))} kr. (${pct(S.aftrapEn, 0)})`, 1 - (1 - S.aftrapEn) * (1 - t)),
+    ];
+  }
+  const scaleMax = 0.75, w = v => Math.min(100, v / scaleMax * 100);
+  let h = '';
+  for (const r of rows) {
+    const good = r.rate < af - 0.0005, bad = r.rate > af + 0.0005;
+    h += `<tr><td>${r.lab}</td><td class="rate"><div class="meter"><span>${pct(r.rate)}</span><span class="track"><i class="${good ? 'pos' : 'neg'}" style="width:${w(r.rate)}%"></i><b style="left:${w(af)}%"></b></span></div></td>` +
+      `<td class="st"><span class="pill ${good ? 'pos' : bad ? 'neg' : 'neu'}">${good ? 'Rate bedst' : bad ? 'Kapital bedst' : 'Lige'}</span></td></tr>`;
+  }
+  h += `<tr class="ref"><td>Kapitalpension, uanset indkomst</td><td class="rate"><div class="meter"><span>${pct(af)}</span><span class="track"><i class="ref" style="width:${w(af)}%"></i></span></div></td><td class="st"></td></tr>`;
+  $('zones').innerHTML = h;
+  const tops = `Over ${num(S.mellemGr)} kr. kommer mellemskat oven i, over ${num(S.topGr)} kr. topskat.`;
+  $('zonesFoot').textContent = (inp.civil === 'enlig'
+    ? 'Satserne gælder den sidste krone, så længe den bliver i samme zone. '
+    : 'For par antages begge at have samme marginalskat. Grundlaget er parrets samlede indkomst ud over folkepension og arbejdsindkomst. ') + tops;
+}
+
+/* ---------- Tabel ---------- */
+function renderTable(res, inp) {
+  const couple = inp.civil !== 'enlig';
+  const status = r => couple ? (r.pA && r.pB ? 'Begge' : r.pA ? 'Opsparer' : r.pB ? 'Partner' : 'Ingen') : (r.pA ? 'Ja' : 'Nej');
+  const basis = (v, f) => v == null ? '–' : `<span class="${v > f + 0.5 ? 'over' : ''}">${num(v)}</span>`;
+  let h = `<thead><tr><th>Alder</th>${couple ? '<th>Partner</th>' : ''}<th class="l">Folkepension</th><th>Grundlag uden</th><th>Grundlag med</th><th>Fradragsbeløb</th><th>Rate</th><th>Ekstra skat</th><th>Mistet tillæg</th><th>Beholdes</th><th>Effektiv skat</th></tr></thead><tbody>`;
+  let sp = 0, st = 0, sm = 0, sn = 0;
+  for (const r of res.rows) {
+    sp += r.pay; st += r.dTax; sm += r.dTill; sn += r.dNet;
+    h += `<tr><td>${r.a}</td>${couple ? `<td>${r.b}</td>` : ''}<td class="l"><span class="chip">${status(r)}</span></td>` +
+      `<td>${basis(r.basisWithout, r.fradrag)}</td><td>${basis(r.basisWith, r.fradrag)}</td><td>${r.fradrag == null ? '–' : num(r.fradrag)}</td>` +
+      `<td>${num(r.pay)}</td><td>${num(r.dTax)}</td><td>${num(r.dTill)}</td><td>${num(r.dNet)}</td><td>${r.pay ? pct(1 - r.dNet / r.pay) : '–'}</td></tr>`;
+  }
+  h += `<tr class="sum"><td>I alt</td>${couple ? '<td></td>' : ''}<td></td><td></td><td></td><td></td><td>${num(sp)}</td><td>${num(st)}</td><td>${num(sm)}</td><td>${num(sn)}</td><td>${sp ? pct(1 - sn / sp) : '–'}</td></tr></tbody>`;
+  $('years').innerHTML = h;
+}
+
+/* ---------- Samlet opdatering ---------- */
+let current = null;
+function update() {
+  const v = readAll();
+  try { localStorage.setItem(STORE, JSON.stringify(v)); } catch (e) { /* ikke afgørende */ }
+  const { inp, S } = build(v);
+  const couple = inp.civil !== 'enlig';
+  $('partnerSet').hidden = !couple;
+  $('civilHint').textContent = couple
+    ? `Par: fælles fradragsbeløb ${num(S.fradragPar)} kr. ${pct(S.aftrapBegge, 0)} aftrapning i hvert tillæg, når begge er pensionister, ${pct(S.aftrapEn, 0)} når kun én er.` + (inp.civil === 'gift' ? ' Personfradrag kan overføres.' : ' Personfradrag kan ikke overføres.')
+    : `Enlig: ${pct(S.aftrapEnlig)} aftrapning af tillægget over ${num(S.fradragEnlig)} kr.`;
+  const warn = $('convWarn');
+  if (v.convStart < inp.earliest) { warn.hidden = false; warn.textContent = `Raten kan tidligst starte ved ${inp.earliest} år. Beregnet fra ${inp.earliest}.`; }
+  else if (v.convYears !== inp.convYears) { warn.hidden = false; warn.textContent = `En ratepension udbetales over 10–30 år. Beregnet over ${inp.convYears} år.`; }
+  else warn.hidden = true;
+  const res = evaluate(inp, S);
+  res.feeCost = inp.fee > 0 ? evaluate(Object.assign({}, inp, { fee: 0 }), S).pv - res.pv : 0;
+  current = { inp, S, res };
+  renderVerdict(res, inp, S);
+  renderStack(res, inp, S);
+  renderHeat(inp, S);
+  renderZones(inp, S);
+  renderTable(res, inp);
+}
+
+/* ---------- Tooltips ---------- */
+function placeTip(tip, box, ev) {
+  const rb = box.getBoundingClientRect();
+  tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let x = ev.clientX - rb.left + 14, y = ev.clientY - rb.top - th - 10;
+  if (x + tw > rb.width) x = ev.clientX - rb.left - tw - 14;
+  if (x < 0) x = 0;
+  if (y < 0) y = ev.clientY - rb.top + 16;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function stackHover(ev) {
+  const box = $('stackChart'), tip = $('stackTip'), t = ev.target;
+  box.querySelectorAll('.hit.on').forEach(e => e !== t && e.classList.remove('on'));
+  if (!t.classList || !t.classList.contains('hit')) { tip.hidden = true; return; }
+  t.classList.add('on');
+  tip.innerHTML = stackTipHtml(stackRows[+t.dataset.i], current.inp.civil !== 'enlig');
+  placeTip(tip, box, ev);
+}
+['pointermove', 'pointerdown'].forEach(type => $('stackChart').addEventListener(type, stackHover));
+$('stackChart').addEventListener('pointerleave', () => { $('stackTip').hidden = true; $('stackChart').querySelectorAll('.hit.on').forEach(e => e.classList.remove('on')); });
+function heatHover(ev) {
+  const box = $('heatChart'), tip = $('heatTip'), t = ev.target;
+  if (!t.classList || !t.classList.contains('cell') || !heatData) { tip.hidden = true; return; }
+  const i = +t.dataset.i, j = +t.dataset.j, c = heatData.grid[i][j];
+  tip.innerHTML = `<b>Start ${heatData.starts[i]} år · ${heatData.years[j]} år</b><br>Som rate: ${kr(c.pv)}<br>Mod kapital: ${skr(c.diff)}<br>Effektiv skat: ${pct(c.effTax)}`;
+  placeTip(tip, box, ev);
+}
+['pointermove', 'pointerdown'].forEach(type => $('heatChart').addEventListener(type, heatHover));
+$('heatChart').addEventListener('pointerleave', () => { $('heatTip').hidden = true; });
+$('heatChart').addEventListener('click', ev => {
+  const t = ev.target;
+  if (!t.classList || !t.classList.contains('cell')) return;
+  $('convStart').value = heatData.starts[+t.dataset.i];
+  $('convYears').value = heatData.years[+t.dataset.j];
+  update();
+});
+
+/* ---------- Forklaringer ---------- */
+const INFO = {
+  kapital: 'Saldoen på kapitalpensionen ved tidligste udbetaling. Som kapitalpension udbetales den med 40 % afgift. Udbetalingen tæller ikke som indkomst og påvirker hverken skat eller folkepension.',
+  earliest: 'Den tidligste alder, hvor kapitalpensionen kan udbetales. For ordninger oprettet efter maj 2007 følger den typisk efterlønsalderen, som ligger 3 år før folkepensionsalderen. Varmekortet starter ved denne alder, og nutidsværdier regnes til den.',
+  convStart: 'Den alder, hvor den omdannede ratepension begynder at udbetale. Den kan ikke ligge før tidligste udbetaling. Udbetalinger før folkepensionen bliver ikke modregnet i pensionstillægget.',
+  convYears: 'Antal år, ratepensionen udbetales over. Den skal udbetales over mindst 10 og højst 30 år. Flere år giver mindre rater. Så er det lettere at holde den samlede indkomst under fradragsbeløbet for pensionstillægget.',
+  fee: 'Gebyr for at flytte kapitalpensionen fra Velliv til PFA. Det trækkes fra opsparingen, før den laves om til rater. Derfor koster det reelt gebyret minus den skat, der ellers skulle betales af beløbet. Sæt 0, hvis kapitalpensionen omdannes uden at flytte.',
+  r1saldo: 'Saldoen på ratepensionen hos Velliv ved udbetalingsstart. Raterne lægges sammen med den omdannede rate, fordi de deler skat og modregning i pensionstillægget. Sæt 0, hvis den ikke findes.',
+  r1start: 'Den alder, hvor ratepensionen hos Velliv begynder at udbetale.',
+  r1years: 'Antal år, ratepensionen hos Velliv udbetales over. Normalt 10–30 år.',
+  r2saldo: 'Saldoen på ratepensionen hos PFA ved udbetalingsstart. Raterne lægges sammen med den omdannede rate, fordi de deler skat og modregning i pensionstillægget. Sæt 0, hvis den ikke findes.',
+  r2start: 'Den alder, hvor ratepensionen hos PFA begynder at udbetale.',
+  r2years: 'Antal år, ratepensionen hos PFA udbetales over. Normalt 10–30 år.',
+  aFp: 'Den alder, hvor opspareren får folkepension. Den afhænger af fødselsåret og er fx 67, 68, 69 eller 70 år. Fra denne alder kommer grundbeløb og pensionstillæg med i beregningen, og ratepension kan sætte tillægget ned.',
+  aOther: 'Andre løbende, skattepligtige pensioner til opspareren pr. år, fx ATP og livrenter. De tæller med i grundlaget for pensionstillægget og i skatten. Beløbet antages at fortsætte livet ud.',
+  aOtherFrom: 'Den alder, hvor opsparerens anden pension begynder.',
+  aWork: 'Opsparerens løn pr. år før AM-bidrag. Den bruger personfradraget og kan hæve skatten på raterne. Den modregnes ikke i pensionstillægget.',
+  aWorkEnd: 'Opspareren arbejder til og med året før denne alder.',
+  bAgeDiff: 'Hvor mange år partneren er ældre end opspareren. Skriv et negativt tal, hvis partneren er yngre. Det bestemmer, hvornår partneren bliver pensionist i forhold til opspareren.',
+  bFp: 'Partnerens folkepensionsalder i partnerens egen alder. Er kun den ene i parret pensionist, falder tillægget med 32 %, og kun 46 % af den andens indkomst tæller med. Er begge pensionister, falder hvert tillæg med 16 %.',
+  bOther: 'Partnerens løbende pensioner pr. år, fx ATP og ratepension. De tæller med i parrets fælles grundlag for pensionstillægget.',
+  bOtherFrom: 'Partnerens alder, når partnerens pension begynder.',
+  bWork: 'Partnerens løn pr. år før AM-bidrag. Den modregnes ikke i pensionstillægget, men bruger partnerens personfradrag. For gifte betyder det, at opsparerens ubrugte personfradrag kan overføres til partneren.',
+  bWorkEnd: 'Partneren arbejder til og med året før denne alder, regnet i partnerens egen alder.',
+  kommune: 'Kommuneskatten i den kommune, hvor man bor. Gennemsnittet i 2026 er ca. 25,05 %. Satsen bruges også for partneren.',
+  kirke: 'Kirkeskat, hvis man er medlem af folkekirken. Sæt 0, hvis man ikke er medlem.',
+  realafkast: 'Årligt afkast efter inflation, PAL-skat og omkostninger. Ved 0 % er alle beløb i dagens kroner. Ved et andet tal udbetales raterne som annuitet, og alle beløb regnes om til nutidsværdi ved tidligste udbetaling.',
+  sGrund: 'Folkepensionens grundbeløb pr. år, 7.544 kr. om måneden i 2026. Det afhænger ikke af anden indkomst og er derfor det samme med og uden raten. Det er skattepligtigt og bruger personfradraget.',
+  sAfgift: 'Afgiften på udbetaling fra kapitalpension. Den er 40 % og endelig.',
+  sTillEnlig: 'Fuldt pensionstillæg pr. år for en enlig, 8.729 kr. om måneden i 2026. Det sættes ned, når anden indkomst er over fradragsbeløbet.',
+  sTillPar: 'Fuldt pensionstillæg pr. år pr. person for gifte og samlevende, 4.467 kr. om måneden i 2026.',
+  sFradragEnlig: 'Den anden indkomst, en enlig pensionist kan have, før tillægget sættes ned. 99.200 kr. i 2026.',
+  sFradragPar: 'Den samlede anden indkomst, et par kan have, før tillægget sættes ned. 198.800 kr. i 2026.',
+  sAftrapEnlig: 'Hvor meget en enligs tillæg falder for hver krone over fradragsbeløbet.',
+  sAftrapBegge: 'Er begge pensionister, falder hvert tillæg med denne sats. For husstanden er det dobbelt.',
+  sAftrapEn: 'Er kun den ene pensionist, falder dennes tillæg med denne sats.',
+  sAndel: 'Er partneren ikke pensionist, tæller kun denne andel af partnerens indkomst uden AM-bidrag med i den pensioneredes grundlag.',
+  sPf: 'Personfradraget pr. person. Indkomst op til fradraget er fri for bund-, kommune- og kirkeskat. Gifte kan overføre et ubrugt fradrag til hinanden.',
+  sBund: 'Bundskat af personlig indkomst over personfradraget.',
+  sMellem: 'Mellemskat, den tidligere topskat, af personlig indkomst over grænsen.',
+  sMellemGr: 'Den personlige indkomst, hvor mellemskatten begynder. Kun relevant ved høje indkomster.',
+  sTop: 'Topskat af personlig indkomst over grænsen. Ny fra 2026.',
+  sTopGr: 'Den personlige indkomst, hvor topskatten begynder.',
+  sToptop: 'Toptopskat af personlig indkomst over grænsen.',
+  sToptopGr: 'Den personlige indkomst, hvor toptopskatten begynder.',
+  sLoft: 'Skatteloftet begrænser kommune-, bund- og mellemskat på den sidste krone til denne sats. Kirkeskat er ikke med.',
+  sAm: 'Arbejdsmarkedsbidrag af løn. Det trækkes fra, før skatten beregnes. Pensioner betaler ikke AM-bidrag.',
+};
+function setupInfo() {
+  for (const [id, text] of Object.entries(INFO)) {
+    const input = $(id); if (!input) continue;
+    const f = input.closest('.f'), label = f.querySelector('label');
+    const labrow = document.createElement('div'); labrow.className = 'labrow';
+    f.insertBefore(labrow, label); labrow.appendChild(label);
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'info'; btn.textContent = 'i';
+    btn.setAttribute('aria-label', 'Forklaring: ' + label.textContent);
+    btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'info-' + id);
+    labrow.appendChild(btn);
+    const p = document.createElement('p');
+    p.className = 'info-text'; p.id = 'info-' + id; p.hidden = true; p.textContent = text;
+    f.after(p);
+    btn.addEventListener('click', () => { const open = p.hidden; p.hidden = !open; btn.setAttribute('aria-expanded', String(open)); });
+  }
+}
+
+/* ---------- Opstart ---------- */
+let timer = null;
+$('form').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(update, 60); });
+$('form').addEventListener('submit', ev => ev.preventDefault());
+for (const [id, [type]] of Object.entries(FIELDS)) {
+  if (type !== 'int') $(id).addEventListener('blur', () => { $(id).value = fmtField(type, parseField(type, $(id).value)); });
+}
+$('reset').addEventListener('click', () => { setAll(null); update(); });
+let saved = null;
+try { saved = JSON.parse(localStorage.getItem(STORE) || 'null'); } catch (e) { saved = null; }
+setupInfo();
+setAll(saved);
+update();
+let rz = null;
+new ResizeObserver(() => { clearTimeout(rz); rz = setTimeout(() => { if (current) { renderStack(current.res, current.inp, current.S); renderHeat(current.inp, current.S); } }, 80); }).observe($('stackChart').parentElement);
+</script>

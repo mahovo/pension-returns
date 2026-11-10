@@ -1,0 +1,55 @@
+# Publish the landing page and the documents it links to on each push to main.
+#
+# Nothing is rendered here. The reports need the simulation caches and the
+# pinned ggplot2 in .Rlib_pin, which are git-ignored, so they are knitted
+# locally and the committed output is deployed as it is.
+#
+# The site is index.html plus every local file it links to. To publish another
+# document, add a card for it to index.html. A link to a file that is not
+# committed fails the build, and the site stays at the last good version.
+
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time; let a running one finish rather than half-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Assemble the site
+        run: |
+          # Local links only: no scheme, no fragment, no query string.
+          files=$(grep -oE 'href="[^"#:?]+"' index.html | cut -d'"' -f2 | sort -u)
+          mkdir _site
+          cp --parents index.html $files _site/
+          find _site -type f | sort
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
